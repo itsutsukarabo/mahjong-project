@@ -1,6 +1,8 @@
 # SANMA RULES DRAFT — 三麻メインルールセットの論点整理（Q-001）
 
 状態：**論点整理のみ。決定はしない**（オーナーが決める）。
+
+> 2026-11-22 追記：メインは天鳳三麻相当、次点は雀魂三麻相当に決定（D-011）。各項目の値と出典は `docs/spec/RULES_PRESETS.md`、キー名は `crates/mj-core/src/rules.rs`。本書の B5（c）「加符」は定義が曖昧なため `Rules` には入れていない（`standard` / `loss` / `split` のみ）。
 決まった項目は `docs/DECISIONS.md` に移し、エンジンの `Rules` 構造体の既定値にする。
 
 ## 読み方

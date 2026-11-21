@@ -1,0 +1,96 @@
+# 雀魂三麻相当（段位戦 三人麻雀）— 次点のプリセット（D-011）
+#
+# 出典：雀魂公式 X アカウント @MahjongSoul_JP の投稿（項目ごとの URL は docs/spec/RULES_PRESETS.md）
+# 雀魂のルール説明はゲーム内（段位戦「～の間」の「！」）にあり、公式サイトのウェブページからは
+# 本文を取得できなかった（2026-11-22）。そのため確認できた項目はわずかで、残りは未確認。
+#
+# 公式説明で確認できない項目は書かない（meta.unconfirmed）。読み込むと RulesError::Missing になる。
+
+[meta]
+id = "mjsoul-sanma"
+name = "雀魂三麻相当（段位戦 三人麻雀）"
+unconfirmed = [
+    "table.length",
+    "table.extension",
+    "table.extension_last_wind",
+    "table.oorasu_stop",
+    "table.tobi",
+    "table.tie_break",
+    "table.leftover_kyotaku",
+    "points.starting",
+    "points.returning",
+    "points.uma",
+    "points.honba_ron",
+    "points.honba_tsumo_each",
+    "points.noten_penalty_total",
+    "points.riichi_deposit",
+    "points.kiriage_mangan",
+    "points.kazoe_yakuman",
+    "points.min_han",
+    "points.double_wind_pair_fu",
+    "points.rinshan_tsumo_fu",
+    "tiles.manzu",
+    "tiles.red_fives.m",
+    "tiles.red_fives.p",
+    "tiles.red_fives.s",
+    "wall.dora_indicator_slots",
+    "wall.rinshan_max",
+    "wall.reserve",
+    "calls.chi",
+    "calls.kuitan",
+    "calls.atozuke",
+    "calls.kuikae",
+    "calls.haitei_call",
+    "calls.max_ron",
+    "calls.multi_ron_deposit",
+    "riichi.min_points",
+    "riichi.requires_draw",
+    "riichi.furiten_riichi",
+    "riichi.ankan_after_riichi",
+    "riichi.no_deposit_on_deal_in",
+    "dora.ippatsu",
+    "dora.ura",
+    "dora.kan_dora",
+    "dora.kan_ura",
+    "dora.kan_dora_timing",
+    "kita.mandatory",
+    "kita.after_pon",
+    "kita.after_riichi",
+    "kita.breaks_ippatsu",
+    "kita.breaks_first_turn",
+    "kita.north_as_meld",
+    "draws.kyushu_kyuhai",
+    "draws.suukaikan",
+    "draws.all_riichi",
+    "draws.same_wind_discards",
+    "draws.all_ron",
+    "draws.abortive_renchan",
+    "draws.nagashi_mangan",
+    "draws.renchan",
+    "draws.keishiki_tenpai",
+    "draws.noten_declaration",
+    "yakuman.composite",
+    "yakuman.double_special",
+    "yakuman.pao",
+    "yakuman.pao_ron_split",
+    "yakuman.kokushi_ron_on_ankan",
+    "chips.enabled",
+]
+
+[table]
+num_players = 3
+extension_threshold = 40000      # 「1位が30000点(三人麻雀の場合は40000点)未満の場合南入(半荘戦の場合は西入)」
+tobi_single_kyoku = "none"       # 本プロジェクトの決定 D-012（雀魂のルールではない）
+
+[points]
+tsumo_payment = "loss"           # 「三人麻雀段位戦ではツモ損が有効です」
+
+[kita]
+mode = "nukidora"                # 「抜き北に対してロンできます」（抜き北があることを前提とした説明）
+ron = true                       # 「三人麻雀段位戦では役がある場合、抜き北に対してロンできますが、
+ron_counts_as_chankan = false    #   槍槓の役はつかない仕様となっている」
+
+[log_visibility]
+# 本プロジェクトの牌譜の既定値（雀魂のルールではない。LOG_FORMAT §5）
+ankan = "open"
+ryukyoku_reveal = "tenpai_only"

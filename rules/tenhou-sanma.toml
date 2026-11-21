@@ -1,0 +1,114 @@
+# 天鳳三麻相当（段位戦 3人打ち）
+#
+# 出典：天鳳マニュアル「ルール / 段位戦3人打ち」「ルール / 段位戦4人打ち」「役一覧」「ルール / 雀荘戦」
+#       https://tenhou.net/man/  （2026-11-22 取得）
+# 3人打ちの節は「段位戦4人打と異なる部分のみ記載」と明記されているので、3人打ちの節にない項目は
+# 4人打ちの節の記述を適用した。項目ごとの出典と根拠は docs/spec/RULES_PRESETS.md。
+#
+# 公式説明で確認できない項目は書かない（meta.unconfirmed）。読み込むと RulesError::Missing になる。
+# 天鳳の牌譜・データは参照していない（ルール説明のページのみ）。
+
+[meta]
+id = "tenhou-sanma"
+name = "天鳳三麻相当（段位戦3人打ち）"
+unconfirmed = [
+    "points.tsumo_payment",
+    "points.honba_ron",
+    "points.honba_tsumo_each",
+    "points.noten_penalty_total",
+    "points.riichi_deposit",
+    "table.extension_threshold",
+    "wall.reserve",
+    "kita.mandatory",
+    "kita.after_riichi",
+    "kita.ron_counts_as_chankan",
+    "draws.all_riichi",
+    "draws.same_wind_discards",
+    "draws.all_ron",
+    "draws.noten_declaration",
+]
+# 天鳳では卓ごとに選ぶ項目。値は「喰赤」卓・東南戦のもの
+owner_choice = ["table.length", "calls.kuitan", "tiles.red_fives.p", "tiles.red_fives.s"]
+
+[table]
+num_players = 3
+length = "hanchan"               # 東風戦/東南戦は卓で選ぶ（owner_choice）
+extension = "sudden_death"       # 4人打ち「東南戦の西入あり、以降サドンデスルールで終了」
+extension_last_wind = "west"     # 「最大局数=…三南:西3局」
+oorasu_stop = "auto"             # 「ラス親トップの自動和了り止め、自動聴牌止めあり」
+tobi = "below_zero"              # 「点数がマイナスで飛び終了…0点は続行」
+tobi_single_kyoku = "none"       # 本プロジェクトの決定 D-012（天鳳のルールではない）
+tie_break = "seat_order"         # 「終了時に同点の場合は東1局の風順で順位を決定」
+leftover_kyotaku = "top"         # 「終了時の供託はトップ取り」
+
+[points]
+starting = 35000                 # 3人打ち「35000開始の40000点返し」
+returning = 40000
+uma = [20000, 0, -20000]         # 3人打ち「順位ウマ +20, 0, -20」
+kiriage_mangan = false           # 雀荘戦の相違点に「切り上げ満貫」→ 段位戦はなし
+kazoe_yakuman = true             # 役一覧「数え役満は13翻以上」
+min_han = 1                      # 「2飜縛りなし/常に1飜縛り」
+double_wind_pair_fu = 4          # 「連風牌は4符」
+rinshan_tsumo_fu = true          # 「嶺上ツモも2符加算」
+
+[tiles]
+manzu = "terminals_only"         # 3人打ち「二萬～八萬を使用しない」、ドラは「一萬」↔「九萬」
+red_fives = { m = 0, p = 1, s = 1 }  # 4人打ち「赤ありルールでの枚数：各1枚」（5m は使わない）
+
+[wall]
+dora_indicator_slots = 5         # カンドラあり・四槓散了から最大 1+4 枚（直接の記載はない）
+rinshan_max = 8                  # 3人打ち「嶺上牌は8枚」
+
+[calls]
+chi = false                      # 3人打ち「チーはできない」
+kuitan = true                    # 4人打ち「喰い断なし/あり選択」→ 喰赤卓の値（owner_choice）
+atozuke = true                   # 「後付けあり」
+kuikae = "forbidden"             # 「喰い替えなし」
+haitei_call = false              # 「海底牌は鳴けない」
+max_ron = 2                      # 「ダブロンあり」
+multi_ron_deposit = "upstream"   # 「積み棒/供託は上家取り」
+
+[riichi]
+min_points = 1000                # 「リーチ宣言は得点が1000点以上でツモ巡がある場合に可能」
+requires_draw = true
+furiten_riichi = true            # 「振聴リーチあり」
+ankan_after_riichi = "wait_unchanged"  # 「待ちが変わらない場合のみ。送り槓不可、牌姿や役の増減は不問」
+no_deposit_on_deal_in = true     # 「リーチ宣言牌で放銃した場合は供託料は発生しない」
+
+[dora]
+ippatsu = true                   # 役一覧【懸賞】一発
+ura = true                       # 役一覧【懸賞】裏ドラ
+kan_dora = true                  # 「カンドラ/カン裏あり」
+kan_ura = true
+kan_dora_timing = "ankan_immediate"  # 「暗槓は即乗り、明槓/加槓は後めくり」
+
+[kita]
+mode = "nukidora"                # 3人打ち「北は抜きドラ」
+after_pon = false                # 「ポンの直後は抜けない」
+ron = true                       # 「抜いた北は役満以外でも和了可能」
+breaks_ippatsu = true            # 「抜きは鳴きと同じ扱い(一発/地和/九種/両立直は消える)」
+breaks_first_turn = true
+north_as_meld = "otakaze"        # 「北を面子で使用した場合はオタ風」
+
+[draws]
+kyushu_kyuhai = true             # 途中流局「九種九牌…四槓散了…」
+suukaikan = true
+abortive_renchan = true          # 「すべて連荘」
+nagashi_mangan = true            # 「流し満貫あり」
+renchan = "tenpai"               # 「ノーテン親流れ、聴牌連荘」
+keishiki_tenpai = true           # 「形式聴牌あり。5枚目を待つ聴牌あり」
+
+[yakuman]
+composite = true                 # 役一覧「役満は複合あり」
+double_special = false           # 「四暗刻単騎・国士無双十三面待ち等はすべてシングル役満」
+pao = ["daisangen", "daisuushii"]  # 「大三元/大四喜のパオあり」「四槓子のパオなし」
+pao_ron_split = true             # 「ツモ＝全額・ロン＝折半」
+kokushi_ron_on_ankan = false     # 「他家が暗槓した牌では国士無双はあがれない」
+
+[chips]
+enabled = false                  # 雀荘戦の相違点に「祝儀は一発/赤/裏/役満」→ 段位戦はなし
+
+[log_visibility]
+# 本プロジェクトの牌譜の既定値（天鳳のルールではない。LOG_FORMAT §5）
+ankan = "open"
+ryukyoku_reveal = "tenpai_only"
