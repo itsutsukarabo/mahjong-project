@@ -1,0 +1,25 @@
+{"game_id":"g-20261122-000001","kyoku_idx":-1,"event_idx":0,"type":"game_start","format_version":"0.1","visibility":"public","engine":{"name":"mahjong-core","version":"0.0.0","git":"0000000"},"rules":{"ruleset_id":"sanma-draft-0","num_players":3,"_note":"値は Q-001 未決のため仮。フィールド一覧は SANMA_RULES_DRAFT.md を参照","starting_points":35000,"kita":"nukidora","tsumo_loss":true,"red_fives":{"m":0,"p":1,"s":1},"chi":false,"length":"hanchan"},"seed":{"rng":"chacha8-v1"},"players":[{"seat":0,"name":"ai-ckpt-001200"},{"seat":1,"name":"ai-ckpt-000800"},{"seat":2,"name":"rulebot-v1"}]}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":0,"type":"kyoku_start","bakaze":"E","kyoku":1,"honba":0,"kyotaku":0,"oya":0,"scores":[35000,35000,35000],"dora_indicator":"1m","tehais":[["?","?","?","?","?","?","?","?","?","?","?","?","?"],["?","?","?","?","?","?","?","?","?","?","?","?","?"],["?","?","?","?","?","?","?","?","?","?","?","?","?"]],"wall_commit":"sha256:56954c4b43910559592433ad9b65de3a4f88eea5aad6eab5ea8f7bc1c791f0b1"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":1,"type":"tsumo","actor":0,"pai":"?"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":2,"type":"dahai","actor":0,"pai":"W","tsumogiri":false}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":3,"type":"tsumo","actor":1,"pai":"?"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":4,"type":"kita","actor":1,"pai":"N"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":5,"type":"tsumo","actor":1,"pai":"?","rinshan":true}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":6,"type":"dahai","actor":1,"pai":"1m","tsumogiri":true}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":7,"type":"tsumo","actor":2,"pai":"?"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":8,"type":"dahai","actor":2,"pai":"C","tsumogiri":false}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":9,"type":"pon","actor":0,"target":2,"pai":"C","consumed":["C","C"]}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":10,"type":"dahai","actor":0,"pai":"1m","tsumogiri":false}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":11,"type":"tsumo","actor":1,"pai":"?"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":12,"type":"reach","actor":1}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":13,"type":"dahai","actor":1,"pai":"8p","tsumogiri":false}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":14,"type":"reach_accepted","actor":1,"scores":[35000,34000,35000],"kyotaku":1}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":15,"type":"tsumo","actor":2,"pai":"?"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":16,"type":"dahai","actor":2,"pai":"F","tsumogiri":false}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":17,"type":"tsumo","actor":0,"pai":"?"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":18,"type":"dahai","actor":0,"pai":"P","tsumogiri":true}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":19,"type":"tsumo","actor":1,"pai":"?"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":20,"type":"dahai","actor":1,"pai":"9s","tsumogiri":true}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":21,"type":"hora","actor":0,"target":1,"pai":"9s","hand":{"tehai":["9m","9m","1p","2p","3p","4s","5s","6s","7s","8s"],"melds":[{"type":"pon","pai":"C","consumed":["C","C"],"target":2}]},"yaku":[{"id":"yakuhai_chun","han":1},{"id":"dora","han":2}],"han":3,"fu":30,"yakuman":0,"points":5800,"ura_indicators":[],"deltas":[6800,-5800,0],"scores":[41800,28200,35000]}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":22,"type":"kyoku_end","reason":"hora","scores":[41800,28200,35000],"kyotaku":0,"honba_next":1,"renchan":true}
+{"game_id":"g-20261122-000001","kyoku_idx":-1,"event_idx":1,"type":"game_end","scores":[41800,28200,35000],"ranks":[1,3,2],"note":"サンプルのため1局で打ち切り"}
