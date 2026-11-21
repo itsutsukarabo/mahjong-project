@@ -1,6 +1,19 @@
 # REPO LAYOUT — リポジトリ構成案
 
-状態：**案**（ディレクトリはまだ作らない）。前提：Q-002 は「自作」（`docs/research/ENGINE_SURVEY.md`）、Q-004 は未決（両案に対応できる形にする）。
+状態：**承認済み（D-015：モノレポ、crate 接頭辞 `mj-`）**。Q-002 は自作（D-010）、Q-004 は Phase 3 まで保留。
+
+## 0. いま作ってあるもの（2026-11-22）
+| パス | 中身 |
+|---|---|
+| `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` | cargo workspace（Rust 1.100.0 に固定） |
+| `crates/mj-core/` | `Rules`（全項目と祝儀、TOML プリセットから読み込み）、牌の型（三麻・四麻）、牌山生成（`chacha8-v1`）、シャンテン数と有効牌 |
+| `crates/mj-log/` | 牌譜 v0.2 の検証・`wall_commit`・`wall_salt`・redact（全情報→席視点/公開）、サンプルとゴールデンのテスト |
+| `tools/difftest-majiang/` | Rust の差分テスト本体（生成・比較・最小化）＋ `node/`（majiang-core 1.4.1 を呼ぶハーネス） |
+| `rules/` | プリセット（`tenhou-sanma.toml`, `mjsoul-sanma.toml`）。出典は `docs/spec/RULES_PRESETS.md` |
+| `fixtures/` | `rules/`（テスト専用のルール）、`golden/walls.json`（固定シードの牌山のハッシュ） |
+| `.github/workflows/` | `ci.yml`（プッシュ・PR、Ubuntu/Windows）、`nightly.yml`（差分テスト大規模版） |
+
+それ以外（mj-features, mj-sim, mj-py, mj-wasm, python/, web/ など）はまだ作っていない。
 
 ## 1. 全体像
 
@@ -44,8 +57,9 @@ mahjong-project/
 │
 ├─ server/                    # 対戦サーバー（Q-004 で Node を選んだ場合。Rust なら crates/mj-server）
 │
+├─ rules/                     # ルールプリセット（データファイル、D-011）
 ├─ tools/
-│  ├─ difftest-majiang/       # Node：majiang-core を呼ぶ差分テストハーネス（cases.jsonl → results.jsonl）
+│  ├─ difftest-majiang/       # Rust（生成・比較・最小化）＋ node/（majiang-core を呼ぶハーネス）
 │  └─ difftest-riichienv/     # Python：RiichiEnv（隔離環境）を呼ぶ三麻の差分テストハーネス
 │
 ├─ fixtures/                  # 回帰テストのケース（差分テストで見つかった最小ケース、ID 付き）

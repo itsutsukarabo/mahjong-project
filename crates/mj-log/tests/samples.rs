@@ -1,0 +1,138 @@
+//! LOG_FORMAT v0.2 のサンプル（docs/spec/samples/）を Rust 側でも検証する。
+//! Python の生成スクリプトと Rust の redact が同じ規則であることを、1行ずつの一致で確かめる。
+
+use mj_core::rules::{PresetFile, Rules};
+use mj_log::{
+    Viewer, canonical_json, event_key, parse_jsonl, redact, validate_annotations, validate_full,
+};
+use serde_json::Value;
+
+const FULL: &str = include_str!("../../../docs/spec/samples/sample_full.jsonl");
+const PUBLIC: &str = include_str!("../../../docs/spec/samples/sample_public.jsonl");
+const ANNOT: &str = include_str!("../../../docs/spec/samples/sample_annot.jsonl");
+
+#[test]
+fn full_sample_is_valid() {
+    let ev = parse_jsonl(FULL).unwrap();
+    let r = validate_full(&ev).unwrap();
+    assert_eq!((r.events, r.kyoku, r.draws, r.rinshan_draws), (25, 1, 7, 1));
+}
+
+#[test]
+fn redact_public_matches_committed_public_sample() {
+    let ev = parse_jsonl(FULL).unwrap();
+    let ours = redact(&ev, Viewer::Public).unwrap();
+    let want: Vec<&str> = PUBLIC.lines().collect();
+    assert_eq!(ours.len(), want.len());
+    for (o, w) in ours.iter().zip(&want) {
+        assert_eq!(canonical_json(o), *w);
+    }
+}
+
+#[test]
+fn redaction_keeps_keys_and_hides_private_values() {
+    let ev = parse_jsonl(FULL).unwrap();
+    for viewer in [
+        Viewer::Public,
+        Viewer::Seat(0),
+        Viewer::Seat(1),
+        Viewer::Seat(2),
+    ] {
+        let out = redact(&ev, viewer).unwrap();
+        let k1: Vec<_> = ev.iter().map(|e| event_key(e).unwrap()).collect();
+        let k2: Vec<_> = out.iter().map(|e| event_key(e).unwrap()).collect();
+        assert_eq!(k1, k2, "{viewer:?}");
+        for e in &out {
+            if e["type"] == "kyoku_start" {
+                assert!(e.get("wall").is_none() && e.get("wall_salt").is_none());
+                assert!(e.get("wall_commit").is_some());
+            }
+            if e["type"] == "game_start" {
+                assert!(e["seed"].get("game_seed").is_none());
+            }
+        }
+        for (full, red) in ev.iter().zip(&out) {
+            if full["type"] == "tsumo" {
+                let mine = matches!(viewer, Viewer::Seat(n) if full["actor"] == u64::from(n));
+                assert_eq!(red["pai"] == full["pai"], mine, "{viewer:?} {full}");
+            }
+            if full["type"] == "kyoku_start" {
+                for i in 0..3u8 {
+                    let mine = viewer == Viewer::Seat(i);
+                    assert_eq!(
+                        red["tehais"][usize::from(i)] == full["tehais"][usize::from(i)],
+                        mine
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn ryukyoku_reveal_and_closed_ankan_follow_rules() {
+    let mut ev = parse_jsonl(FULL).unwrap();
+    ev[0]["rules"]["log_visibility"]["ankan"] = Value::from("closed");
+    let ryu: Value = serde_json::json!({
+        "game_id": "g-20261122-000001", "kyoku_idx": 0, "event_idx": 99, "type": "ryukyoku",
+        "reason": "exhaustive", "tenpai": [true, false, true],
+        "hands": [["1p"], ["2p"], ["3p"]], "deltas": [1000, -2000, 1000], "scores": [0, 0, 0]});
+    let ankan: Value = serde_json::json!({
+        "game_id": "g-20261122-000001", "kyoku_idx": 0, "event_idx": 98, "type": "ankan",
+        "actor": 1, "consumed": ["E", "E", "E", "E"]});
+    ev.push(ankan);
+    ev.push(ryu);
+    let public = redact(&ev, Viewer::Public).unwrap();
+    assert_eq!(
+        public[25]["consumed"],
+        serde_json::json!(["?", "?", "?", "?"])
+    );
+    assert_eq!(
+        public[26]["hands"],
+        serde_json::json!([["1p"], null, ["3p"]])
+    );
+    let seat1 = redact(&ev, Viewer::Seat(1)).unwrap();
+    assert_eq!(
+        seat1[25]["consumed"],
+        serde_json::json!(["E", "E", "E", "E"])
+    );
+    assert_eq!(
+        seat1[26]["hands"],
+        serde_json::json!([["1p"], ["2p"], ["3p"]])
+    );
+}
+
+#[test]
+fn sample_rules_equal_preset_plus_test_overrides() {
+    let ev = parse_jsonl(FULL).unwrap();
+    let in_log: Rules = serde_json::from_value(ev[0]["rules"].clone()).unwrap();
+    let preset = PresetFile::parse(include_str!("../../../rules/tenhou-sanma.toml")).unwrap();
+    let over: toml::Table =
+        include_str!("../../../fixtures/rules/tenhou-sanma.test-overrides.toml")
+            .parse()
+            .unwrap();
+    assert_eq!(in_log, preset.resolve(&[&over]).unwrap());
+}
+
+#[test]
+fn annotations_point_at_existing_events() {
+    let ev = parse_jsonl(FULL).unwrap();
+    let ann = parse_jsonl(ANNOT).unwrap();
+    assert_eq!(validate_annotations(&ann, &ev).unwrap(), 3);
+    let mut bad = ann.clone();
+    bad[0]["event_idx"] = Value::from(500);
+    assert!(validate_annotations(&bad, &ev).is_err());
+    let mut dup = ann.clone();
+    dup.push(ann[0].clone());
+    assert!(validate_annotations(&dup, &ev).is_err());
+}
+
+#[test]
+fn tampered_wall_is_rejected() {
+    let mut ev = parse_jsonl(FULL).unwrap();
+    ev[1]["wall"]["pile"][10] = Value::from("C");
+    assert!(validate_full(&ev).is_err());
+    let mut ev = parse_jsonl(FULL).unwrap();
+    ev[1]["wall_salt"] = Value::from("00");
+    assert!(validate_full(&ev).unwrap_err().0.contains("wall_commit"));
+}

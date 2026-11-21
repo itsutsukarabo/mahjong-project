@@ -1,0 +1,3 @@
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":8,"seat":0,"decision":"pon","model":"ai-ckpt-001200","policy":[["pon",0.83],["pass",0.17]],"value":0.21}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":18,"seat":2,"decision":"pass","model":"rulebot-v1"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":20,"seat":0,"decision":"hora","model":"ai-ckpt-001200","policy":[["hora",0.99],["pass",0.01]],"value":0.64}

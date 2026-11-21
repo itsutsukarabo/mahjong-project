@@ -1,0 +1,69 @@
+# 夜間の差分テスト大規模版（D-016）。乱数シードで回し、不一致は最小化して成果物に残す。
+name: nightly
+
+on:
+  schedule:
+    - cron: "0 18 * * *" # 03:00 JST
+  workflow_dispatch:
+    inputs:
+      cases:
+        description: "number of cases"
+        default: "2000000"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_VERSION: "24.18.0"
+
+jobs:
+  difftest-large:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Rust toolchain (rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: tools/difftest-majiang/node/package-lock.json
+
+      - name: install majiang-core (pinned)
+        working-directory: tools/difftest-majiang/node
+        run: npm ci --no-audit --no-fund
+
+      - name: difftest vs majiang-core (large, random seed)
+        run: |
+          cargo run --release --locked -p difftest-majiang -- \
+            --cases "${{ github.event.inputs.cases || '2000000' }}" --random-seed \
+            --out difftest-out
+        # シードは summary.json に記録されるので、失敗したケースは同じシードで再現できる
+
+      - name: summary
+        if: always()
+        run: |
+          {
+            echo "### nightly difftest"
+            echo '```json'
+            cat difftest-out/summary.json || true
+            echo '```'
+            echo "minimized failures (first 20):"
+            echo '```'
+            head -n 20 difftest-out/failures.jsonl || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: upload result and minimized failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-difftest-${{ github.run_id }}
+          path: difftest-out/
+          retention-days: 90
