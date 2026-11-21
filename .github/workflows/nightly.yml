@@ -19,7 +19,7 @@ env:
 
 jobs:
   difftest-large:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
@@ -62,7 +62,7 @@ jobs:
 
       - name: upload result and minimized failures
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: nightly-difftest-${{ github.run_id }}
           path: difftest-out/

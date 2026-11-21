@@ -23,7 +23,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # OS の版も固定する（ubuntu-latest が 26.04 になり Python 3.12.10 のビルドがなかった）
+        os: [ubuntu-24.04, windows-2025]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -73,7 +74,7 @@ jobs:
 
       - name: upload difftest result
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: difftest-${{ matrix.os }}
           path: difftest-out/
