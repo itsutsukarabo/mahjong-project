@@ -1,0 +1,14 @@
+# 学習の出力（チェックポイント・統計・牌譜シャード）
+runs/
+# Rust
+target/
+# Python
+__pycache__/
+*.pyc
+.venv/
+# Node
+node_modules/
+dist/
+# OS
+.DS_Store
+Thumbs.db
