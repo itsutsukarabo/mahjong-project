@@ -15,172 +15,172 @@ tests = ["mj-core::wall::tests::wall_is_a_permutation_of_the_multiset"]
 [[case]]
 key = "table.length"
 value = "single"
-pending = "未実装"
+tests = ["mj-core::length_each_value"]
 
 [[case]]
 key = "table.length"
 value = "tonpuu"
-pending = "未実装"
+tests = ["mj-core::length_each_value"]
 
 [[case]]
 key = "table.length"
 value = "hanchan"
-pending = "未実装"
+tests = ["mj-core::length_each_value"]
 
 [[case]]
 key = "table.extension"
 value = "none"
-pending = "未実装"
+tests = ["mj-core::extension_none_and_sudden_death_and_threshold"]
 
 [[case]]
 key = "table.extension"
 value = "sudden_death"
-pending = "未実装"
+tests = ["mj-core::extension_none_and_sudden_death_and_threshold"]
 
 [[case]]
 key = "table.extension_threshold"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::extension_none_and_sudden_death_and_threshold"]
 
 [[case]]
 key = "table.extension_threshold_counts_kyotaku"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::extension_threshold_counts_kyotaku_true_and_false"]
 
 [[case]]
 key = "table.extension_threshold_counts_kyotaku"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::extension_threshold_counts_kyotaku_true_and_false"]
 
 [[case]]
 key = "table.extension_last_wind"
 value = "east"
-pending = "未実装"
+tests = ["mj-core::extension_last_wind_each_value"]
 
 [[case]]
 key = "table.extension_last_wind"
 value = "south"
-pending = "未実装"
+tests = ["mj-core::extension_last_wind_each_value"]
 
 [[case]]
 key = "table.extension_last_wind"
 value = "west"
-pending = "未実装"
+tests = ["mj-core::extension_last_wind_each_value"]
 
 [[case]]
 key = "table.extension_last_wind"
 value = "north"
-pending = "未実装"
+tests = ["mj-core::extension_last_wind_each_value"]
 
 [[case]]
 key = "table.oorasu_stop"
 value = "none"
-pending = "未実装"
+tests = ["mj-core::oorasu_stop_none_and_auto"]
 
 [[case]]
 key = "table.oorasu_stop"
 value = "auto"
-pending = "未実装"
+tests = ["mj-core::oorasu_stop_none_and_auto"]
 
 [[case]]
 key = "table.tobi"
 value = "none"
-pending = "未実装"
+tests = ["mj-core::tobi_each_value"]
 
 [[case]]
 key = "table.tobi"
 value = "below_zero"
-pending = "未実装"
+tests = ["mj-core::tobi_each_value"]
 
 [[case]]
 key = "table.tobi"
 value = "zero_or_below"
-pending = "未実装"
+tests = ["mj-core::tobi_each_value"]
 
 [[case]]
 key = "table.tobi_single_kyoku"
 value = "none"
-pending = "未実装"
+tests = ["mj-core::tobi_single_kyoku_each_value"]
 
 [[case]]
 key = "table.tobi_single_kyoku"
 value = "below_zero"
-pending = "未実装"
+tests = ["mj-core::tobi_single_kyoku_each_value"]
 
 [[case]]
 key = "table.tobi_single_kyoku"
 value = "zero_or_below"
-pending = "未実装"
+tests = ["mj-core::tobi_single_kyoku_each_value"]
 
 [[case]]
 key = "table.tie_break"
 value = "seat_order"
-pending = "未実装"
+tests = ["mj-core::tie_break_seat_order_and_split"]
 
 [[case]]
 key = "table.tie_break"
 value = "split"
-pending = "未実装"
+tests = ["mj-core::tie_break_seat_order_and_split"]
 
 [[case]]
 key = "table.leftover_kyotaku"
 value = "top"
-pending = "未実装"
+tests = ["mj-core::leftover_kyotaku_top_and_discard"]
 
 [[case]]
 key = "table.leftover_kyotaku"
 value = "discard"
-pending = "未実装"
+tests = ["mj-core::leftover_kyotaku_top_and_discard"]
 
 [[case]]
 key = "points.starting"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::settlement_uses_starting_returning_uma"]
 
 [[case]]
 key = "points.returning"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::settlement_uses_starting_returning_uma"]
 
 [[case]]
 key = "points.uma"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::settlement_uses_starting_returning_uma"]
 
 [[case]]
 key = "points.tsumo_payment"
 value = "standard"
-pending = "未実装"
+tests = ["mj-core::tsumo_payment_each_value"]
 
 [[case]]
 key = "points.tsumo_payment"
 value = "loss"
-pending = "未実装"
+tests = ["mj-core::tsumo_payment_each_value"]
 
 [[case]]
 key = "points.tsumo_payment"
 value = "split"
-pending = "未実装"
+tests = ["mj-core::tsumo_payment_each_value"]
 
 [[case]]
 key = "points.honba_ron"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::honba_ron_and_tsumo_values"]
 
 [[case]]
 key = "points.honba_tsumo_each"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::honba_ron_and_tsumo_values"]
 
 [[case]]
 key = "points.noten_penalty_total"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::noten_penalty_total_values"]
 
 [[case]]
 key = "points.riichi_deposit"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::leftover_kyotaku_top_and_discard"]
 
 [[case]]
 key = "points.kiriage_mangan"
@@ -685,12 +685,12 @@ pending = "未実装"
 [[case]]
 key = "yakuman.pao_ron_split"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::pao_ron_split_true_and_false"]
 
 [[case]]
 key = "yakuman.pao_ron_split"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::pao_ron_split_true_and_false"]
 
 [[case]]
 key = "yakuman.kokushi_ron_on_ankan"
@@ -715,52 +715,52 @@ pending = "未実装"
 [[case]]
 key = "chips.values.ippatsu"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::chip_values_each_item"]
 
 [[case]]
 key = "chips.values.aka"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::chip_values_each_item"]
 
 [[case]]
 key = "chips.values.ura"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::chip_values_each_item"]
 
 [[case]]
 key = "chips.values.aka_when_open"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::chip_aka_when_open_true_and_false"]
 
 [[case]]
 key = "chips.values.aka_when_open"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::chip_aka_when_open_true_and_false"]
 
 [[case]]
 key = "chips.values.yakuman_ron"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::chip_yakuman_ron_tsumo_and_kazoe"]
 
 [[case]]
 key = "chips.values.yakuman_tsumo_each"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::chip_yakuman_ron_tsumo_and_kazoe"]
 
 [[case]]
 key = "chips.values.kazoe_yakuman_counts"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::chip_yakuman_ron_tsumo_and_kazoe"]
 
 [[case]]
 key = "chips.values.kazoe_yakuman_counts"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::chip_yakuman_ron_tsumo_and_kazoe"]
 
 [[case]]
 key = "chips.values.point_value"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::chip_point_value"]
 
 [[case]]
 key = "log_visibility.ankan"

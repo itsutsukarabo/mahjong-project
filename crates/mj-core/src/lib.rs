@@ -11,6 +11,8 @@ pub mod game;
 pub mod kyoku;
 pub mod policy;
 pub mod rules;
+pub mod scenario;
+pub mod score;
 pub mod shanten;
 pub mod tile;
 pub mod wall;

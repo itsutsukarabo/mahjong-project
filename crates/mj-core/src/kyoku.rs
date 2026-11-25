@@ -12,9 +12,10 @@ use crate::action::Action;
 use crate::agari;
 use crate::event::*;
 use crate::rules::*;
+use crate::score::{self, PayCtx};
 use crate::tile::{KindCounts, NUM_KINDS, Tile, TileKind};
 use crate::wall::Wall;
-use crate::yaku::{self, OpenKind, OpenSet, RiichiKind, WinInput, WinResult, Yaku, round_up_100};
+use crate::yaku::{self, OpenKind, OpenSet, RiichiKind, WinInput, WinResult, Yaku};
 use std::sync::Arc;
 
 const NORTH: usize = 30;
@@ -452,6 +453,20 @@ impl Kyoku {
     /// 席の門前の牌の種類ごとの枚数
     pub fn concealed_counts(&self, seat: u8) -> KindCounts {
         self.players[usize::from(seat)].c
+    }
+
+    /// 通常のツモで引ける残り枚数（ハイテイまで）
+    pub fn live_remaining(&self) -> usize {
+        self.live()
+    }
+
+    /// 場の供託（本数）と各席の持ち点
+    pub fn kyotaku(&self) -> u32 {
+        self.kyotaku
+    }
+
+    pub fn scores(&self) -> &[i32] {
+        &self.scores
     }
 
     /// 席の副露（暗槓を含む）
@@ -1648,122 +1663,21 @@ impl Kyoku {
         pao: Option<(u8, i64)>,
         honba_on: bool,
     ) -> (Vec<i32>, i64) {
-        let rules = &self.rules;
-        let n = usize::from(self.n);
-        let mut d = vec![0i64; n];
-        let wi = usize::from(w);
-        let oya_w = w == self.oya;
-        let honba = if honba_on { i64::from(self.honba) } else { 0 };
-        let mul = if oya_w { 6 } else { 4 };
-        let mut base = r.base;
-        let mut points = 0i64;
-        let mut honba_paid = false;
-        if let Some((ps, full)) = pao {
-            let base2 = match loser {
-                Some(_) if rules.yakuman.pao_ron_split => full / 2,
-                Some(_) => 0,
-                None => full,
-            };
-            if base2 > 0 {
-                base -= base2;
-                let amt = base2 * mul;
-                d[wi] += amt;
-                d[usize::from(ps)] -= amt;
-                points += amt;
-                if base == 0 {
-                    // ツモの全額が包：本場も包の人が払う
-                    let h = i64::from(rules.points.honba_ron) * honba;
-                    d[wi] += h;
-                    d[usize::from(ps)] -= h;
-                    honba_paid = true;
-                }
-            }
-        }
-        if base > 0 {
-            match loser {
-                Some(l) => {
-                    let amt = round_up_100(base * mul);
-                    let h = i64::from(rules.points.honba_ron) * honba;
-                    d[wi] += amt + h;
-                    d[usize::from(l)] -= amt + h;
-                    points += amt;
-                }
-                None => {
-                    let payers: Vec<usize> = (0..n).filter(|&s| s != wi).collect();
-                    let missing = 4 - n; // 三麻でいない北家の人数
-                    let missing_share =
-                        round_up_100(base * if oya_w { 2 } else { 1 }) * missing as i64;
-                    let extra = match rules.points.tsumo_payment {
-                        TsumoPayment::Split if missing > 0 => {
-                            round_up_100((missing_share as f64 / payers.len() as f64).ceil() as i64)
-                        }
-                        _ => 0,
-                    };
-                    let he = i64::from(rules.points.honba_tsumo_each) * honba;
-                    for &ps in &payers {
-                        let share = round_up_100(
-                            base * if oya_w || ps == usize::from(self.oya) {
-                                2
-                            } else {
-                                1
-                            },
-                        ) + extra;
-                        d[ps] -= share + if honba_paid { 0 } else { he };
-                        d[wi] += share + if honba_paid { 0 } else { he };
-                        points += share;
-                    }
-                }
-            }
-        } else if !honba_paid && let Some(l) = loser {
-            let h = i64::from(rules.points.honba_ron) * honba;
-            d[wi] += h;
-            d[usize::from(l)] -= h;
-        }
-        (d.into_iter().map(|x| x as i32).collect(), points)
+        let ctx = PayCtx {
+            n: self.n,
+            oya: self.oya,
+            honba: self.honba,
+        };
+        score::hora_deltas(&self.rules, ctx, w, loser, r.base, pao, honba_on)
     }
 
     fn hora_chips(&mut self, w: u8, loser: Option<u8>, r: &WinResult) {
-        let v = self.rules.chips.values.clone();
-        let p = &self.players[usize::from(w)];
-        let closed = p.closed();
-        let mut per = Vec::new();
-        if r.count(Yaku::Ippatsu) > 0 {
-            per.push(("ippatsu", u32::from(v.ippatsu)));
+        let closed = self.players[usize::from(w)].closed();
+        let (d, items) = score::hora_chips(&self.rules, self.n, w, loser, r, closed);
+        for (x, y) in self.chip_deltas.iter_mut().zip(d) {
+            *x += y;
         }
-        let aka = u32::from(r.count(Yaku::Aka));
-        if aka > 0 && (closed || v.aka_when_open) {
-            per.push(("aka", aka * u32::from(v.aka)));
-        }
-        let ura = u32::from(r.count(Yaku::Ura));
-        if ura > 0 {
-            per.push(("ura", ura * u32::from(v.ura)));
-        }
-        if r.yakuman > 0 && (!r.kazoe || v.kazoe_yakuman_counts) {
-            let c = if loser.is_some() {
-                v.yakuman_ron
-            } else {
-                v.yakuman_tsumo_each
-            };
-            per.push(("yakuman", u32::from(c)));
-        }
-        let payers: Vec<u8> = match loser {
-            Some(l) => vec![l],
-            None => (0..self.n).filter(|&s| s != w).collect(),
-        };
-        for (kind, count) in per {
-            if count == 0 {
-                continue;
-            }
-            for &ps in &payers {
-                self.chip_deltas[usize::from(ps)] -= count as i32;
-                self.chip_deltas[usize::from(w)] += count as i32;
-            }
-            self.chip_items.push(ChipItem {
-                seat: w,
-                kind,
-                count,
-            });
-        }
+        self.chip_items.extend(items);
     }
 
     /// 荒牌流局時の聴牌（形式聴牌・ノーテン宣言のルールに従う）
@@ -1839,17 +1753,7 @@ impl Kyoku {
             }
         } else {
             reason = "exhaustive";
-            let t = tenpai.iter().filter(|&&b| b).count() as i32;
-            if t > 0 && t < n as i32 {
-                let total = rules.points.noten_penalty_total;
-                for (s, &tp) in tenpai.iter().enumerate() {
-                    deltas[s] = if tp {
-                        total / t
-                    } else {
-                        -total / (n as i32 - t)
-                    };
-                }
-            }
+            deltas = score::noten_deltas(&rules, &tenpai);
         }
         for (s, d) in self.scores.iter_mut().zip(&deltas) {
             *s += d;

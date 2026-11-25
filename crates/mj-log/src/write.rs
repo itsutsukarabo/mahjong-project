@@ -224,7 +224,7 @@ pub fn game_log(
             -1,
             1,
             json!({"type": "game_end", "scores": end.scores, "ranks": end.ranks,
-                   "settlement": end.settlement, "chips_total": end.chips_total}),
+                   "settlement": end.settlement, "tobi": end.tobi, "chips_total": end.chips_total}),
         ));
     }
     out
