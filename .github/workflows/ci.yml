@@ -53,6 +53,15 @@ jobs:
       - name: test (unit + golden + log samples)
         run: cargo test --workspace --locked
 
+      - name: rules catalog is up to date (docs/spec/RULES_CATALOG.md)
+        run: cargo run --locked -q -p rules-catalog -- check
+
+      - name: rules coverage table (fixtures/rules/coverage.toml)
+        shell: bash
+        run: |
+          cargo run --locked -q -p rules-catalog -- coverage --summary rules-coverage.md
+          cat rules-coverage.md >> "$GITHUB_STEP_SUMMARY"
+
       - name: log samples (python generator is up to date)
         run: python -I docs/spec/samples/make_sample_log.py --check
 

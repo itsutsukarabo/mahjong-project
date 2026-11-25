@@ -334,8 +334,8 @@ pub fn validate_full(events: &[Value]) -> Result<Report, LogError> {
                         event_key(e)?
                     ));
                 }
-                if !rinshan && pile.len() - front < usize::from(rules.wall.reserve) {
-                    return err("drew past haitei (rules.wall.reserve)");
+                if !rinshan && pile.len() - front < rules.wall.reserve() {
+                    return err("drew past haitei (rules.wall.dead_wall)");
                 }
             }
             _ => {}

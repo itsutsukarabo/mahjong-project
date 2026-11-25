@@ -20,9 +20,9 @@ const CASES: &[(&str, u64, u64)] = &[
     ("rules/tenhou-sanma.toml", 1, 1),
     ("rules/tenhou-sanma.toml", 20261122, 7),
     ("rules/tenhou-sanma.toml", u64::MAX, 3),
-    ("fixtures/rules/test-yonma-tiles.toml", 0, 0),
-    ("fixtures/rules/test-yonma-tiles.toml", 1, 0),
-    ("fixtures/rules/test-yonma-tiles.toml", 20261122, 7),
+    ("fixtures/rules/test-yonma.toml", 0, 0),
+    ("fixtures/rules/test-yonma.toml", 1, 0),
+    ("fixtures/rules/test-yonma.toml", 20261122, 7),
 ];
 
 fn compute() -> Value {

@@ -1,0 +1,15 @@
+[package]
+name = "rules-catalog"
+version = "0.1.0"
+description = "ルールカタログ（docs/spec/RULES_CATALOG.md）の生成と、テスト対応表（fixtures/rules/coverage.toml）の検査"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+mj-core.workspace = true
+serde.workspace = true
+toml.workspace = true
+
+[lints]
+workspace = true

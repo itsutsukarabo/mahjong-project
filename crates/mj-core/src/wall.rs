@@ -222,6 +222,43 @@ mod tests {
     }
 
     #[test]
+    fn red_five_counts_follow_rules() {
+        // tiles.red_fives.{m,p,s}：枚数を変えると牌の集合の赤の枚数が変わる
+        for (m, p, s) in [(0, 0, 0), (1, 2, 3), (4, 0, 1)] {
+            let tiles = TileRules {
+                manzu: Manzu::All,
+                red_fives: RedFives { m, p, s },
+            };
+            let set = tile_multiset(&tiles);
+            let reds = |suit: &str| {
+                set.iter()
+                    .filter(|t| t.is_red() && t.to_string().ends_with(&format!("{suit}r")))
+                    .count()
+            };
+            assert_eq!(
+                (reds("m"), reds("p"), reds("s")),
+                (usize::from(m), usize::from(p), usize::from(s))
+            );
+            assert_eq!(set.len(), 136);
+        }
+    }
+
+    #[test]
+    fn dora_indicator_slots_set_wall_layout() {
+        // wall.dora_indicator_slots：表示牌の枠の枚数だけ表・裏の表示牌があり、ツモ山はその分短い
+        for slots in [1u8, 3, 5] {
+            let spec = WallSpec {
+                dora_indicator_slots: slots,
+                ..sanma()
+            };
+            let w = generate_wall(&spec, 7, 0);
+            assert_eq!(w.dora_indicators.len(), usize::from(slots));
+            assert_eq!(w.ura_indicators.len(), usize::from(slots));
+            assert_eq!(w.pile.len(), 108 - 39 - 2 * usize::from(slots));
+        }
+    }
+
+    #[test]
     fn sanma_dora_wraps_1m_9m() {
         let m = Manzu::TerminalsOnly;
         let k = |s: &str| s.parse::<Tile>().unwrap().kind();

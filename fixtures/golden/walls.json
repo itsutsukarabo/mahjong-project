@@ -67,7 +67,7 @@
       "sha256": "96eda7447b156b3a0db8062467141d5c8c3089af77f7bba7c576133f92d7a217"
     },
     {
-      "rules": "fixtures/rules/test-yonma-tiles.toml",
+      "rules": "fixtures/rules/test-yonma.toml",
       "game_seed": "0x0",
       "kyoku_idx": 0,
       "first_pile_tiles": [
@@ -80,7 +80,7 @@
       "sha256": "31d3eafe5cbee9aeb3baf8e189b4da314b4dbd9c60229a2be6d92391024da9af"
     },
     {
-      "rules": "fixtures/rules/test-yonma-tiles.toml",
+      "rules": "fixtures/rules/test-yonma.toml",
       "game_seed": "0x1",
       "kyoku_idx": 0,
       "first_pile_tiles": [
@@ -93,7 +93,7 @@
       "sha256": "7de6f632c38e9ee1edb56dbc813ddebf6ea554785e2354f8677abd1be6d30cb9"
     },
     {
-      "rules": "fixtures/rules/test-yonma-tiles.toml",
+      "rules": "fixtures/rules/test-yonma.toml",
       "game_seed": "0x1352902",
       "kyoku_idx": 7,
       "first_pile_tiles": [

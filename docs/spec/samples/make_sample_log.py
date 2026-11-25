@@ -41,16 +41,8 @@ def load_rules():
         with open(os.path.join(ROOT, rel), "rb") as f:
             return tomllib.load(f)
 
-    def merge(base, over):
-        for k, v in over.items():
-            if isinstance(v, dict) and isinstance(base.get(k), dict):
-                merge(base[k], v)
-            else:
-                base[k] = v
-
     rules = read("rules/tenhou-sanma.toml")
     del rules["meta"]
-    merge(rules, read("fixtures/rules/tenhou-sanma.test-overrides.toml"))
     return rules
 
 

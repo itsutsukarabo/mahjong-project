@@ -1,0 +1,120 @@
+# テスト専用の四麻ルール（プリセットではない）。
+# 四麻の局進行のテストと majiang-core（@kobalab/majiang-core 1.4.1）との差分テストに使う。
+# 和了・点数に効く項目は majiang-core の既定の rule（lib/rule.js）に合わせた：
+#   配給原点 25000・返しなし・順位点 +20/+10/-10/-20、赤 各1、喰いタンあり、喰い替えなし、ダブロンあり、
+#   連風牌 4符、ダブル役満あり、数え役満あり、パオあり、切り上げ満貫なし
+# 本場 300/100・聴牌料 3000 は四麻の一般的な値。
+
+[meta]
+id = "test-yonma"
+name = "テスト用 四麻"
+test_only = true
+
+[table]
+num_players = 4
+length = "hanchan"
+extension = "sudden_death"
+extension_threshold = 30000
+extension_threshold_counts_kyotaku = false
+extension_last_wind = "west"
+oorasu_stop = "auto"
+tobi = "below_zero"
+tobi_single_kyoku = "none"
+tie_break = "seat_order"
+leftover_kyotaku = "top"
+
+[points]
+starting = 25000
+returning = 25000
+uma = [20000, 10000, -10000, -20000]
+tsumo_payment = "standard"
+honba_ron = 300
+honba_tsumo_each = 100
+noten_penalty_total = 3000
+riichi_deposit = 1000
+kiriage_mangan = false
+kazoe_yakuman = true
+min_han = 1
+double_wind_pair_fu = 4
+rinshan_tsumo_fu = true
+
+[tiles]
+manzu = "all"
+red_fives = { m = 1, p = 1, s = 1 }
+
+[wall]
+dora_indicator_slots = 5
+dead_wall = 14
+rinshan_max = 4
+
+[calls]
+chi = true
+kuitan = true
+atozuke = true
+kuikae = "forbidden"
+haitei_call = false
+max_ron = 2
+multi_ron_deposit = "upstream"
+
+[riichi]
+min_points = 1000
+requires_draw = true
+furiten_riichi = true
+ankan_after_riichi = "wait_unchanged"
+no_deposit_on_deal_in = true
+
+[dora]
+ippatsu = true
+ura = true
+kan_dora = true
+kan_ura = true
+kan_dora_timing = "ankan_immediate"
+
+[kita]
+mode = "none"
+mandatory = false
+after_pon = false
+after_riichi = "drawn_only"
+ron_on_kita = false
+ron_on_discard = true
+ron_counts_as_chankan = false
+breaks_ippatsu = true
+breaks_first_turn = true
+north_as_meld = "otakaze"
+dora_per_kita = 1
+
+[draws]
+kyushu_kyuhai = true
+suukaikan = true
+all_riichi = true
+same_wind_discards = true
+all_ron = true
+abortive_renchan = true
+nagashi_mangan = true
+renchan = "tenpai"
+keishiki_tenpai = true
+noten_declaration = false
+
+[yakuman]
+composite = true
+double_special = true
+pao = ["daisangen", "daisuushii", "suukantsu"]
+pao_ron_split = true
+kokushi_ron_on_ankan = false
+
+[chips]
+enabled = false
+
+[chips.values]
+ippatsu = 1
+aka = 1
+ura = 1
+aka_when_open = true
+yakuman_ron = 10
+yakuman_tsumo_each = 5
+kazoe_yakuman_counts = false
+point_value = 5000
+
+[log_visibility]
+ankan = "open"
+ryukyoku_reveal = "tenpai_only"

@@ -1,7 +1,7 @@
 //! LOG_FORMAT v0.2 のサンプル（docs/spec/samples/）を Rust 側でも検証する。
 //! Python の生成スクリプトと Rust の redact が同じ規則であることを、1行ずつの一致で確かめる。
 
-use mj_core::rules::{PresetFile, Rules};
+use mj_core::rules::Rules;
 use mj_log::{
     Viewer, canonical_json, event_key, parse_jsonl, redact, validate_annotations, validate_full,
 };
@@ -103,15 +103,10 @@ fn ryukyoku_reveal_and_closed_ankan_follow_rules() {
 }
 
 #[test]
-fn sample_rules_equal_preset_plus_test_overrides() {
+fn sample_rules_equal_main_preset() {
     let ev = parse_jsonl(FULL).unwrap();
     let in_log: Rules = serde_json::from_value(ev[0]["rules"].clone()).unwrap();
-    let preset = PresetFile::parse(include_str!("../../../rules/tenhou-sanma.toml")).unwrap();
-    let over: toml::Table =
-        include_str!("../../../fixtures/rules/tenhou-sanma.test-overrides.toml")
-            .parse()
-            .unwrap();
-    assert_eq!(in_log, preset.resolve(&[&over]).unwrap());
+    assert_eq!(in_log, mj_core::rules::presets::tenhou_sanma());
 }
 
 #[test]

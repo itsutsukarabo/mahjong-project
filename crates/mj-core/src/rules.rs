@@ -1,15 +1,40 @@
 //! ルール設定。
 //!
-//! 項目は `docs/spec/SANMA_RULES_DRAFT.md` に対応する。プリセットは `rules/*.toml`
-//! （値の出典は `docs/spec/RULES_PRESETS.md`）。
+//! **この構造体と列挙型がルールの「正」**（D-025）。項目の説明・取りうる値・既定値は
+//! [`crate::catalog`] にあり、そこから `docs/spec/RULES_CATALOG.md` を生成する。
+//! プリセットは `rules/*.toml`（値の出典は `docs/spec/RULES_PRESETS.md`）。
 //!
-//! プリセットでは公式説明で確認できない項目を**書かない**（推測で埋めない）。
-//! そのため読み込みは `PresetFile`（TOML の木）→ 上書きの合成 → `Rules` の2段階で行い、
+//! 読み込みは `PresetFile`（TOML の木）→ 上書きの合成 → `Rules` の2段階で行い、
 //! 足りない項目があれば全件を `RulesError::Missing` で返す。
 
+use crate::catalog;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fmt;
+
+/// ルールの列挙型を定義する。値の名前（TOML・牌譜での表記）と意味をここに一緒に書き、
+/// カタログはこの定義から作る（値の一覧が二重管理にならないように）。
+macro_rules! rule_enum {
+    ($(#[$m:meta])* $name:ident { $($var:ident = $s:literal => $desc:literal),+ $(,)? }) => {
+        $(#[$m])*
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+        pub enum $name {
+            $(#[doc = $desc] #[serde(rename = $s)] $var),+
+        }
+
+        impl $name {
+            pub const ALL: &'static [$name] = &[$($name::$var),+];
+            /// （TOML での表記, 意味）
+            pub const VALUES: &'static [(&'static str, &'static str)] = &[$(($s, $desc)),+];
+
+            pub fn as_str(self) -> &'static str {
+                match self {
+                    $($name::$var => $s),+
+                }
+            }
+        }
+    };
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -34,77 +59,68 @@ pub struct Rules {
 pub struct TableRules {
     pub num_players: u8,
     pub length: GameLength,
-    /// 延長戦（西入・南入）
     pub extension: Extension,
-    /// 延長戦・オーラスで終了と判定する点数（返し点と同じとは限らないので別に持つ）
     pub extension_threshold: i32,
-    /// 延長戦の最終場（東風戦なら南、東南戦なら西、など）
+    pub extension_threshold_counts_kyotaku: bool,
     pub extension_last_wind: Wind,
     pub oorasu_stop: OorasuStop,
     pub tobi: Tobi,
-    /// 1局戦モードでの飛び（D-012：1局戦のみ飛びなし）
     pub tobi_single_kyoku: Tobi,
     pub tie_break: TieBreak,
-    /// 終了時に残った供託の行き先
     pub leftover_kyotaku: LeftoverKyotaku,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum GameLength {
-    Single,
-    Tonpuu,
-    Hanchan,
+rule_enum! {
+    GameLength {
+        Single = "single" => "1局戦（1局だけで終わる。本場・連荘なし）",
+        Tonpuu = "tonpuu" => "東風戦（東場だけ）",
+        Hanchan = "hanchan" => "東南戦（半荘。東場と南場）",
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Extension {
-    None,
-    SuddenDeath,
+rule_enum! {
+    Extension {
+        None = "none" => "延長戦なし。規定の局数で必ず終わる",
+        SuddenDeath = "sudden_death" => "延長戦あり。規定の局数が終わった時点で終了点数に届いた人がいなければ次の場に入り、届いた人が出た局の終わりで終了（サドンデス）",
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Wind {
-    East,
-    South,
-    West,
-    North,
+rule_enum! {
+    Wind {
+        East = "east" => "東",
+        South = "south" => "南",
+        West = "west" => "西",
+        North = "north" => "北",
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum OorasuStop {
-    None,
-    /// ラス親がトップなら和了止め・聴牌止めを自動で行う
-    Auto,
+rule_enum! {
+    OorasuStop {
+        None = "none" => "和了止め・聴牌止めなし（最終局で親が和了・聴牌すれば続行）",
+        Auto = "auto" => "最終局で親が和了または聴牌で終えたとき、親が単独トップで終了の条件を満たしていれば自動で終了する",
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Tobi {
-    None,
-    /// 0 点未満で終了（0 点は続行）
-    BelowZero,
-    /// 0 点以下で終了
-    ZeroOrBelow,
+rule_enum! {
+    Tobi {
+        None = "none" => "飛びなし（持ち点がマイナスでも続ける）",
+        BelowZero = "below_zero" => "誰かの持ち点が0点未満になったら終了（ちょうど0点は続行）",
+        ZeroOrBelow = "zero_or_below" => "誰かの持ち点が0点以下になったら終了",
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TieBreak {
-    /// 起家に近い方が上位（東1局の風順）
-    SeatOrder,
-    /// 順位点を等分
-    Split,
+rule_enum! {
+    TieBreak {
+        SeatOrder = "seat_order" => "同点なら起家に近い席（東1局の風順）が上位",
+        Split = "split" => "同点の人どうしでウマ・オカを等分する（順位は起家に近い方を上として表示）",
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum LeftoverKyotaku {
-    Top,
-    Discard,
+rule_enum! {
+    LeftoverKyotaku {
+        Top = "top" => "終了時に場に残った供託（立直棒）はトップが受け取る",
+        Discard = "discard" => "終了時に場に残った供託は誰も受け取らない",
+    }
 }
 
 /// B. 点数
@@ -113,36 +129,25 @@ pub enum LeftoverKyotaku {
 pub struct PointRules {
     pub starting: i32,
     pub returning: i32,
-    /// 順位ウマ（点数、1位から順。長さ = 人数）
     pub uma: Vec<i32>,
     pub tsumo_payment: TsumoPayment,
-    /// 1本場あたりロンで和了者が受け取る点数
     pub honba_ron: i32,
-    /// 1本場あたりツモで支払者1人が払う点数
     pub honba_tsumo_each: i32,
-    /// 流局時の聴牌料（場に出る合計）
     pub noten_penalty_total: i32,
     pub riichi_deposit: i32,
     pub kiriage_mangan: bool,
-    /// 数え役満（13翻以上）
     pub kazoe_yakuman: bool,
-    /// 飜縛り
     pub min_han: u8,
-    /// 連風牌の雀頭の符
     pub double_wind_pair_fu: u8,
-    /// 嶺上ツモにもツモ符 2 符を付ける
     pub rinshan_tsumo_fu: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TsumoPayment {
-    /// 四麻の通常の支払い
-    Standard,
-    /// ツモ損（いない北家の分を誰も払わない）
-    Loss,
-    /// いない北家の分を残りの支払者で折半
-    Split,
+rule_enum! {
+    TsumoPayment {
+        Standard = "standard" => "四麻の支払い（子のツモは親が2人分・子が1人分、親のツモは子が2人分ずつ）。四麻専用",
+        Loss = "loss" => "ツモ損。四麻と同じ1人あたりの額を払い、いない北家の分は誰も払わない",
+        Split = "split" => "いない北家の分を、残りの支払う人で等分して上乗せする（100点単位に切り上げ）",
+    }
 }
 
 /// C. 牌
@@ -153,13 +158,11 @@ pub struct TileRules {
     pub red_fives: RedFives,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Manzu {
-    /// 1m〜9m をすべて使う（四麻）
-    All,
-    /// 2m〜8m を抜き、1m・9m だけを使う（ドラは 1m↔9m で回る）
-    TerminalsOnly,
+rule_enum! {
+    Manzu {
+        All = "all" => "萬子を1m〜9mまですべて使う（四麻）",
+        TerminalsOnly = "terminals_only" => "2m〜8mを抜き、1m・9mだけを使う（三麻）。ドラは1m→9m→1mと回る",
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -174,13 +177,18 @@ pub struct RedFives {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WallRules {
-    /// ドラ表示牌の枠（裏も同数）
     pub dora_indicator_slots: u8,
-    /// 嶺上牌（槓・北抜きの補充）の最大枚数
+    pub dead_wall: u8,
     pub rinshan_max: u8,
-    /// ツモ山の残りがこの枚数になったら流局（ハイテイの位置）。
-    /// 嶺上ツモはツモ山の末尾から取るので、嶺上を引くたびにハイテイが1枚ずれる
-    pub reserve: u8,
+}
+
+impl WallRules {
+    /// `pile` の末尾に残す枚数（ハイテイの位置）＝王牌 −（ドラ表示の枠 ＋ 裏の枠）。
+    /// 嶺上ツモは `pile` の末尾から取るので、嶺上を引くたびにハイテイが1枚手前にずれ、
+    /// 王牌は常に `dead_wall` 枚を保つ（LOG_FORMAT §4.2、D-017）。
+    pub fn reserve(&self) -> usize {
+        usize::from(self.dead_wall) - 2 * usize::from(self.dora_indicator_slots)
+    }
 }
 
 /// E. 鳴き
@@ -191,50 +199,42 @@ pub struct CallRules {
     pub kuitan: bool,
     pub atozuke: bool,
     pub kuikae: Kuikae,
-    /// 海底牌を鳴ける
     pub haitei_call: bool,
-    /// 同時に和了できる最大人数（1 = 頭ハネ）
     pub max_ron: u8,
-    /// 複数和了時の積み棒・供託の行き先
     pub multi_ron_deposit: MultiRonDeposit,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Kuikae {
-    Forbidden,
-    SujiAllowed,
-    Allowed,
+rule_enum! {
+    Kuikae {
+        Forbidden = "forbidden" => "喰い替えなし。鳴いた牌と同じ種類の牌も、チーの筋の牌も、その打牌では切れない",
+        SujiAllowed = "suji_allowed" => "鳴いた牌と同じ種類の牌（現物）は切れないが、チーの筋の牌は切れる",
+        Allowed = "allowed" => "喰い替えあり。制限なし",
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MultiRonDeposit {
-    /// 放銃者から見て上家（頭ハネ順で最初の和了者）が取る
-    Upstream,
-    Split,
+rule_enum! {
+    MultiRonDeposit {
+        Upstream = "upstream" => "複数の和了のとき、積み棒と供託は放銃者から見て上家側（最初の和了者）が全部受け取る",
+        Split = "split" => "積み棒は各和了者がそれぞれ受け取り、供託は和了者で等分する（1000点単位、余りは上家側から）",
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RiichiRules {
     pub min_points: i32,
-    /// ツモ番がないと立直できない
     pub requires_draw: bool,
     pub furiten_riichi: bool,
     pub ankan_after_riichi: RiichiAnkan,
-    /// 宣言牌で放銃したら供託を出さない
     pub no_deposit_on_deal_in: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum RiichiAnkan {
-    Forbidden,
-    /// 待ちが変わらなければ可（牌姿・役の増減は不問）
-    WaitUnchanged,
-    /// 牌姿も変わらない場合のみ可
-    FormUnchanged,
+rule_enum! {
+    RiichiAnkan {
+        Forbidden = "forbidden" => "立直後の暗槓はできない",
+        WaitUnchanged = "wait_unchanged" => "ツモった牌での暗槓で、待ちが変わらなければできる（牌姿・役の増減は問わない。送り槓は不可）",
+        FormUnchanged = "form_unchanged" => "ツモった牌での暗槓で、待ちが変わらず、どの面子の取り方でもその牌が刻子のときだけできる",
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -247,13 +247,12 @@ pub struct DoraRules {
     pub kan_dora_timing: KanDoraTiming,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum KanDoraTiming {
-    /// 暗槓は即乗り、明槓・加槓は後めくり
-    AnkanImmediate,
-    AllImmediate,
-    AllDelayed,
+rule_enum! {
+    KanDoraTiming {
+        AnkanImmediate = "ankan_immediate" => "暗槓はその場でめくる（即乗り）。大明槓・加槓は嶺上ツモの後の打牌（または次の槓）でめくる（後めくり）",
+        AllImmediate = "all_immediate" => "どの槓もその場でめくる",
+        AllDelayed = "all_delayed" => "どの槓も嶺上ツモの後の打牌（または次の槓）でめくる",
+    }
 }
 
 /// D. 北
@@ -261,45 +260,37 @@ pub enum KanDoraTiming {
 #[serde(deny_unknown_fields)]
 pub struct KitaRules {
     pub mode: KitaMode,
-    /// 北を持ったら必ず抜く（false なら抜くかどうかは任意）
     pub mandatory: bool,
-    /// ポンの直後に抜ける
     pub after_pon: bool,
     pub after_riichi: KitaAfterRiichi,
-    /// 抜いた北でロンできる
-    pub ron: bool,
-    /// 抜いた北へのロンに槍槓の役が付く
+    pub ron_on_kita: bool,
+    pub ron_on_discard: bool,
     pub ron_counts_as_chankan: bool,
-    /// 抜きで一発が消える
     pub breaks_ippatsu: bool,
-    /// 抜きで第1ツモ扱い（地和・九種九牌・ダブル立直）が消える
     pub breaks_first_turn: bool,
-    /// 北を面子に使ったときの扱い
     pub north_as_meld: NorthAsMeld,
+    pub dora_per_kita: u8,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum KitaMode {
-    None,
-    Nukidora,
+rule_enum! {
+    KitaMode {
+        None = "none" => "北抜きなし（北はふつうの字牌）",
+        Nukidora = "nukidora" => "北抜きあり。北を抜いて脇に置くとドラになり、嶺上牌を1枚ツモる",
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum KitaAfterRiichi {
-    Forbidden,
-    /// ツモってきた北だけ抜ける
-    DrawnOnly,
+rule_enum! {
+    KitaAfterRiichi {
+        Forbidden = "forbidden" => "立直後は北を抜けない",
+        DrawnOnly = "drawn_only" => "立直後は、ツモってきた北だけを抜ける（抜かずにツモ切りも選べる）",
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum NorthAsMeld {
-    /// 自風・場風でなければ役なし（オタ風）
-    Otakaze,
-    /// 常に役牌
-    Yakuhai,
+rule_enum! {
+    NorthAsMeld {
+        Otakaze = "otakaze" => "北を刻子・雀頭に使ったら、自風・場風でなければ役も符もない字牌（オタ風）",
+        Yakuhai = "yakuhai" => "北の刻子は常に役牌（1翻）",
+    }
 }
 
 /// F. 流局
@@ -308,52 +299,40 @@ pub enum NorthAsMeld {
 pub struct DrawRules {
     pub kyushu_kyuhai: bool,
     pub suukaikan: bool,
-    /// 全員立直（四麻の四家立直、三麻なら三家）
     pub all_riichi: bool,
-    /// 第1打牌が全員同じ風牌（四麻の四風連打）
     pub same_wind_discards: bool,
-    /// 放銃者以外の全員がロン（四麻の三家和）
     pub all_ron: bool,
     pub abortive_renchan: bool,
     pub nagashi_mangan: bool,
     pub renchan: Renchan,
-    /// 形式聴牌（役なし・5枚目待ちを含む）を聴牌と認める
     pub keishiki_tenpai: bool,
     pub noten_declaration: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Renchan {
-    /// 和了連荘（聴牌でも親流れ）
-    Agari,
-    /// 聴牌連荘（ノーテン親流れ）
-    Tenpai,
-    /// ノーテンでも連荘
-    Always,
+rule_enum! {
+    Renchan {
+        Agari = "agari" => "和了連荘。親が和了したときだけ連荘（流局なら聴牌でも親流れ）",
+        Tenpai = "tenpai" => "聴牌連荘。親が和了または流局時に聴牌なら連荘（ノーテンなら親流れ）",
+        Always = "always" => "流局なら親が聴牌でもノーテンでも連荘",
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct YakumanRules {
-    /// 役満の複合
     pub composite: bool,
-    /// 四暗刻単騎・国士13面・純正九蓮・大四喜をダブル役満にする
     pub double_special: bool,
-    /// 包（責任払い）の対象
     pub pao: Vec<PaoYaku>,
-    /// 包のロン：放銃者と折半
     pub pao_ron_split: bool,
-    /// 他家の暗槓に国士無双でロンできる
     pub kokushi_ron_on_ankan: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PaoYaku {
-    Daisangen,
-    Daisuushii,
-    Suukantsu,
+rule_enum! {
+    PaoYaku {
+        Daisangen = "daisangen" => "大三元（三元牌の3つ目の刻子・槓子を鳴かせた人が責任を負う）",
+        Daisuushii = "daisuushii" => "大四喜（風牌の4つ目の刻子・槓子を鳴かせた人が責任を負う）",
+        Suukantsu = "suukantsu" => "四槓子（4つ目の槓子を大明槓させた人が責任を負う）",
+    }
 }
 
 /// 祝儀（D-013：点数とは別の帳簿。RL の報酬には入れない）
@@ -361,9 +340,8 @@ pub enum PaoYaku {
 #[serde(deny_unknown_fields)]
 pub struct ChipRules {
     pub enabled: bool,
-    /// `enabled = true` のときだけ必要
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub values: Option<ChipValues>,
+    /// `enabled = false` のときは使わない（値は書いておく）
+    pub values: ChipValues,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -372,16 +350,14 @@ pub struct ChipValues {
     pub ippatsu: u8,
     pub aka: u8,
     pub ura: u8,
-    /// 副露していても赤の祝儀が付く
     pub aka_when_open: bool,
     pub yakuman_ron: u8,
     pub yakuman_tsumo_each: u8,
     pub kazoe_yakuman_counts: bool,
-    /// 祝儀1枚の点数換算（表示用。scores には混ぜない）
     pub point_value: i32,
 }
 
-/// 牌譜での公開範囲（ルール設定で変えられる。LOG_FORMAT §5）
+/// 牌譜での公開範囲（LOG_FORMAT §5）
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LogVisibility {
@@ -389,31 +365,32 @@ pub struct LogVisibility {
     pub ryukyoku_reveal: RyukyokuReveal,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AnkanVisibility {
-    Open,
-    Closed,
+rule_enum! {
+    AnkanVisibility {
+        Open = "open" => "暗槓した牌の種類を公開版の牌譜にも書く",
+        Closed = "closed" => "暗槓した牌を、本人以外の牌譜では \"?\" にする",
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum RyukyokuReveal {
-    TenpaiOnly,
-    All,
-    None,
+rule_enum! {
+    RyukyokuReveal {
+        TenpaiOnly = "tenpai_only" => "流局時は聴牌者の手牌だけを公開する（九種九牌は宣言者の手牌も）",
+        All = "all" => "流局時は全員の手牌を公開する",
+        None = "none" => "流局時に手牌を公開しない（九種九牌の宣言者を除く）",
+    }
 }
 
 impl Rules {
     /// 設定値どうしの整合を確かめる（型だけでは表せない制約）。
+    /// 数値の範囲は [`catalog::CATALOG`] の `Int { min, max }` で一括して確かめる。
     pub fn validate(&self) -> Result<(), RulesError> {
-        let mut errs = Vec::new();
+        let mut errs = catalog::range_errors(self);
         let n = self.table.num_players;
-        if !(n == 3 || n == 4) {
-            errs.push(format!("table.num_players must be 3 or 4, got {n}"));
-        }
         if self.points.uma.len() != usize::from(n) {
             errs.push(format!("points.uma must have {n} entries"));
+        }
+        if self.points.uma.iter().sum::<i32>() != 0 {
+            errs.push("points.uma must sum to 0".into());
         }
         if n == 3 && self.points.tsumo_payment == TsumoPayment::Standard {
             errs.push("points.tsumo_payment = standard is only for 4 players".into());
@@ -427,23 +404,22 @@ impl Rules {
         if self.tiles.manzu == Manzu::TerminalsOnly && self.tiles.red_fives.m != 0 {
             errs.push("tiles.red_fives.m must be 0 when 5m is not used".into());
         }
-        for (s, c) in [
-            ("m", self.tiles.red_fives.m),
-            ("p", self.tiles.red_fives.p),
-            ("s", self.tiles.red_fives.s),
-        ] {
-            if c > 4 {
-                errs.push(format!("tiles.red_fives.{s} must be <= 4"));
-            }
-        }
         if n == 4 && self.kita.mode != KitaMode::None {
             errs.push("kita.mode must be none for 4 players".into());
         }
-        if self.calls.max_ron == 0 || self.calls.max_ron >= n {
-            errs.push("calls.max_ron must be in 1..num_players".into());
+        if usize::from(self.wall.dead_wall) < 2 * usize::from(self.wall.dora_indicator_slots) {
+            errs.push("wall.dead_wall must be >= 2 * wall.dora_indicator_slots".into());
         }
-        if self.chips.enabled != self.chips.values.is_some() {
-            errs.push("chips.values must be present iff chips.enabled".into());
+        if self.calls.max_ron >= n {
+            errs.push("calls.max_ron must be < num_players".into());
+        }
+        // 聴牌料は、聴牌者・ノーテン者が何人でも等分できること
+        for k in 1..i32::from(n) {
+            if self.points.noten_penalty_total % k != 0 {
+                errs.push(format!(
+                    "points.noten_penalty_total must be divisible by {k}"
+                ));
+            }
         }
         if errs.is_empty() {
             Ok(())
@@ -453,89 +429,15 @@ impl Rules {
     }
 }
 
-/// `Rules` を埋めるのに必要な葉のキー（`chips.values` は `chips.enabled` に従属するので除く）。
-/// `tests::required_keys_cover_every_field` で構造体と一致することを確かめる。
-pub const REQUIRED_KEYS: &[&str] = &[
-    "table.num_players",
-    "table.length",
-    "table.extension",
-    "table.extension_threshold",
-    "table.extension_last_wind",
-    "table.oorasu_stop",
-    "table.tobi",
-    "table.tobi_single_kyoku",
-    "table.tie_break",
-    "table.leftover_kyotaku",
-    "points.starting",
-    "points.returning",
-    "points.uma",
-    "points.tsumo_payment",
-    "points.honba_ron",
-    "points.honba_tsumo_each",
-    "points.noten_penalty_total",
-    "points.riichi_deposit",
-    "points.kiriage_mangan",
-    "points.kazoe_yakuman",
-    "points.min_han",
-    "points.double_wind_pair_fu",
-    "points.rinshan_tsumo_fu",
-    "tiles.manzu",
-    "tiles.red_fives.m",
-    "tiles.red_fives.p",
-    "tiles.red_fives.s",
-    "wall.dora_indicator_slots",
-    "wall.rinshan_max",
-    "wall.reserve",
-    "calls.chi",
-    "calls.kuitan",
-    "calls.atozuke",
-    "calls.kuikae",
-    "calls.haitei_call",
-    "calls.max_ron",
-    "calls.multi_ron_deposit",
-    "riichi.min_points",
-    "riichi.requires_draw",
-    "riichi.furiten_riichi",
-    "riichi.ankan_after_riichi",
-    "riichi.no_deposit_on_deal_in",
-    "dora.ippatsu",
-    "dora.ura",
-    "dora.kan_dora",
-    "dora.kan_ura",
-    "dora.kan_dora_timing",
-    "kita.mode",
-    "kita.mandatory",
-    "kita.after_pon",
-    "kita.after_riichi",
-    "kita.ron",
-    "kita.ron_counts_as_chankan",
-    "kita.breaks_ippatsu",
-    "kita.breaks_first_turn",
-    "kita.north_as_meld",
-    "draws.kyushu_kyuhai",
-    "draws.suukaikan",
-    "draws.all_riichi",
-    "draws.same_wind_discards",
-    "draws.all_ron",
-    "draws.abortive_renchan",
-    "draws.nagashi_mangan",
-    "draws.renchan",
-    "draws.keishiki_tenpai",
-    "draws.noten_declaration",
-    "yakuman.composite",
-    "yakuman.double_special",
-    "yakuman.pao",
-    "yakuman.pao_ron_split",
-    "yakuman.kokushi_ron_on_ankan",
-    "chips.enabled",
-    "log_visibility.ankan",
-    "log_visibility.ryukyoku_reveal",
-];
+/// `Rules` を埋めるのに必要な葉のキー（カタログの順）。
+pub fn required_keys() -> impl Iterator<Item = &'static str> {
+    catalog::CATALOG.iter().map(|i| i.key)
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RulesError {
     Parse(String),
-    /// プリセット＋上書きで値が決まっていないキー（未確認項目など）
+    /// プリセット＋上書きで値が決まっていないキー
     Missing(Vec<String>),
     /// 定義にないキー
     Unknown(Vec<String>),
@@ -559,7 +461,7 @@ impl std::error::Error for RulesError {}
 #[derive(Debug, Clone)]
 pub struct PresetFile {
     pub meta: PresetMeta,
-    /// `[meta]` を除いたルールの木（未確認の項目は欠けている）
+    /// `[meta]` を除いたルールの木
     pub body: toml::Table,
 }
 
@@ -568,12 +470,9 @@ pub struct PresetFile {
 pub struct PresetMeta {
     pub id: String,
     pub name: String,
-    /// 公式説明で確認できず、ファイルに書いていないキー
+    /// 値はあるが、サービスの公式説明・オーナーの確認がまだのキー（本PJの仮の値）
     #[serde(default)]
-    pub unconfirmed: Vec<String>,
-    /// 公式説明に選択肢があり、どれを採るかをオーナーが決めるキー（値は書いてある）
-    #[serde(default)]
-    pub owner_choice: Vec<String>,
+    pub provisional: Vec<String>,
     /// テスト専用のファイルなら true（本番のプリセットとして使わない）
     #[serde(default)]
     pub test_only: bool,
@@ -600,7 +499,7 @@ impl PresetFile {
         Ok(Self { meta, body: t })
     }
 
-    /// まだ値がないキー（`REQUIRED_KEYS` のうち木にないもの）。
+    /// まだ値がないキー（カタログのキーのうち木にないもの）。
     pub fn missing_keys(&self) -> Vec<String> {
         missing_keys(&self.body)
     }
@@ -611,25 +510,10 @@ impl PresetFile {
         for o in overrides {
             merge(&mut body, o);
         }
-        let unknown: Vec<String> = leaf_keys(&body)
-            .into_iter()
-            .filter(|k| !is_known_key(k))
-            .collect();
-        if !unknown.is_empty() {
-            return Err(RulesError::Unknown(unknown));
-        }
-        let missing = missing_keys(&body);
-        if !missing.is_empty() {
-            return Err(RulesError::Missing(missing));
-        }
-        let rules: Rules = toml::Value::Table(body)
-            .try_into()
-            .map_err(|e: toml::de::Error| RulesError::Parse(e.to_string()))?;
-        rules.validate()?;
-        Ok(rules)
+        rules_from_table(body)
     }
 
-    /// 牌の集合と牌山の生成に要る部分だけを取り出す（他の項目が未確認でも使える）。
+    /// 牌の集合と牌山の生成に要る部分だけを取り出す（他の項目が欠けていても使える）。
     pub fn wall_spec(&self) -> Result<crate::wall::WallSpec, RulesError> {
         let get = |k: &str| -> Result<toml::Value, RulesError> {
             lookup(&self.body, k)
@@ -653,21 +537,48 @@ impl PresetFile {
     }
 }
 
+/// TOML の木（全項目）から `Rules` を作る。
+pub fn rules_from_table(body: toml::Table) -> Result<Rules, RulesError> {
+    let unknown: Vec<String> = leaf_keys(&body)
+        .into_iter()
+        .filter(|k| !is_known_key(k))
+        .collect();
+    if !unknown.is_empty() {
+        return Err(RulesError::Unknown(unknown));
+    }
+    let missing = missing_keys(&body);
+    if !missing.is_empty() {
+        return Err(RulesError::Missing(missing));
+    }
+    let rules: Rules = toml::Value::Table(body)
+        .try_into()
+        .map_err(|e: toml::de::Error| RulesError::Parse(e.to_string()))?;
+    rules.validate()?;
+    Ok(rules)
+}
+
+/// `Rules` を TOML の木にする（キーはプリセットと同じ）。
+pub fn rules_to_table(rules: &Rules) -> toml::Table {
+    toml::Value::try_from(rules)
+        .expect("Rules serializes")
+        .try_into()
+        .expect("Rules is a table")
+}
+
 fn is_known_key(k: &str) -> bool {
-    REQUIRED_KEYS.contains(&k) || k.starts_with("chips.values.")
+    catalog::item(k).is_some()
 }
 
 fn missing_keys(body: &toml::Table) -> Vec<String> {
     let have: BTreeSet<String> = leaf_keys(body).into_iter().collect();
-    REQUIRED_KEYS
-        .iter()
-        .filter(|k| !have.contains(**k))
+    required_keys()
+        .filter(|k| !have.contains(*k))
         .map(|k| k.to_string())
         .collect()
 }
 
 /// 木の葉のキーを `a.b.c` 形式で列挙する（配列は葉として扱う）。
-fn leaf_keys(t: &toml::Table) -> Vec<String> {
+pub fn leaf_keys(t: &toml::Table) -> Vec<String> {
     fn walk(prefix: &str, t: &toml::Table, out: &mut Vec<String>) {
         for (k, v) in t {
             let key = if prefix.is_empty() {
@@ -686,7 +597,7 @@ fn leaf_keys(t: &toml::Table) -> Vec<String> {
     out
 }
 
-fn lookup<'a>(t: &'a toml::Table, key: &str) -> Option<&'a toml::Value> {
+pub fn lookup<'a>(t: &'a toml::Table, key: &str) -> Option<&'a toml::Value> {
     let mut parts = key.split('.');
     let mut cur = t.get(parts.next()?)?;
     for p in parts {
@@ -695,7 +606,22 @@ fn lookup<'a>(t: &'a toml::Table, key: &str) -> Option<&'a toml::Value> {
     Some(cur)
 }
 
-fn merge(base: &mut toml::Table, over: &toml::Table) {
+/// `key`（`a.b.c`）に値を入れる（途中の表がなければ作る）。
+pub fn set_key(t: &mut toml::Table, key: &str, v: toml::Value) {
+    let mut parts: Vec<&str> = key.split('.').collect();
+    let last = parts.pop().expect("non-empty key");
+    let mut cur = t;
+    for p in parts {
+        cur = cur
+            .entry(p)
+            .or_insert_with(|| toml::Value::Table(toml::Table::new()))
+            .as_table_mut()
+            .expect("intermediate key is a table");
+    }
+    cur.insert(last.to_string(), v);
+}
+
+pub fn merge(base: &mut toml::Table, over: &toml::Table) {
     for (k, v) in over {
         match (base.get_mut(k), v) {
             (Some(toml::Value::Table(b)), toml::Value::Table(o)) => merge(b, o),
@@ -706,64 +632,88 @@ fn merge(base: &mut toml::Table, over: &toml::Table) {
     }
 }
 
-#[cfg(test)]
-mod tests {
+/// テストで使うプリセット（リポジトリに含まれるファイル）。
+pub mod presets {
     use super::*;
 
-    const TENHOU: &str = include_str!("../../../rules/tenhou-sanma.toml");
-    const MJSOUL: &str = include_str!("../../../rules/mjsoul-sanma.toml");
+    pub const TENHOU_SANMA: &str = include_str!("../../../rules/tenhou-sanma.toml");
+    pub const MJSOUL_SANMA: &str = include_str!("../../../rules/mjsoul-sanma.toml");
+    /// テスト専用の四麻（majiang-core との差分テストに合わせた値）
+    pub const TEST_YONMA: &str = include_str!("../../../fixtures/rules/test-yonma.toml");
 
-    fn test_overrides() -> toml::Table {
-        include_str!("../../../fixtures/rules/tenhou-sanma.test-overrides.toml")
-            .parse()
-            .unwrap()
+    pub fn tenhou_sanma() -> Rules {
+        PresetFile::parse(TENHOU_SANMA)
+            .and_then(|p| p.resolve(&[]))
+            .expect("rules/tenhou-sanma.toml is complete")
     }
 
-    fn tenhou_with_test_overrides() -> Rules {
-        PresetFile::parse(TENHOU)
-            .unwrap()
-            .resolve(&[&test_overrides()])
-            .unwrap()
+    pub fn mjsoul_sanma() -> Rules {
+        PresetFile::parse(MJSOUL_SANMA)
+            .and_then(|p| p.resolve(&[]))
+            .expect("rules/mjsoul-sanma.toml is complete")
     }
+
+    pub fn test_yonma() -> Rules {
+        PresetFile::parse(TEST_YONMA)
+            .and_then(|p| p.resolve(&[]))
+            .expect("fixtures/rules/test-yonma.toml is complete")
+    }
+
+    /// `base` の一部のキーを TOML の断片で上書きしたルール（テスト用）。
+    pub fn with(base: &Rules, overrides: &str) -> Rules {
+        let mut t = rules_to_table(base);
+        let o: toml::Table = overrides.parse().expect("override TOML");
+        merge(&mut t, &o);
+        rules_from_table(t).expect("valid override")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::presets::*;
+    use super::*;
 
     #[test]
-    fn presets_list_exactly_their_missing_keys() {
-        // 「未確認」として文書に挙げたキー ＝ ファイルに書いていないキー
-        for text in [TENHOU, MJSOUL] {
+    fn presets_are_complete_and_valid() {
+        for text in [TENHOU_SANMA, MJSOUL_SANMA, TEST_YONMA] {
             let p = PresetFile::parse(text).unwrap();
-            let mut listed = p.meta.unconfirmed.clone();
-            listed.sort();
-            let mut missing = p.missing_keys();
-            missing.sort();
-            assert_eq!(missing, listed, "preset {}", p.meta.id);
             assert_eq!(
-                p.resolve(&[]).unwrap_err(),
-                RulesError::Missing(p.missing_keys())
+                p.missing_keys(),
+                Vec::<String>::new(),
+                "preset {}",
+                p.meta.id
             );
+            p.resolve(&[]).unwrap();
+            for k in &p.meta.provisional {
+                assert!(
+                    catalog::item(k).is_some(),
+                    "{}: unknown provisional {k}",
+                    p.meta.id
+                );
+            }
         }
     }
 
     #[test]
-    fn tenhou_resolves_with_test_overrides() {
-        let r = tenhou_with_test_overrides();
+    fn tenhou_preset_has_no_provisional_values() {
+        // D-026：オーナーの回答で天鳳三麻の値はすべて決まった
+        let p = PresetFile::parse(TENHOU_SANMA).unwrap();
+        assert!(p.meta.provisional.is_empty());
+        let r = tenhou_sanma();
         assert_eq!(r.table.num_players, 3);
         assert_eq!(r.wall.rinshan_max, 8);
+        assert_eq!(r.wall.reserve(), 4);
         assert_eq!(r.tiles.manzu, Manzu::TerminalsOnly);
     }
 
     #[test]
-    fn required_keys_cover_every_field() {
-        // テスト用の完全なルールを直列化し、葉のキーが REQUIRED_KEYS と一致することを確かめる
-        let rules = tenhou_with_test_overrides();
-        let mut v: toml::Table = toml::Value::try_from(&rules).unwrap().try_into().unwrap();
-        if let Some(toml::Value::Table(c)) = v.get_mut("chips") {
-            c.remove("values");
+    fn serialized_keys_equal_catalog_keys() {
+        // 構造体の葉のキー ＝ カタログのキー
+        for r in [tenhou_sanma(), mjsoul_sanma(), test_yonma()] {
+            let got: BTreeSet<String> = leaf_keys(&rules_to_table(&r)).into_iter().collect();
+            let want: BTreeSet<String> = required_keys().map(String::from).collect();
+            assert_eq!(got, want);
         }
-        let mut got = leaf_keys(&v);
-        got.sort();
-        let mut want: Vec<String> = REQUIRED_KEYS.iter().map(|s| s.to_string()).collect();
-        want.sort();
-        assert_eq!(got, want);
     }
 
     #[test]
@@ -776,10 +726,8 @@ mod tests {
     }
 
     #[test]
-    fn override_fills_missing_key() {
-        let over = test_overrides();
-        let mut preset = PresetFile::parse(TENHOU).unwrap();
-        merge(&mut preset.body, &over);
+    fn missing_key_is_reported_and_override_fills_it() {
+        let mut preset = PresetFile::parse(TENHOU_SANMA).unwrap();
         preset
             .body
             .get_mut("points")
@@ -791,7 +739,29 @@ mod tests {
             preset.resolve(&[]).unwrap_err(),
             RulesError::Missing(vec!["points.honba_ron".into()])
         );
-        let over: toml::Table = "[points]\nhonba_ron = 200\n".parse().unwrap();
-        assert_eq!(preset.resolve(&[&over]).unwrap().points.honba_ron, 200);
+        let over: toml::Table = "[points]\nhonba_ron = 300\n".parse().unwrap();
+        assert_eq!(preset.resolve(&[&over]).unwrap().points.honba_ron, 300);
+    }
+
+    #[test]
+    fn validate_rejects_inconsistent_values() {
+        let base = tenhou_sanma();
+        let bad = |o: &str| {
+            let mut t = rules_to_table(&base);
+            merge(&mut t, &o.parse().unwrap());
+            rules_from_table(t).unwrap_err()
+        };
+        for o in [
+            "[points]\ntsumo_payment = 'standard'",
+            "[points]\numa = [10, 0]",
+            "[points]\numa = [10, 0, 0]",
+            "[points]\nnoten_penalty_total = 1001",
+            "[tiles]\nred_fives = { m = 1, p = 1, s = 1 }",
+            "[wall]\ndead_wall = 9",
+            "[calls]\nmax_ron = 3",
+            "[table]\nnum_players = 5",
+        ] {
+            assert!(matches!(bad(o), RulesError::Invalid(_)), "{o}");
+        }
     }
 }

@@ -1,0 +1,788 @@
+# テスト対応表：「ルール項目 × 値」ごとに、その分岐を確かめるテストを対応付ける（D-025）。
+#
+# - 項目と値はルールカタログ（docs/spec/RULES_CATALOG.md、正は crates/mj-core/src/catalog.rs）の全行。
+#   真偽値は true / false、列挙は各値、数値は "*"（少なくとも1つ）
+# - tests：`<package>::<テストのパス>`。その値を変えると結果が変わる局面で、値ごとの期待結果を確かめるテスト
+# - pending：まだ実装していない分岐（tests とどちらか一方）。--strict では失敗になる
+# - 検査：cargo run -p rules-catalog -- coverage（CI）。行が欠けている・テストが実在しない場合は失敗
+# - 行を足す：cargo run -p rules-catalog -- add-missing（足りない行を pending で末尾に足す）
+
+[[case]]
+key = "table.num_players"
+value = "*"
+tests = ["mj-core::wall::tests::wall_is_a_permutation_of_the_multiset"]
+
+[[case]]
+key = "table.length"
+value = "single"
+pending = "未実装"
+
+[[case]]
+key = "table.length"
+value = "tonpuu"
+pending = "未実装"
+
+[[case]]
+key = "table.length"
+value = "hanchan"
+pending = "未実装"
+
+[[case]]
+key = "table.extension"
+value = "none"
+pending = "未実装"
+
+[[case]]
+key = "table.extension"
+value = "sudden_death"
+pending = "未実装"
+
+[[case]]
+key = "table.extension_threshold"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "table.extension_threshold_counts_kyotaku"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "table.extension_threshold_counts_kyotaku"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "table.extension_last_wind"
+value = "east"
+pending = "未実装"
+
+[[case]]
+key = "table.extension_last_wind"
+value = "south"
+pending = "未実装"
+
+[[case]]
+key = "table.extension_last_wind"
+value = "west"
+pending = "未実装"
+
+[[case]]
+key = "table.extension_last_wind"
+value = "north"
+pending = "未実装"
+
+[[case]]
+key = "table.oorasu_stop"
+value = "none"
+pending = "未実装"
+
+[[case]]
+key = "table.oorasu_stop"
+value = "auto"
+pending = "未実装"
+
+[[case]]
+key = "table.tobi"
+value = "none"
+pending = "未実装"
+
+[[case]]
+key = "table.tobi"
+value = "below_zero"
+pending = "未実装"
+
+[[case]]
+key = "table.tobi"
+value = "zero_or_below"
+pending = "未実装"
+
+[[case]]
+key = "table.tobi_single_kyoku"
+value = "none"
+pending = "未実装"
+
+[[case]]
+key = "table.tobi_single_kyoku"
+value = "below_zero"
+pending = "未実装"
+
+[[case]]
+key = "table.tobi_single_kyoku"
+value = "zero_or_below"
+pending = "未実装"
+
+[[case]]
+key = "table.tie_break"
+value = "seat_order"
+pending = "未実装"
+
+[[case]]
+key = "table.tie_break"
+value = "split"
+pending = "未実装"
+
+[[case]]
+key = "table.leftover_kyotaku"
+value = "top"
+pending = "未実装"
+
+[[case]]
+key = "table.leftover_kyotaku"
+value = "discard"
+pending = "未実装"
+
+[[case]]
+key = "points.starting"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "points.returning"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "points.uma"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "points.tsumo_payment"
+value = "standard"
+pending = "未実装"
+
+[[case]]
+key = "points.tsumo_payment"
+value = "loss"
+pending = "未実装"
+
+[[case]]
+key = "points.tsumo_payment"
+value = "split"
+pending = "未実装"
+
+[[case]]
+key = "points.honba_ron"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "points.honba_tsumo_each"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "points.noten_penalty_total"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "points.riichi_deposit"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "points.kiriage_mangan"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "points.kiriage_mangan"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "points.kazoe_yakuman"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "points.kazoe_yakuman"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "points.min_han"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "points.double_wind_pair_fu"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "points.rinshan_tsumo_fu"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "points.rinshan_tsumo_fu"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "tiles.manzu"
+value = "all"
+tests = ["mj-core::wall::tests::multiset_sizes", "mj-core::wall::tests::sanma_dora_wraps_1m_9m"]
+
+[[case]]
+key = "tiles.manzu"
+value = "terminals_only"
+tests = ["mj-core::wall::tests::multiset_sizes", "mj-core::wall::tests::sanma_dora_wraps_1m_9m"]
+
+[[case]]
+key = "tiles.red_fives.m"
+value = "*"
+tests = ["mj-core::wall::tests::red_five_counts_follow_rules"]
+
+[[case]]
+key = "tiles.red_fives.p"
+value = "*"
+tests = ["mj-core::wall::tests::red_five_counts_follow_rules"]
+
+[[case]]
+key = "tiles.red_fives.s"
+value = "*"
+tests = ["mj-core::wall::tests::red_five_counts_follow_rules"]
+
+[[case]]
+key = "wall.dora_indicator_slots"
+value = "*"
+tests = ["mj-core::wall::tests::dora_indicator_slots_set_wall_layout"]
+
+[[case]]
+key = "wall.dead_wall"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "wall.rinshan_max"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "calls.chi"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "calls.chi"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "calls.kuitan"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "calls.kuitan"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "calls.atozuke"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "calls.atozuke"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "calls.kuikae"
+value = "forbidden"
+pending = "未実装"
+
+[[case]]
+key = "calls.kuikae"
+value = "suji_allowed"
+pending = "未実装"
+
+[[case]]
+key = "calls.kuikae"
+value = "allowed"
+pending = "未実装"
+
+[[case]]
+key = "calls.haitei_call"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "calls.haitei_call"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "calls.max_ron"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "calls.multi_ron_deposit"
+value = "upstream"
+pending = "未実装"
+
+[[case]]
+key = "calls.multi_ron_deposit"
+value = "split"
+pending = "未実装"
+
+[[case]]
+key = "riichi.min_points"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "riichi.requires_draw"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "riichi.requires_draw"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "riichi.furiten_riichi"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "riichi.furiten_riichi"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "riichi.ankan_after_riichi"
+value = "forbidden"
+pending = "未実装"
+
+[[case]]
+key = "riichi.ankan_after_riichi"
+value = "wait_unchanged"
+pending = "未実装"
+
+[[case]]
+key = "riichi.ankan_after_riichi"
+value = "form_unchanged"
+pending = "未実装"
+
+[[case]]
+key = "riichi.no_deposit_on_deal_in"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "riichi.no_deposit_on_deal_in"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "dora.ippatsu"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "dora.ippatsu"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "dora.ura"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "dora.ura"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "dora.kan_dora"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "dora.kan_dora"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "dora.kan_ura"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "dora.kan_ura"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "dora.kan_dora_timing"
+value = "ankan_immediate"
+pending = "未実装"
+
+[[case]]
+key = "dora.kan_dora_timing"
+value = "all_immediate"
+pending = "未実装"
+
+[[case]]
+key = "dora.kan_dora_timing"
+value = "all_delayed"
+pending = "未実装"
+
+[[case]]
+key = "kita.mode"
+value = "none"
+pending = "未実装"
+
+[[case]]
+key = "kita.mode"
+value = "nukidora"
+pending = "未実装"
+
+[[case]]
+key = "kita.mandatory"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "kita.mandatory"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "kita.after_pon"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "kita.after_pon"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "kita.after_riichi"
+value = "forbidden"
+pending = "未実装"
+
+[[case]]
+key = "kita.after_riichi"
+value = "drawn_only"
+pending = "未実装"
+
+[[case]]
+key = "kita.ron_on_kita"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "kita.ron_on_kita"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "kita.ron_on_discard"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "kita.ron_on_discard"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "kita.ron_counts_as_chankan"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "kita.ron_counts_as_chankan"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "kita.breaks_ippatsu"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "kita.breaks_ippatsu"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "kita.breaks_first_turn"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "kita.breaks_first_turn"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "kita.north_as_meld"
+value = "otakaze"
+pending = "未実装"
+
+[[case]]
+key = "kita.north_as_meld"
+value = "yakuhai"
+pending = "未実装"
+
+[[case]]
+key = "kita.dora_per_kita"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "draws.kyushu_kyuhai"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "draws.kyushu_kyuhai"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "draws.suukaikan"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "draws.suukaikan"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "draws.all_riichi"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "draws.all_riichi"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "draws.same_wind_discards"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "draws.same_wind_discards"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "draws.all_ron"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "draws.all_ron"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "draws.abortive_renchan"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "draws.abortive_renchan"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "draws.nagashi_mangan"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "draws.nagashi_mangan"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "draws.renchan"
+value = "agari"
+pending = "未実装"
+
+[[case]]
+key = "draws.renchan"
+value = "tenpai"
+pending = "未実装"
+
+[[case]]
+key = "draws.renchan"
+value = "always"
+pending = "未実装"
+
+[[case]]
+key = "draws.keishiki_tenpai"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "draws.keishiki_tenpai"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "draws.noten_declaration"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "draws.noten_declaration"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.composite"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.composite"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.double_special"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.double_special"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.pao"
+value = "daisangen"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.pao"
+value = "daisuushii"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.pao"
+value = "suukantsu"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.pao_ron_split"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.pao_ron_split"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.kokushi_ron_on_ankan"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "yakuman.kokushi_ron_on_ankan"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "chips.enabled"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "chips.enabled"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "chips.values.ippatsu"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "chips.values.aka"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "chips.values.ura"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "chips.values.aka_when_open"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "chips.values.aka_when_open"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "chips.values.yakuman_ron"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "chips.values.yakuman_tsumo_each"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "chips.values.kazoe_yakuman_counts"
+value = "true"
+pending = "未実装"
+
+[[case]]
+key = "chips.values.kazoe_yakuman_counts"
+value = "false"
+pending = "未実装"
+
+[[case]]
+key = "chips.values.point_value"
+value = "*"
+pending = "未実装"
+
+[[case]]
+key = "log_visibility.ankan"
+value = "open"
+pending = "未実装"
+
+[[case]]
+key = "log_visibility.ankan"
+value = "closed"
+pending = "未実装"
+
+[[case]]
+key = "log_visibility.ryukyoku_reveal"
+value = "tenpai_only"
+pending = "未実装"
+
+[[case]]
+key = "log_visibility.ryukyoku_reveal"
+value = "all"
+pending = "未実装"
+
+[[case]]
+key = "log_visibility.ryukyoku_reveal"
+value = "none"
+pending = "未実装"
