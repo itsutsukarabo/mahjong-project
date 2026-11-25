@@ -262,9 +262,9 @@ fn length_each_value() {
 
 #[test]
 fn extension_none_and_sudden_death_and_threshold() {
-    // 南3局の終わりで全員 30000 未満（三麻なのでありえないが、終了点数を上げて作る）
+    // 南3局の終わりでトップが 40000（天鳳三麻の終了点数）未満
     let low = [36000, 35000, 34000];
-    let r = with("[table]\nextension_threshold = 40000");
+    let r = sanma();
     let mut st = state(1, 2, &low);
     assert!(
         !progress(&r, &mut st, &outcome(&low, false)),
@@ -276,9 +276,9 @@ fn extension_none_and_sudden_death_and_threshold() {
         progress(&r, &mut state(1, 2, &low), &outcome(&low, false)),
         "延長戦なし"
     );
-    // 終了点数 30000（天鳳三麻）なら届いているので終局
+    // 終了点数を 30000 に下げれば届いているので終局
     assert!(progress(
-        &sanma(),
+        &with("[table]\nextension_threshold = 30000"),
         &mut state(1, 2, &low),
         &outcome(&low, false)
     ));

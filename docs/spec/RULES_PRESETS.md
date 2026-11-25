@@ -35,7 +35,7 @@
 | 本場：ロン 1000点、ツモ 1人500点（1本場あたり） | `points.honba_ron = 1000`、`points.honba_tsumo_each = 500` | |
 | 流局時の聴牌料：場に 2000点 | `points.noten_penalty_total = 2000` | 聴牌1人なら 2000 を受け取り（ノーテン2人が1000ずつ）、聴牌2人なら 1000 ずつ受け取る（ノーテン1人が2000） |
 | 立直の供託：1000点 | `points.riichi_deposit = 1000` | 数値の設定として持つ |
-| 西入の終了条件：30000点以上の人が出たら終了。供託を含めるかもフラグ、既定は含めない | `table.extension_threshold = 30000`、`table.extension_threshold_counts_kyotaku = false` | 同じ点数を「南3局の終了時に西入するか」の判定にも使う（カタログ `table.extension_threshold` の定義。下の「確認してほしい点」） |
+| 西入の終了条件：~~30000点~~ → **40000点**以上の人が出たら終了（2026-11-26 にオーナーが訂正：三人打ちのトップ条件は40000点）。供託を含めるかもフラグ、既定は含めない | `table.extension_threshold = 40000`、`table.extension_threshold_counts_kyotaku = false` | 同じ点数を「南3局の終了時に西入するか」の判定にも使う（カタログ `table.extension_threshold` の定義。トップ条件として入る・抜けるの両方に使うことは訂正で確定） |
 | 王牌：常に14枚。表示牌の枠10枚＋pile の末尾4枚。嶺上ツモのたびにハイテイが1枚手前にずれる | `wall.dead_wall = 14`（`wall.dora_indicator_slots = 5` と合わせて、pile の末尾に残す枚数 = 14 − 10 = 4） | `wall.reserve` は廃止し、`WallRules::reserve()` で導く（D-017） |
 | 北抜き：任意 | `kita.mandatory = false` | 面子に使えばオタ風は既存の `kita.north_as_meld = "otakaze"`（T3） |
 | 北へのロン：抜いたとき・切ったとき、北待ちで役がある人はロンできる | `kita.ron_on_kita = true`、`kita.ron_on_discard = true` | 2つの分岐として別のキーにした |
@@ -59,7 +59,7 @@
 | `table.num_players` | `3` | T3 | `3` | M1〜M3 |
 | `table.length` | `hanchan` | **オーナー確認（2026-11-22）**（東南戦）。T4「東風戦の南入、東南戦の西入あり」（卓で選ぶ） | `hanchan` | *仮*（質問票の回答待ち） |
 | `table.extension` | `sudden_death` | T4「東南戦の西入あり、以降サドンデスルールで終了」 | `sudden_death` | *仮*（質問票の回答待ち） |
-| `table.extension_threshold` | `30000` | **オーナー確認（2026-11-22）**「30000点以上の人が出たら終了」 | `40000` | M3「1位が30000点(三人麻雀の場合は40000点)未満の場合南入(半荘戦の場合は西入)」 |
+| `table.extension_threshold` | `40000` | **オーナー確認（2026-11-26 訂正）**「3人麻雀に限っては40000がトップ条件」（2026-11-22 の回答「30000点以上の人が出たら終了」を訂正） | `40000` | M3「1位が30000点(三人麻雀の場合は40000点)未満の場合南入(半荘戦の場合は西入)」 |
 | `table.extension_threshold_counts_kyotaku` | `false` | **オーナー確認（2026-11-22）**「供託を判定に含めるかもフラグにし、既定は含めない」（T4 の4人打ちも「30000点(供託未収)以上」） | `false` | *仮*（質問票の回答待ち） |
 | `table.extension_last_wind` | `west` | T4 補足「最大局数=…三南:西3局」 | `west` | *仮*（質問票の回答待ち） |
 | `table.oorasu_stop` | `auto` | T4「ラス親トップの自動和了り止め、自動聴牌止めあり」 | `auto` | *仮*（質問票の回答待ち） |
@@ -210,11 +210,9 @@
 - 祝儀の値（`chips.values.*`）は、天鳳三麻では `chips.enabled = false` なので使わない。参考として天鳳の雀荘戦（TJ）の値を入れ、本PJの値として数えた
 
 ## 両プリセットの差分（確認済みの値どうし）
-| キー | 天鳳三麻 | 雀魂三麻 |
-|---|---|---|
-| `table.extension_threshold` | 30000（オーナー確認） | 40000（M3） |
+なし（2026-11-26 の訂正で `table.extension_threshold` は両方 40000 になり、差分ではなくなった）。
 
-ほかの確認済みの値（`num_players`・`tsumo_payment`・`kita.mode`・`kita.ron_on_kita`・`kita.ron_counts_as_chankan`）は同じ。
+確認済みの値（`num_players`・`tsumo_payment`・`table.extension_threshold`・`kita.mode`・`kita.ron_on_kita`・`kita.ron_counts_as_chankan`）は同じ。
 
 ## 確認してほしい点
-1. `table.extension_threshold = 30000` を「延長戦（西入）に入るかの判定」と「延長戦を抜ける判定」の両方に使っている。回答は「西入の終了条件」だったので、入る判定が別の点数（例：返し点 40000）なら、キーを分ける
+（なし。2026-11-26 の訂正で `table.extension_threshold` の解釈は「トップ条件＝入る・抜けるの両方」に確定）

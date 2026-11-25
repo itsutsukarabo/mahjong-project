@@ -17,7 +17,7 @@ provisional = []
 num_players = 3
 length = "hanchan"                       # オーナー（東南戦）
 extension = "sudden_death"               # 4人打ち「東南戦の西入あり、以降サドンデスルールで終了」
-extension_threshold = 30000              # オーナー（30000点以上の人が出たら終了）
+extension_threshold = 40000              # オーナー（2026-11-26 訂正：三人打ちは40000点以上の人が出たら終了）
 extension_threshold_counts_kyotaku = false  # オーナー（供託は判定に含めない）
 extension_last_wind = "west"             # 「最大局数=…三南:西3局」
 oorasu_stop = "auto"                     # 「ラス親トップの自動和了り止め、自動聴牌止めあり」

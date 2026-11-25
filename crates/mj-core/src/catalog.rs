@@ -169,7 +169,7 @@ pub const CATALOG: &[Item] = &[
         title: "終了点数（延長戦に入る・抜ける点数）",
         kind: int(0, 1_000_000, "点"),
         desc: "規定の局数が終わったとき、この点数以上の人がいなければ延長戦に入る。延長戦ではこの点数以上の人が出た局の終わりで終了。和了止め・聴牌止めの「終了の条件」にも使う",
-        default: "30000",
+        default: "40000",
         related: &[
             "table.extension",
             "table.extension_threshold_counts_kyotaku",
