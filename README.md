@@ -23,6 +23,7 @@
 | `docs/spec/RULES_PRESETS.md` | ルールプリセット（天鳳三麻・雀魂三麻相当）の値と出典 |
 | `docs/spec/RULES_QUESTIONS_MJSOUL.md` | 雀魂三麻の仮の値を確かめる質問票（オーナーの回答待ち） |
 | `docs/spec/SANMA_RULES_DRAFT.md` | 三麻ルールの論点と選択肢 |
+| `docs/spec/REWARD_CONFIG.md` | RL の報酬設定（順位点・係数・正規化・抽選）と段位分布 |
 | `docs/spec/REPO_LAYOUT.md` | リポジトリ構成 |
 | `docs/research/ENGINE_SURVEY.md` | 既存エンジンの調査・性能の実測・差分テストの方針 |
 | `docs/research/DEV_SETUP.md` | 開発環境の準備（Windows の長いパス、Rust、WSL） |
