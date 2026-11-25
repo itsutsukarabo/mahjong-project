@@ -18,6 +18,7 @@
 | `docs/OPEN_QUESTIONS.md` | 未決事項 |
 | `PROMPT_INITIAL.md` | Claude Codeへ最初に渡すプロンプト |
 | `docs/spec/LOG_FORMAT.md` | 牌譜（イベント列）形式 v0.2（サンプルは `docs/spec/samples/`） |
+| `docs/spec/RULES_CATALOG.md` | ルールの全項目（Rust の定義から生成。キー・値・意味・既定値） |
 | `docs/spec/RULES_PRESETS.md` | ルールプリセット（天鳳三麻・雀魂三麻相当）の値と出典 |
 | `docs/spec/SANMA_RULES_DRAFT.md` | 三麻ルールの論点と選択肢 |
 | `docs/spec/REPO_LAYOUT.md` | リポジトリ構成 |

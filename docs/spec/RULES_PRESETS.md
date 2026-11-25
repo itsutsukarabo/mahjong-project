@@ -1,13 +1,13 @@
 # RULES PRESETS — 天鳳三麻相当・雀魂三麻相当の値と出典
 
-状態：D-011 に基づくプリセットの値の記録。データファイルは `rules/tenhou-sanma.toml`（メイン）と `rules/mjsoul-sanma.toml`（次点）。
-項目は `docs/spec/SANMA_RULES_DRAFT.md` に沿う（キー名は `crates/mj-core/src/rules.rs` の `Rules`）。
+状態：D-011・D-025・D-026 に基づくプリセットの値の記録。データファイルは `rules/tenhou-sanma.toml`（メイン）と `rules/mjsoul-sanma.toml`（次点）。
+項目の意味・取りうる値は `docs/spec/RULES_CATALOG.md`（Rust の定義から生成）。
 
-## 確認の方法と原則
-- 値は**各サービスの公式のルール説明**だけから確認した（2026-11-22 取得）。天鳳の牌譜・データは参照していない
-- **確認できない項目は「未確認」とし、推測で埋めない**。未確認の項目は TOML に書かず、`[meta] unconfirmed` に列挙した。
-  そのままでは `Rules` を作れない（`RulesError::Missing`）。テストは `fixtures/rules/tenhou-sanma.test-overrides.toml` の**テスト用の仮値**で埋めている
-- 公式説明に「選択」とある項目（天鳳の卓ごとの選択）は、値を書いたうえで `[meta] owner_choice` に挙げた（どの卓を基準にするかはオーナーが決める）
+## 原則
+- **プリセットはカタログの全項目（85）に値を書く**（D-025）。足りないと `Rules` を作れない（`RulesError::Missing`、テスト `presets_are_complete_and_valid`）
+- 値ごとに出典を残す：**公式のルール説明（URL）／オーナー確認＋日付／本PJの値**のどれか
+- 公式説明・オーナーの確認がない値は**仮**とし、TOML の `[meta] provisional` に列挙する（テストで、列挙したキーがカタログにあることを確かめる）。仮の値はサービスのルールとして確認したものではない
+- 天鳳の牌譜・データは参照していない（ルール説明のページのみ、2026-11-22 取得）
 - 「4人打ちを適用」：天鳳の3人打ちの節は「段位戦4人打と異なる部分のみ記載」と明記しているので、3人打ちの節にない項目は4人打ちの節の記述を適用した
 - 「雀荘戦との差から」：天鳳の雀荘戦の節は「段位戦と異なる部分のみ記載」と明記しているので、雀荘戦の節にだけある規則（祝儀・切り上げ満貫など）は段位戦にはないと読んだ
 
@@ -18,155 +18,203 @@
 | T4 | 天鳳マニュアル「ルール / 段位戦4人打ち」（3人打ちに適用） | https://tenhou.net/man/#RULE |
 | TJ | 天鳳マニュアル「ルール / 雀荘戦」「卓種別」 | https://tenhou.net/man/#RULE |
 | TY | 天鳳マニュアル「役一覧」 | https://tenhou.net/man/#YAKU |
+| オーナー確認（2026-11-22） | 公式説明にない項目・卓の選択についてのオーナーの回答（D-026） | — |
 | M1 | 雀魂公式 X「三人麻雀段位戦ではツモ損が有効です」 | https://x.com/MahjongSoul_JP/status/1152125980267315201 |
 | M2 | 雀魂公式 X「三人麻雀段位戦では役がある場合、抜き北に対してロンできますが、槍槓の役はつかない仕様」 | https://x.com/MahjongSoul_JP/status/1280051121281626112 |
 | M3 | 雀魂公式 X「段位戦では、オーラス終了後に1位が30000点(三人麻雀の場合は40000点)未満の場合南入(半荘戦の場合は西入)」 | https://x.com/mahjongsoul_jp/status/1243085277452591104 |
-| M0 | 雀魂公式 X「公式HPに『段位戦のルール説明』を掲載しました」→ リンク先 `https://mahjongsoul.com/?newsid=60c8610c2ac863186fdbebd4` | https://x.com/mahjongsoul_jp/status/1404725374932582407 |
+| M0 | 雀魂公式 X「公式HPに『段位戦のルール説明』を掲載しました」（リンク先は JavaScript で描画され本文を取得できなかった） | https://x.com/mahjongsoul_jp/status/1404725374932582407 |
+| 本PJ | 本プロジェクトの決定・牌譜の設定で、サービスのルールではない | — |
 
 - 雀魂の M1〜M3 の本文は、検索結果に表示された投稿本文で確認した（X はログインなしでは本文ページを取得できない）
-- M0 のリンク先は JavaScript で描画されるページで、本文を取得できなかった（現在のサイトはニュース ID が整数の形式に変わっており、旧 ID では引けない）。サイトの内部 API を直接たたく方法は試みたが権限で止めた
-- 雀魂のルール説明の本体はゲーム内（段位戦「～の間」の「！」）にある（M3 の投稿本文より）。**オーナーにゲーム内の説明画面での確認をお願いしたい**
+- 雀魂のルール説明の本体はゲーム内（段位戦「～の間」の「！」）にある。未確認の項目は質問票 `docs/spec/RULES_QUESTIONS_MJSOUL.md` で確認する
+
+## オーナーの回答の設定値への落とし方（2026-11-22 の回答 → キー）
+| 回答 | キーと値 | 補足 |
+|---|---|---|
+| ツモの支払い：ツモ損あり | `points.tsumo_payment = "loss"` | |
+| 本場：ロン 1000点、ツモ 1人500点（1本場あたり） | `points.honba_ron = 1000`、`points.honba_tsumo_each = 500` | |
+| 流局時の聴牌料：場に 2000点 | `points.noten_penalty_total = 2000` | 聴牌1人なら 2000 を受け取り（ノーテン2人が1000ずつ）、聴牌2人なら 1000 ずつ受け取る（ノーテン1人が2000） |
+| 立直の供託：1000点 | `points.riichi_deposit = 1000` | 数値の設定として持つ |
+| 西入の終了条件：30000点以上の人が出たら終了。供託を含めるかもフラグ、既定は含めない | `table.extension_threshold = 30000`、`table.extension_threshold_counts_kyotaku = false` | 同じ点数を「南3局の終了時に西入するか」の判定にも使う（カタログ `table.extension_threshold` の定義。下の「確認してほしい点」） |
+| 王牌：常に14枚。表示牌の枠10枚＋pile の末尾4枚。嶺上ツモのたびにハイテイが1枚手前にずれる | `wall.dead_wall = 14`（`wall.dora_indicator_slots = 5` と合わせて、pile の末尾に残す枚数 = 14 − 10 = 4） | `wall.reserve` は廃止し、`WallRules::reserve()` で導く（D-017） |
+| 北抜き：任意 | `kita.mandatory = false` | 面子に使えばオタ風は既存の `kita.north_as_meld = "otakaze"`（T3） |
+| 北へのロン：抜いたとき・切ったとき、北待ちで役がある人はロンできる | `kita.ron_on_kita = true`、`kita.ron_on_discard = true` | 2つの分岐として別のキーにした |
+| 北ロンの槍槓：付かない | `kita.ron_counts_as_chankan = false` | |
+| 立直後の北抜き：ツモってきた北を抜くか抜かないかを選べる | `kita.after_riichi = "drawn_only"` | 抜かない場合はツモ切り |
+| 3人全員の立直：流局しない | `draws.all_riichi = false` | |
+| 第1打が3人とも同じ風牌：流局しない | `draws.same_wind_discards = false` | |
+| 放銃者以外の2人が同時にロン：両方とも和了 | `draws.all_ron = false`、`calls.max_ron = 2` | |
+| ノーテン宣言：なし | `draws.noten_declaration = false` | |
+| 卓：喰いタンあり・赤あり（5p・5s 各1）、東南戦 | `calls.kuitan = true`、`tiles.red_fives = {m=0,p=1,s=1}`、`table.length = "hanchan"` | 旧 `owner_choice` の4キー |
 
 ---
 
 ## 値の一覧
-
-凡例：**未確認** = 公式説明で確認できない（TOML に書いていない）／*選択* = 公式に選択肢があり、オーナーが選ぶ（値は書いてある）／本PJ = 本プロジェクトの決定で、サービスのルールではない
+凡例：*仮* = 公式説明・オーナー確認のない本PJの仮の値（天鳳三麻と同じ値を入れてある。`meta.provisional`）
 
 ### A. 対局の形（`table`）
+
 | キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
 |---|---|---|---|---|
-| `num_players` | 3 | T3 | 3 | M1〜M3 |
-| `length` | `hanchan` *選択* | T4「東風戦の南入、東南戦の西入あり」（東風・東南は卓で選ぶ） | **未確認** | M3 は東風・半荘の両方に触れるが、メインの長さは別問題 |
-| `extension` | `sudden_death` | T4「東南戦の西入あり、以降サドンデスルールで終了」 | **未確認** | M3 は南入・西入があることだけを述べる（終了条件の詳細なし） |
-| `extension_threshold` | **未確認** | T4 は「30000点(供託未収)以上」と4人打ちの数値で書いており、3人打ちの値（返し 40000 と同じか）が書かれていない | 40000 | M3 |
-| `extension_last_wind` | `west` | T4 補足「最大局数=…三東:南3局/三南:西3局」 | **未確認** | — |
-| `oorasu_stop` | `auto` | T4「ラス親トップの自動和了り止め、自動聴牌止めあり」 | **未確認** | — |
-| `tobi` | `below_zero` | T4「点数がマイナスで飛び終了、マイナス点数も集計、0点は続行」 | **未確認** | — |
-| `tobi_single_kyoku` | `none` 本PJ | D-012 | `none` 本PJ | D-012 |
-| `tie_break` | `seat_order` | T4「終了時に同点の場合は東1局の風順で順位を決定」 | **未確認** | — |
-| `leftover_kyotaku` | `top` | T4「終了時の供託はトップ取り」 | **未確認** | — |
+| `table.num_players` | `3` | T3 | `3` | M1〜M3 |
+| `table.length` | `hanchan` | **オーナー確認（2026-11-22）**（東南戦）。T4「東風戦の南入、東南戦の西入あり」（卓で選ぶ） | `hanchan` | *仮*（質問票の回答待ち） |
+| `table.extension` | `sudden_death` | T4「東南戦の西入あり、以降サドンデスルールで終了」 | `sudden_death` | *仮*（質問票の回答待ち） |
+| `table.extension_threshold` | `30000` | **オーナー確認（2026-11-22）**「30000点以上の人が出たら終了」 | `40000` | M3「1位が30000点(三人麻雀の場合は40000点)未満の場合南入(半荘戦の場合は西入)」 |
+| `table.extension_threshold_counts_kyotaku` | `false` | **オーナー確認（2026-11-22）**「供託を判定に含めるかもフラグにし、既定は含めない」（T4 の4人打ちも「30000点(供託未収)以上」） | `false` | *仮*（質問票の回答待ち） |
+| `table.extension_last_wind` | `west` | T4 補足「最大局数=…三南:西3局」 | `west` | *仮*（質問票の回答待ち） |
+| `table.oorasu_stop` | `auto` | T4「ラス親トップの自動和了り止め、自動聴牌止めあり」 | `auto` | *仮*（質問票の回答待ち） |
+| `table.tobi` | `below_zero` | T4「点数がマイナスで飛び終了、マイナス点数も集計、0点は続行」 | `below_zero` | *仮*（質問票の回答待ち） |
+| `table.tobi_single_kyoku` | `none` | 本PJ（D-012） | `none` | 本PJ（D-012） |
+| `table.tie_break` | `seat_order` | T4「終了時に同点の場合は東1局の風順で順位を決定」 | `seat_order` | *仮*（質問票の回答待ち） |
+| `table.leftover_kyotaku` | `top` | T4「終了時の供託はトップ取り」 | `top` | *仮*（質問票の回答待ち） |
 
 ### B. 点数（`points`）
-| キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
-|---|---|---|---|---|
-| `starting` / `returning` | 35000 / 40000 | T3「35000開始の40000点返し」 | **未確認** | — |
-| `uma` | +20000 / 0 / −20000 | T3「順位ウマ +20, 0, -20」 | **未確認** | — |
-| `tsumo_payment` | **未確認** | T3・T4 とも記載なし | `loss`（ツモ損） | M1 |
-| `honba_ron` / `honba_tsumo_each` | **未確認** | 段位戦の記載なし（TJ の「三南=200」は雀荘戦の値） | **未確認** | — |
-| `noten_penalty_total` | **未確認** | T4 は「ノーテン親流れ」のみで金額の記載なし | **未確認** | — |
-| `riichi_deposit` | **未確認** | T4 は「供託料」に触れるが金額の記載なし | **未確認** | — |
-| `kiriage_mangan` | `false` | 雀荘戦との差から（TJ「切り上げ満貫」） | **未確認** | — |
-| `kazoe_yakuman` | `true` | TY「数え役満は13翻以上」 | **未確認** | — |
-| `min_han` | 1 | T4「2飜縛りなし/常に1飜縛り」 | **未確認** | — |
-| `double_wind_pair_fu` | 4 | T4「連風牌は4符」 | **未確認** | — |
-| `rinshan_tsumo_fu` | `true` | T4「嶺上ツモも2符加算」 | **未確認** | — |
 
-### C. 牌・王牌（`tiles`, `wall`）
 | キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
 |---|---|---|---|---|
-| `tiles.manzu` | `terminals_only` | T3「二萬～八萬を使用しない」「ドラ表示『一萬』のドラは『九萬』…」 | **未確認** | — |
-| `tiles.red_fives` | m0 / p1 / s1 *選択* | T4「赤ありルールでの枚数：各1枚」（赤あり・なしは卓で選ぶ。5m は使わない） | **未確認** | — |
-| `wall.dora_indicator_slots` | 5 | 直接の記載なし。T4「カンドラあり」「四槓散了」から最大 1＋4 枚と導いた | **未確認** | — |
-| `wall.rinshan_max` | 8 | T3「嶺上牌は8枚」 | **未確認** | — |
-| `wall.reserve` | **未確認** | 王牌の枚数（ハイテイの位置）の記載なし | **未確認** | — |
+| `points.starting` | `35000` | T3「35000開始の40000点返し」 | `35000` | *仮*（質問票の回答待ち） |
+| `points.returning` | `40000` | T3「35000開始の40000点返し」 | `40000` | *仮*（質問票の回答待ち） |
+| `points.uma` | `[20000, 0, -20000]` | T3「順位ウマ +20, 0, -20」 | `[20000, 0, -20000]` | *仮*（質問票の回答待ち） |
+| `points.tsumo_payment` | `loss` | **オーナー確認（2026-11-22）**「ツモ損あり」 | `loss` | M1「三人麻雀段位戦ではツモ損が有効です」 |
+| `points.honba_ron` | `1000` | **オーナー確認（2026-11-22）**「ロン和了 1000点（1本場あたり）」 | `1000` | *仮*（質問票の回答待ち） |
+| `points.honba_tsumo_each` | `500` | **オーナー確認（2026-11-22）**「ツモ和了 1人500点（1本場あたり）」 | `500` | *仮*（質問票の回答待ち） |
+| `points.noten_penalty_total` | `2000` | **オーナー確認（2026-11-22）**「場に 2000点」 | `2000` | *仮*（質問票の回答待ち） |
+| `points.riichi_deposit` | `1000` | **オーナー確認（2026-11-22）**「1000点」 | `1000` | *仮*（質問票の回答待ち） |
+| `points.kiriage_mangan` | `false` | 雀荘戦との差から（TJ「切り上げ満貫」） | `false` | *仮*（質問票の回答待ち） |
+| `points.kazoe_yakuman` | `true` | TY「数え役満は13翻以上」 | `true` | *仮*（質問票の回答待ち） |
+| `points.min_han` | `1` | T4「2飜縛りなし/常に1飜縛り」 | `1` | *仮*（質問票の回答待ち） |
+| `points.double_wind_pair_fu` | `4` | T4「連風牌は4符」 | `4` | *仮*（質問票の回答待ち） |
+| `points.rinshan_tsumo_fu` | `true` | T4「嶺上ツモも2符加算」 | `true` | *仮*（質問票の回答待ち） |
+
+### C. 牌（`tiles`）
+
+| キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
+|---|---|---|---|---|
+| `tiles.manzu` | `terminals_only` | T3「二萬～八萬を使用しない」「ドラ表示『一萬』のドラは『九萬』」 | `terminals_only` | *仮*（質問票の回答待ち） |
+| `tiles.red_fives.m` | `0` | T3（5m を使わない） | `0` | *仮*（質問票の回答待ち） |
+| `tiles.red_fives.p` | `1` | **オーナー確認（2026-11-22）**「赤あり（5p・5s 各1）」。T4「赤ありルールでの枚数：各1枚」 | `1` | *仮*（質問票の回答待ち） |
+| `tiles.red_fives.s` | `1` | **オーナー確認（2026-11-22）**「赤あり（5p・5s 各1）」 | `1` | *仮*（質問票の回答待ち） |
+
+### C'. 王牌（`wall`）
+
+| キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
+|---|---|---|---|---|
+| `wall.dora_indicator_slots` | `5` | T4「カンドラあり」「四槓散了」から 1＋4 枚と導いた（直接の記載なし） | `5` | *仮*（質問票の回答待ち） |
+| `wall.dead_wall` | `14` | **オーナー確認（2026-11-22）**「王牌は常に14枚」 | `14` | *仮*（質問票の回答待ち） |
+| `wall.rinshan_max` | `8` | T3「嶺上牌は8枚」 | `8` | *仮*（質問票の回答待ち） |
+
+### E. 鳴き・和了（`calls`）
+
+| キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
+|---|---|---|---|---|
+| `calls.chi` | `false` | T3「チーはできない」 | `false` | *仮*（質問票の回答待ち） |
+| `calls.kuitan` | `true` | **オーナー確認（2026-11-22）**「喰いタンあり」。T4「喰い断なし/あり選択」 | `true` | *仮*（質問票の回答待ち） |
+| `calls.atozuke` | `true` | T4「後付けあり」 | `true` | *仮*（質問票の回答待ち） |
+| `calls.kuikae` | `forbidden` | T4「喰い替えなし」 | `forbidden` | *仮*（質問票の回答待ち） |
+| `calls.haitei_call` | `false` | T4「海底牌は鳴けない」 | `false` | *仮*（質問票の回答待ち） |
+| `calls.max_ron` | `2` | T4「ダブロンあり」、**オーナー確認（2026-11-22）**「放銃者以外の2人が同時にロン：両方とも和了」 | `2` | *仮*（質問票の回答待ち） |
+| `calls.multi_ron_deposit` | `upstream` | T4「積み棒/供託は上家取り」 | `upstream` | *仮*（質問票の回答待ち） |
+
+### E'. 立直（`riichi`）
+
+| キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
+|---|---|---|---|---|
+| `riichi.min_points` | `1000` | T4「得点が1000点以上でツモ巡がある場合に可能」 | `1000` | *仮*（質問票の回答待ち） |
+| `riichi.requires_draw` | `true` | T4（同上） | `true` | *仮*（質問票の回答待ち） |
+| `riichi.furiten_riichi` | `true` | T4「振聴リーチあり」 | `true` | *仮*（質問票の回答待ち） |
+| `riichi.ankan_after_riichi` | `wait_unchanged` | T4「待ちが変わらない場合のみ。送り槓不可、牌姿や役の増減は不問」 | `wait_unchanged` | *仮*（質問票の回答待ち） |
+| `riichi.no_deposit_on_deal_in` | `true` | T4「リーチ宣言牌で放銃した場合は供託料は発生しない」 | `true` | *仮*（質問票の回答待ち） |
+
+### E''. ドラ・一発（`dora`）
+
+| キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
+|---|---|---|---|---|
+| `dora.ippatsu` | `true` | TY【懸賞】一発 | `true` | *仮*（質問票の回答待ち） |
+| `dora.ura` | `true` | TY【懸賞】裏ドラ | `true` | *仮*（質問票の回答待ち） |
+| `dora.kan_dora` | `true` | T4「カンドラ/カン裏あり」 | `true` | *仮*（質問票の回答待ち） |
+| `dora.kan_ura` | `true` | T4「カンドラ/カン裏あり」 | `true` | *仮*（質問票の回答待ち） |
+| `dora.kan_dora_timing` | `ankan_immediate` | T4「暗槓は即乗り、明槓/加槓は後めくり」 | `ankan_immediate` | *仮*（質問票の回答待ち） |
 
 ### D. 北（`kita`）
-| キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
-|---|---|---|---|---|
-| `mode` | `nukidora` | T3「北は抜きドラ」 | `nukidora` | M2（抜き北を前提とした説明） |
-| `mandatory` | **未確認** | 抜くのが任意か強制かの記載なし | **未確認** | — |
-| `after_pon` | `false` | T3「ポンの直後は抜けない」 | **未確認** | — |
-| `after_riichi` | **未確認** | 記載なし | **未確認** | — |
-| `ron` | `true` | T3「抜いた北は役満以外でも和了可能」 | `true`（役がある場合） | M2 |
-| `ron_counts_as_chankan` | **未確認** | 記載なし | `false` | M2「槍槓の役はつかない」 |
-| `breaks_ippatsu` / `breaks_first_turn` | `true` / `true` | T3「抜きは鳴きと同じ扱い(一発/地和/九種/両立直は消える)」 | **未確認** | — |
-| `north_as_meld` | `otakaze` | T3「北を面子で使用した場合はオタ風」 | **未確認** | — |
 
-### E. 鳴き・立直・ドラ・役満（`calls`, `riichi`, `dora`, `yakuman`）
 | キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
 |---|---|---|---|---|
-| `calls.chi` | `false` | T3「チーはできない」 | **未確認** | — |
-| `calls.kuitan` | `true` *選択* | T4「喰い断なし/あり選択」 | **未確認** | — |
-| `calls.atozuke` | `true` | T4「後付けあり」 | **未確認** | — |
-| `calls.kuikae` | `forbidden` | T4「喰い替えなし」 | **未確認** | — |
-| `calls.haitei_call` | `false` | T4「海底牌は鳴けない」 | **未確認** | — |
-| `calls.max_ron` / `multi_ron_deposit` | 2 / `upstream` | T4「ダブロンあり。積み棒/供託は上家取り」 | **未確認** | — |
-| `riichi.min_points` / `requires_draw` | 1000 / `true` | T4「得点が1000点以上でツモ巡がある場合に可能」 | **未確認** | — |
-| `riichi.furiten_riichi` | `true` | T4「振聴リーチあり」 | **未確認** | — |
-| `riichi.ankan_after_riichi` | `wait_unchanged` | T4「待ちが変わらない場合のみ。送り槓不可、牌姿や役の増減は不問」 | **未確認** | — |
-| `riichi.no_deposit_on_deal_in` | `true` | T4「リーチ宣言牌で放銃した場合は供託料は発生しない」 | **未確認** | — |
-| `dora.ippatsu` / `ura` | `true` / `true` | TY【懸賞】一発・裏ドラ | **未確認** | — |
-| `dora.kan_dora` / `kan_ura` | `true` / `true` | T4「カンドラ/カン裏あり」 | **未確認** | — |
-| `dora.kan_dora_timing` | `ankan_immediate` | T4「暗槓は即乗り、明槓/加槓は後めくり」 | **未確認** | — |
-| `yakuman.composite` | `true` | TY「役満は複合あり」 | **未確認** | — |
-| `yakuman.double_special` | `false` | TY「四暗刻単騎・国士無双十三面待ち等はすべてシングル役満」 | **未確認** | — |
-| `yakuman.pao` / `pao_ron_split` | 大三元・大四喜 / `true` | T4「大三元/大四喜のパオあり。…ツモ＝全額・ロン＝折半」「四槓子のパオなし」 | **未確認** | — |
-| `yakuman.kokushi_ron_on_ankan` | `false` | TY「他家が暗槓した牌では国士無双はあがれない」 | **未確認** | — |
+| `kita.mode` | `nukidora` | T3「北は抜きドラ」 | `nukidora` | M2（抜き北を前提とした説明） |
+| `kita.mandatory` | `false` | **オーナー確認（2026-11-22）**「任意（抜かずに手牌で使える）」 | `false` | *仮*（質問票の回答待ち） |
+| `kita.after_pon` | `false` | T3「ポンの直後は抜けない」 | `false` | *仮*（質問票の回答待ち） |
+| `kita.after_riichi` | `drawn_only` | **オーナー確認（2026-11-22）**「ツモってきた北を抜くか抜かないかを選べる」 | `drawn_only` | *仮*（質問票の回答待ち） |
+| `kita.ron_on_kita` | `true` | T3「抜いた北は役満以外でも和了可能」、**オーナー確認（2026-11-22）**「北を抜いたとき…北待ちで役がある人はロンできる」 | `true` | M2「役がある場合、抜き北に対してロンできます」 |
+| `kita.ron_on_discard` | `true` | **オーナー確認（2026-11-22）**「北を切ったとき、北待ちで役がある人はロンできる」 | `true` | *仮*（質問票の回答待ち） |
+| `kita.ron_counts_as_chankan` | `false` | **オーナー確認（2026-11-22）**「付かない」 | `false` | M2「槍槓の役はつかない仕様」 |
+| `kita.breaks_ippatsu` | `true` | T3「抜きは鳴きと同じ扱い(一発/地和/九種/両立直は消える)」 | `true` | *仮*（質問票の回答待ち） |
+| `kita.breaks_first_turn` | `true` | T3（同上） | `true` | *仮*（質問票の回答待ち） |
+| `kita.north_as_meld` | `otakaze` | T3「北を面子で使用した場合はオタ風」 | `otakaze` | *仮*（質問票の回答待ち） |
+| `kita.dora_per_kita` | `1` | T3「北は抜きドラ」（1枚でドラ1） | `1` | *仮*（質問票の回答待ち） |
 
 ### F. 流局（`draws`）
+
 | キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
 |---|---|---|---|---|
-| `kyushu_kyuhai` | `true` | T4 途中流局に九種九牌 | **未確認** | — |
-| `suukaikan` | `true` | T4 途中流局に四槓散了 | **未確認** | — |
-| `all_riichi` | **未確認** | T4 は「四家立直」。3人の全員立直（三家立直）を流局にするかの記載なし | **未確認** | — |
-| `same_wind_discards` | **未確認** | T4 は「四風連打」。3人の場合の記載なし | **未確認** | — |
-| `all_ron` | **未確認** | T4 は「三家和了」。3人では放銃者以外の全員＝2人で、「ダブロンあり」とどちらが優先か書かれていない | **未確認** | — |
-| `abortive_renchan` | `true` | T4「すべて連荘」 | **未確認** | — |
-| `nagashi_mangan` | `true` | T4「流し満貫あり」 | **未確認** | — |
-| `renchan` | `tenpai` | T4「ノーテン親流れ、聴牌連荘」 | **未確認** | — |
-| `keishiki_tenpai` | `true` | T4「形式聴牌あり。5枚目を待つ聴牌あり」 | **未確認** | — |
-| `noten_declaration` | **未確認** | 記載なし | **未確認** | — |
+| `draws.kyushu_kyuhai` | `true` | T4 途中流局「九種九牌」 | `true` | *仮*（質問票の回答待ち） |
+| `draws.suukaikan` | `true` | T4 途中流局「四槓散了」 | `true` | *仮*（質問票の回答待ち） |
+| `draws.all_riichi` | `false` | **オーナー確認（2026-11-22）**「3人全員の立直：流局しない」 | `false` | *仮*（質問票の回答待ち） |
+| `draws.same_wind_discards` | `false` | **オーナー確認（2026-11-22）**「第1打が3人とも同じ風牌：流局しない」 | `false` | *仮*（質問票の回答待ち） |
+| `draws.all_ron` | `false` | **オーナー確認（2026-11-22）**「放銃者以外の2人が同時にロン：両方とも和了（ダブロン）」 | `false` | *仮*（質問票の回答待ち） |
+| `draws.abortive_renchan` | `true` | T4「すべて連荘」 | `true` | *仮*（質問票の回答待ち） |
+| `draws.nagashi_mangan` | `true` | T4「流し満貫あり」 | `true` | *仮*（質問票の回答待ち） |
+| `draws.renchan` | `tenpai` | T4「ノーテン親流れ、聴牌連荘」 | `tenpai` | *仮*（質問票の回答待ち） |
+| `draws.keishiki_tenpai` | `true` | T4「形式聴牌あり。5枚目を待つ聴牌あり」 | `true` | *仮*（質問票の回答待ち） |
+| `draws.noten_declaration` | `false` | **オーナー確認（2026-11-22）**「ノーテン宣言なし」 | `false` | *仮*（質問票の回答待ち） |
 
-### 祝儀（`chips`）
+### G. 役満（`yakuman`）
+
 | キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
 |---|---|---|---|---|
-| `enabled` | **`false`（なし）** | 雀荘戦との差から：TJ「祝儀は一発/赤/裏/役満」は雀荘戦だけの規則。TJ「卓種別」の三人打ちは「三喰赤祝５」（雀荘戦）だけ | **未確認** | — |
-| 参考：天鳳の雀荘戦（段位戦ではない） | 一発・赤・裏・役満。赤は副露可。役満はロン10枚・ツモ5枚オール。数え役満の役満祝儀なし。三人打ちは1枚5000点 | TJ | — | — |
+| `yakuman.composite` | `true` | TY「役満は複合あり」 | `true` | *仮*（質問票の回答待ち） |
+| `yakuman.double_special` | `false` | TY「四暗刻単騎・国士無双十三面待ち等はすべてシングル役満」 | `false` | *仮*（質問票の回答待ち） |
+| `yakuman.pao` | `[daisangen, daisuushii]` | T4「大三元/大四喜のパオあり」「四槓子のパオなし」 | `[daisangen, daisuushii]` | *仮*（質問票の回答待ち） |
+| `yakuman.pao_ron_split` | `true` | T4「ツモ＝全額・ロン＝折半」 | `true` | *仮*（質問票の回答待ち） |
+| `yakuman.kokushi_ron_on_ankan` | `false` | TY「他家が暗槓した牌では国士無双はあがれない」 | `false` | *仮*（質問票の回答待ち） |
 
-### 牌譜の公開範囲（`log_visibility`）
-両プリセットとも本PJの既定値（`ankan = "open"`, `ryukyoku_reveal = "tenpai_only"`。LOG_FORMAT §5）。サービスのルールではない。
+### H. 祝儀（`chips`）
+
+| キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
+|---|---|---|---|---|
+| `chips.enabled` | `false` | 雀荘戦との差から（TJ「祝儀は一発/赤/裏/役満」は雀荘戦だけ） | `false` | *仮*（質問票の回答待ち） |
+| `chips.values.ippatsu` | `1` | 本PJ（祝儀なしなので使わない。値は参考として TJ の雀荘戦） | `1` | *仮*（質問票の回答待ち） |
+| `chips.values.aka` | `1` | 本PJ（祝儀なしなので使わない。値は参考として TJ の雀荘戦） | `1` | *仮*（質問票の回答待ち） |
+| `chips.values.ura` | `1` | 本PJ（祝儀なしなので使わない。値は参考として TJ の雀荘戦） | `1` | *仮*（質問票の回答待ち） |
+| `chips.values.aka_when_open` | `true` | 本PJ（祝儀なしなので使わない。値は参考として TJ の雀荘戦） | `true` | *仮*（質問票の回答待ち） |
+| `chips.values.yakuman_ron` | `10` | 本PJ（祝儀なしなので使わない。値は参考として TJ の雀荘戦） | `10` | *仮*（質問票の回答待ち） |
+| `chips.values.yakuman_tsumo_each` | `5` | 本PJ（祝儀なしなので使わない。値は参考として TJ の雀荘戦） | `5` | *仮*（質問票の回答待ち） |
+| `chips.values.kazoe_yakuman_counts` | `false` | 本PJ（祝儀なしなので使わない。値は参考として TJ の雀荘戦） | `false` | *仮*（質問票の回答待ち） |
+| `chips.values.point_value` | `5000` | 本PJ（祝儀なしなので使わない。値は参考として TJ の雀荘戦） | `5000` | *仮*（質問票の回答待ち） |
+
+### I. 牌譜の公開範囲（`log_visibility`）
+
+| キー | 天鳳三麻 | 出典・根拠 | 雀魂三麻 | 出典 |
+|---|---|---|---|---|
+| `log_visibility.ankan` | `open` | 本PJ（LOG_FORMAT §5） | `open` | 本PJ |
+| `log_visibility.ryukyoku_reveal` | `tenpai_only` | 本PJ（LOG_FORMAT §4.4） | `tenpai_only` | 本PJ |
 
 ---
 
-## 両プリセットの差分
-確認できた値どうしで食い違う項目は**ない**。差は「片方だけで確認できた」項目。
+## 集計（`python` で `rules/*.toml` を数えた値。全 85 キー）
 
+| | 公式で確認 | オーナー確認（2026-11-22） | 本PJの値 | 仮 |
+|---|---|---|---|---|
+| 天鳳三麻 | 52 | 22 | 11（`tobi_single_kyoku`・`log_visibility` 2つ・祝儀の値 8つ） | **0** |
+| 雀魂三麻 | 6 | 0 | 3 | **76** |
+
+- 天鳳三麻の未確認の項目は**なくなった**（テスト `tenhou_preset_has_no_provisional_values`）
+- 祝儀の値（`chips.values.*`）は、天鳳三麻では `chips.enabled = false` なので使わない。参考として天鳳の雀荘戦（TJ）の値を入れ、本PJの値として数えた
+
+## 両プリセットの差分（確認済みの値どうし）
 | キー | 天鳳三麻 | 雀魂三麻 |
 |---|---|---|
-| `points.tsumo_payment` | 未確認 | `loss`（M1） |
-| `table.extension_threshold` | 未確認 | 40000（M3） |
-| `kita.ron_counts_as_chankan` | 未確認 | `false`（M2） |
-| 上記以外 | 天鳳だけで確認できた値が 54 キー | 未確認 |
+| `table.extension_threshold` | 30000（オーナー確認） | 40000（M3） |
 
-キー数の内訳（全 74 キー。`python` で `rules/*.toml` を数えた値。`presets_list_exactly_their_missing_keys` テストで、TOML に書いていないキーと `meta.unconfirmed` が一致することを確かめている）：
+ほかの確認済みの値（`num_players`・`tsumo_payment`・`kita.mode`・`kita.ron_on_kita`・`kita.ron_counts_as_chankan`）は同じ。
 
-| | 書いてあるキー | うち本PJの値（`tobi_single_kyoku`・`log_visibility` 2つ） | うち公式で確認（*選択* を含む） | 未確認 |
-|---|---|---|---|---|
-| 天鳳三麻 | 60 | 3 | 57（*選択* 4） | 14 |
-| 雀魂三麻 | 9 | 3 | 6 | 65 |
-
-## 未確認の一覧
-### 天鳳三麻（14 キー）— メインのルールなので、値を決めないと学習用の `Rules` が作れない
-| キー | エンジン実装への影響 |
-|---|---|
-| `points.tsumo_payment` | **大**：ツモ和了の支払い計算。三麻の和了の価値（ツモとロンの比）が変わる |
-| `points.honba_ron`, `points.honba_tsumo_each` | 中：本場の支払い |
-| `points.noten_penalty_total` | 中：流局時の点数移動 |
-| `points.riichi_deposit` | 小（通例 1000 だが記載なし） |
-| `table.extension_threshold` | 中：西入・サドンデスの終了判定（③の半荘戦） |
-| `wall.reserve` | **大**：ハイテイの位置＝1局のツモ回数。牌譜の `pile` の扱いに直結 |
-| `kita.mandatory` | **大**：行動空間（「抜かない」を選べるか） |
-| `kita.after_riichi` | 中：立直後の合法手 |
-| `kita.ron_counts_as_chankan` | 小：北ロンの役 |
-| `draws.all_riichi`, `draws.same_wind_discards`, `draws.all_ron` | 中：途中流局の条件（3人での解釈） |
-| `draws.noten_declaration` | 中：行動空間（ノーテン宣言を選べるか） |
-
-エンジンは全選択肢を設定値として実装するので、**実装そのものは止まらない**。止まるのは「メインの学習ルールの値」。
-### 雀魂三麻（65 キー）
-確認できたのは `num_players`・`tsumo_payment`・`extension_threshold`・`kita.mode`・`kita.ron`・`kita.ron_counts_as_chankan` と本PJの値だけ。ゲーム内の説明での確認が必要。
-
-## オーナーに決めてほしい事項
-1. 天鳳三麻の未確認 14 キーの値をどう決めるか（例：オーナーが天鳳を実際に打って確かめる／一般的な三麻の値を「天鳳相当」の定義として採用する）
-2. *選択* 4 キー：天鳳のどの卓を基準にするか（`length`：東風・東南、`calls.kuitan`・`tiles.red_fives`：喰赤卓かどうか）
-3. 雀魂三麻をゲーム内の説明で確認するか（確認しない場合は、次点プリセットは「ツモ損・北ロン」以外が空のままになる）
+## 確認してほしい点
+1. `table.extension_threshold = 30000` を「延長戦（西入）に入るかの判定」と「延長戦を抜ける判定」の両方に使っている。回答は「西入の終了条件」だったので、入る判定が別の点数（例：返し点 40000）なら、キーを分ける
