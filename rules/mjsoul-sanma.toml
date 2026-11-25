@@ -4,6 +4,8 @@
 # 雀魂のルール説明はゲーム内（段位戦「～の間」の「！」）にあり、公式サイトのウェブページからは
 # 本文を取得できなかった（2026-11-22）。
 #
+# M4：雀魂公式のルール説明（共通基本ルール・共通詳細ルール・三人麻雀）。オーナーが 2026-11-26 に貼り付けたもの。
+#
 # 全項目に値を書く（D-025）。公式で確認できた項目と本PJの値以外は「# 仮」で、天鳳三麻（rules/tenhou-sanma.toml）と
 # 同じ値を仮に入れてある。雀魂のルールとして確認した値ではない（meta.provisional）。
 # 確認は質問票 docs/spec/RULES_QUESTIONS_MJSOUL.md で行う。
@@ -13,100 +15,46 @@ id = "mjsoul-sanma"
 name = "雀魂三麻相当（段位戦 三人麻雀）"
 provisional = [
     "table.length",
-    "table.extension",
-    "table.extension_threshold_counts_kyotaku",
-    "table.extension_last_wind",
-    "table.oorasu_stop",
-    "table.tobi",
-    "table.tie_break",
-    "table.leftover_kyotaku",
-    "points.starting",
-    "points.returning",
-    "points.uma",
     "points.honba_ron",
     "points.honba_tsumo_each",
     "points.noten_penalty_total",
     "points.riichi_deposit",
     "points.kiriage_mangan",
     "points.kazoe_yakuman",
-    "points.min_han",
-    "points.double_wind_pair_fu",
-    "points.rinshan_tsumo_fu",
-    "tiles.manzu",
-    "tiles.red_fives.m",
     "tiles.red_fives.p",
     "tiles.red_fives.s",
     "wall.dora_indicator_slots",
     "wall.dead_wall",
-    "wall.rinshan_max",
-    "calls.chi",
-    "calls.kuitan",
-    "calls.atozuke",
     "calls.kuikae",
     "calls.haitei_call",
-    "calls.max_ron",
-    "calls.multi_ron_deposit",
-    "riichi.min_points",
-    "riichi.requires_draw",
-    "riichi.furiten_riichi",
-    "riichi.ankan_after_riichi",
     "riichi.no_deposit_on_deal_in",
-    "dora.ippatsu",
-    "dora.ura",
-    "dora.kan_dora",
-    "dora.kan_ura",
-    "dora.kan_dora_timing",
     "kita.mandatory",
     "kita.after_pon",
     "kita.after_riichi",
     "kita.ron_on_discard",
-    "kita.breaks_ippatsu",
-    "kita.breaks_first_turn",
-    "kita.north_as_meld",
     "kita.dora_per_kita",
-    "draws.kyushu_kyuhai",
-    "draws.suukaikan",
-    "draws.all_riichi",
-    "draws.same_wind_discards",
-    "draws.all_ron",
-    "draws.abortive_renchan",
-    "draws.nagashi_mangan",
-    "draws.renchan",
     "draws.keishiki_tenpai",
     "draws.noten_declaration",
-    "yakuman.composite",
     "yakuman.double_special",
-    "yakuman.pao",
-    "yakuman.pao_ron_split",
-    "yakuman.kokushi_ron_on_ankan",
-    "chips.enabled",
-    "chips.values.ippatsu",
-    "chips.values.aka",
-    "chips.values.ura",
-    "chips.values.aka_when_open",
-    "chips.values.yakuman_ron",
-    "chips.values.yakuman_tsumo_each",
-    "chips.values.kazoe_yakuman_counts",
-    "chips.values.point_value",
 ]
 
 [table]
 num_players = 3                          # M1〜M3（三人麻雀）
 length = "hanchan"                       # 仮
-extension = "sudden_death"               # 仮
-extension_threshold = 40000              # M3「1位が30000点(三人麻雀の場合は40000点)未満の場合南入(半荘戦の場合は西入)」
-extension_threshold_counts_kyotaku = false # 仮
-extension_last_wind = "west"             # 仮
-oorasu_stop = "auto"                     # 仮
-tobi = "below_zero"                      # 仮
+extension = "sudden_death"               # M4「以降サドンデスルールで終了」
+extension_threshold = 40000              # M4 三人麻雀「一位必要点数：40000」
+extension_threshold_counts_kyotaku = false # M4「一位必要点数(供託未収)以上になった時点で終了」
+extension_last_wind = "west"             # M4「半荘戦では西場まで（北入なし）」（東風戦なら south）
+oorasu_stop = "auto"                     # M4「ラス親トップかつ一位必要点数以上所持の場合の自動和了り止め、自動聴牌止めあり」
+tobi = "below_zero"                      # M4「点数がマイナスで飛び終了…0点は続行」
 tobi_single_kyoku = "none"               # 本PJ D-012
-tie_break = "seat_order"                 # 仮
-leftover_kyotaku = "top"                 # 仮
+tie_break = "seat_order"                 # M4「同点の場合は起親に近い方が上位」
+leftover_kyotaku = "top"                 # M4「終了時の供託はトップ取り」
 
 [points]
-starting = 35000                         # 仮
-returning = 40000                        # 仮
-uma = [20000, 0, -20000]                 # 仮
+starting = 35000                         # M4「配原：35000」
+returning = 35000                        # M4「35000点開始の35000点返し」
+uma = [15000, 0, -15000]                 # M4「ウマ15-0-15（順位ウマのみ）」
 tsumo_payment = "loss"                   # M1「三人麻雀段位戦ではツモ損が有効です」
 honba_ron = 1000                         # 仮
 honba_tsumo_each = 500                   # 仮
@@ -114,41 +62,41 @@ noten_penalty_total = 2000               # 仮
 riichi_deposit = 1000                    # 仮
 kiriage_mangan = false                   # 仮
 kazoe_yakuman = true                     # 仮
-min_han = 1                              # 仮
-double_wind_pair_fu = 4                  # 仮
-rinshan_tsumo_fu = true                  # 仮
+min_han = 1                              # M4「常に1飜縛り」
+double_wind_pair_fu = 4                  # M4「連風牌がアタマになった場合は4符」
+rinshan_tsumo_fu = true                  # M4「嶺上開花のツモ時は通常のツモと同じ2符」
 
 [tiles]
-manzu = "terminals_only"                 # 仮
-red_fives = { m = 0, p = 1, s = 1 }      # 仮
+manzu = "terminals_only"                 # M4「二萬～八萬を使用しない」「一萬」→九萬→一萬
+red_fives = { m = 0, p = 1, s = 1 }      # M4「赤ドラ：2枚」。m = 0 は萬子が1m・9mだけなので確定。p・s の内訳（1枚ずつか）は仮
 
 [wall]
 dora_indicator_slots = 5                 # 仮
 dead_wall = 14                           # 仮
-rinshan_max = 8                          # 仮
+rinshan_max = 8                          # M4「嶺上牌は8枚」
 
 [calls]
-chi = false                              # 仮
-kuitan = true                            # 仮
-atozuke = true                           # 仮
+chi = false                              # M4「チーは禁止」
+kuitan = true                            # M4「喰い断：あり」
+atozuke = true                           # M4「後付け：あり」
 kuikae = "forbidden"                     # 仮
 haitei_call = false                      # 仮
-max_ron = 2                              # 仮
-multi_ron_deposit = "upstream"           # 仮
+max_ron = 2                              # M4 三人麻雀「ダブロンあり」
+multi_ron_deposit = "upstream"           # M4「積み棒/供託は上家取り」
 
 [riichi]
-min_points = 1000                        # 仮
-requires_draw = true                     # 仮
-furiten_riichi = true                    # 仮
-ankan_after_riichi = "wait_unchanged"    # 仮
+min_points = 1000                        # M4「持ち点が1000点以上でツモ番がある場合に可能」
+requires_draw = true                     # M4（同上）
+furiten_riichi = true                    # M4「フリテンリーチあり」
+ankan_after_riichi = "wait_unchanged"    # M4「待ち牌の種類が変わらない場合のみ。送り槓不可、牌姿や役の増減は不問」
 no_deposit_on_deal_in = true             # 仮
 
 [dora]
-ippatsu = true                           # 仮
-ura = true                               # 仮
-kan_dora = true                          # 仮
-kan_ura = true                           # 仮
-kan_dora_timing = "ankan_immediate"      # 仮
+ippatsu = true                           # M4「北を抜いた時点で、一発…の判定が消える」（一発がある前提）
+ura = true                               # M4「槓ドラ/槓裏あり」（裏ドラがある前提）
+kan_dora = true                          # M4「槓ドラ/槓裏あり」
+kan_ura = true                           # M4「槓ドラ/槓裏あり」
+kan_dora_timing = "ankan_immediate"      # M4「暗槓は即乗り、明槓/加槓は後めくり（打牌後または続く槓の直前）」
 
 [kita]
 mode = "nukidora"                        # M2（抜き北を前提とした説明）
@@ -158,42 +106,42 @@ after_riichi = "drawn_only"              # 仮
 ron_on_kita = true                       # M2「役がある場合、抜き北に対してロンできます」
 ron_on_discard = true                    # 仮
 ron_counts_as_chankan = false            # M2「槍槓の役はつかない仕様」
-breaks_ippatsu = true                    # 仮
-breaks_first_turn = true                 # 仮
-north_as_meld = "otakaze"                # 仮
+breaks_ippatsu = true                    # M4「北を抜いた時点で、一発、ダブルリーチや九種九牌の判定が消える」
+breaks_first_turn = true                 # M4（同上）
+north_as_meld = "otakaze"                # M4「北を面子で使用した場合はオタ風」
 dora_per_kita = 1                        # 仮
 
 [draws]
-kyushu_kyuhai = true                     # 仮
-suukaikan = true                         # 仮
-all_riichi = false                       # 仮
-same_wind_discards = false               # 仮
-all_ron = false                          # 仮
-abortive_renchan = true                  # 仮
-nagashi_mangan = true                    # 仮
-renchan = "tenpai"                       # 仮
-keishiki_tenpai = true                   # 仮
+kyushu_kyuhai = true                     # M4「途中流局は九種九牌・四槓散了のみ」
+suukaikan = true                         # M4（同上）
+all_riichi = false                       # M4（同上）
+same_wind_discards = false               # M4（同上）
+all_ron = false                          # M4「ダブロンあり」（流局にしない）
+abortive_renchan = true                  # M4「すべて連荘」
+nagashi_mangan = true                    # M4「流し満貫あり。聴牌清算を満貫清算に代替。親の聴牌で連荘」
+renchan = "tenpai"                       # M4「ノーテン親流れ、聴牌連荘」
+keishiki_tenpai = true                   # 仮。M4「形式聴牌あり。カラテンの形式は手持ち4枚での単騎待ちのみ不可」はカタログの値で表せない（true は4枚使いの単騎も聴牌、false は役も要る）
 noten_declaration = false                # 仮
 
 [yakuman]
-composite = true                         # 仮
+composite = true                         # M4「役満の複合あり」
 double_special = false                   # 仮
-pao = ["daisangen", "daisuushii"]        # 仮
-pao_ron_split = true                     # 仮
-kokushi_ron_on_ankan = false             # 仮
+pao = ["daisangen", "daisuushii"]        # M4「パオ（責任払い）あり（大三元/大四喜のみ）」
+pao_ron_split = true                     # M4「ツモ＝全額・ロン＝折半」
+kokushi_ron_on_ankan = true              # M4「国士無双の暗槓の槍槓あり」
 
 [chips]
-enabled = false                          # 仮
+enabled = false                          # オーナー確認（2026-11-26）「雀魂段位には祝儀の概念はない」
 
 [chips.values]
-ippatsu = 1                              # 仮
-aka = 1                                  # 仮
-ura = 1                                  # 仮
-aka_when_open = true                     # 仮
-yakuman_ron = 10                         # 仮
-yakuman_tsumo_each = 5                   # 仮
-kazoe_yakuman_counts = false             # 仮
-point_value = 5000                       # 仮
+ippatsu = 1                              # 本PJ（祝儀なしなので使わない）
+aka = 1                                  # 本PJ（祝儀なしなので使わない）
+ura = 1                                  # 本PJ（祝儀なしなので使わない）
+aka_when_open = true                     # 本PJ（祝儀なしなので使わない）
+yakuman_ron = 10                         # 本PJ（祝儀なしなので使わない）
+yakuman_tsumo_each = 5                   # 本PJ（祝儀なしなので使わない）
+kazoe_yakuman_counts = false             # 本PJ（祝儀なしなので使わない）
+point_value = 5000                       # 本PJ（祝儀なしなので使わない）
 
 [log_visibility]
 ankan = "open"                           # 本PJ の牌譜の既定値
