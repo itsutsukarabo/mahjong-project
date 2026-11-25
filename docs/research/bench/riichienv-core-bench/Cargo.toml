@@ -1,0 +1,12 @@
+# RiichiEnv の Rust コア単体ベンチ（参考計測用。本リポジトリの workspace には入れない）
+# riichienv-core のパスは手元のクローンに合わせて書き換える（計測時は smly/RiichiEnv 0ee1236）
+[package]
+name = "riichienv-core-bench"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+riichienv-core = { path = "../RiichiEnv/riichienv-core", default-features = false }

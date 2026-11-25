@@ -1,0 +1,81 @@
+# プッシュ・PR ごとの CI（D-016）。性能ベンチマークと GPU 学習は載せない。
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # 版の固定（D-016）。Rust は rust-toolchain.toml、majiang-core は package-lock.json で固定
+  NODE_VERSION: "24.18.0"
+  PYTHON_VERSION: "3.12.10"
+  DIFFTEST_SEED: "20261122"
+  DIFFTEST_CASES: "20000"
+
+jobs:
+  check:
+    name: check (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # OS の版も固定する（ubuntu-latest が 26.04 になり Python 3.12.10 のビルドがなかった）
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Rust toolchain (rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: tools/difftest-majiang/node/package-lock.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: fmt
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: test (unit + golden + log samples)
+        run: cargo test --workspace --locked
+
+      - name: log samples (python generator is up to date)
+        run: python -I docs/spec/samples/make_sample_log.py --check
+
+      - name: install majiang-core (pinned)
+        working-directory: tools/difftest-majiang/node
+        run: npm ci --no-audit --no-fund
+
+      - name: difftest vs majiang-core (small, fixed seed)
+        shell: bash
+        run: |
+          cargo run --release --locked -p difftest-majiang -- \
+            --cases "$DIFFTEST_CASES" --seed "$DIFFTEST_SEED" --out difftest-out
+          {
+            echo "### difftest (${{ matrix.os }})"
+            echo '```json'
+            cat difftest-out/summary.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: upload difftest result
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: difftest-${{ matrix.os }}
+          path: difftest-out/
+          if-no-files-found: ignore

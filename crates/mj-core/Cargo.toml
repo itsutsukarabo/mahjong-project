@@ -1,0 +1,16 @@
+[package]
+name = "mj-core"
+version = "0.1.0"
+description = "麻雀ルールエンジンのコア：局の状態・合法手・状態遷移（現時点では牌・ルール設定・牌山・シャンテン数）"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true
+toml.workspace = true
+rand_chacha.workspace = true
+rand_core.workspace = true
+
+[lints]
+workspace = true

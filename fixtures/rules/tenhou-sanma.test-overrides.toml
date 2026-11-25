@@ -1,0 +1,27 @@
+# テスト専用の上書き。rules/tenhou-sanma.toml の未確認項目を埋めて Rules を作るためだけに使う。
+# ここの値は天鳳のルールとして確認したものではない（docs/spec/RULES_PRESETS.md の「未確認」）。
+# オーナーが値を決めたら rules/ 側に移し、このファイルからは消す。
+
+[points]
+tsumo_payment = "loss"
+honba_ron = 200
+honba_tsumo_each = 100
+noten_penalty_total = 2000
+riichi_deposit = 1000
+
+[table]
+extension_threshold = 40000
+
+[wall]
+reserve = 4
+
+[kita]
+mandatory = false
+after_riichi = "drawn_only"
+ron_counts_as_chankan = false
+
+[draws]
+all_riichi = true
+same_wind_discards = false
+all_ron = false
+noten_declaration = false

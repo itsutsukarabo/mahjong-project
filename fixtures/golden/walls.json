@@ -1,0 +1,109 @@
+{
+  "rng": "chacha8-v1",
+  "walls": [
+    {
+      "rules": "rules/tenhou-sanma.toml",
+      "game_seed": "0x0",
+      "kyoku_idx": 0,
+      "first_pile_tiles": [
+        "9p",
+        "7s",
+        "F",
+        "1p",
+        "3p"
+      ],
+      "sha256": "c0473e895cdb9bb0a3567ba07f40b3734adfb9cc421cbb3e43c4f8dde28746af"
+    },
+    {
+      "rules": "rules/tenhou-sanma.toml",
+      "game_seed": "0x1",
+      "kyoku_idx": 0,
+      "first_pile_tiles": [
+        "P",
+        "1s",
+        "4p",
+        "2s",
+        "5p"
+      ],
+      "sha256": "96055d89cfff77543992bd9e82cd89d178bf2891bef10f3341fa9b28575ccf91"
+    },
+    {
+      "rules": "rules/tenhou-sanma.toml",
+      "game_seed": "0x1",
+      "kyoku_idx": 1,
+      "first_pile_tiles": [
+        "3s",
+        "C",
+        "8s",
+        "8s",
+        "W"
+      ],
+      "sha256": "34a583f292595a2bfb33701ad222258d418bbcf40824a91a26b14241ef03fa32"
+    },
+    {
+      "rules": "rules/tenhou-sanma.toml",
+      "game_seed": "0x1352902",
+      "kyoku_idx": 7,
+      "first_pile_tiles": [
+        "1m",
+        "6p",
+        "1p",
+        "5s",
+        "6p"
+      ],
+      "sha256": "330331409d94cfa31c86c4cd3d4b566ccd4292398651f18be50dce9470a24909"
+    },
+    {
+      "rules": "rules/tenhou-sanma.toml",
+      "game_seed": "0xffffffffffffffff",
+      "kyoku_idx": 3,
+      "first_pile_tiles": [
+        "N",
+        "6p",
+        "8p",
+        "4p",
+        "8p"
+      ],
+      "sha256": "96eda7447b156b3a0db8062467141d5c8c3089af77f7bba7c576133f92d7a217"
+    },
+    {
+      "rules": "fixtures/rules/test-yonma-tiles.toml",
+      "game_seed": "0x0",
+      "kyoku_idx": 0,
+      "first_pile_tiles": [
+        "6p",
+        "9m",
+        "1p",
+        "9s",
+        "C"
+      ],
+      "sha256": "31d3eafe5cbee9aeb3baf8e189b4da314b4dbd9c60229a2be6d92391024da9af"
+    },
+    {
+      "rules": "fixtures/rules/test-yonma-tiles.toml",
+      "game_seed": "0x1",
+      "kyoku_idx": 0,
+      "first_pile_tiles": [
+        "8m",
+        "E",
+        "3s",
+        "C",
+        "6p"
+      ],
+      "sha256": "7de6f632c38e9ee1edb56dbc813ddebf6ea554785e2354f8677abd1be6d30cb9"
+    },
+    {
+      "rules": "fixtures/rules/test-yonma-tiles.toml",
+      "game_seed": "0x1352902",
+      "kyoku_idx": 7,
+      "first_pile_tiles": [
+        "3s",
+        "9s",
+        "S",
+        "6p",
+        "5s"
+      ],
+      "sha256": "41a1157379c07bd43c7d65c423230ee9194512f2ae101e48bf49458f144d491f"
+    }
+  ]
+}

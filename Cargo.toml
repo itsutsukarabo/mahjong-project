@@ -1,0 +1,27 @@
+[workspace]
+resolver = "3"
+members = ["crates/mj-core", "crates/mj-log", "tools/difftest-majiang"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.100"
+publish = false
+
+[workspace.dependencies]
+mj-core = { path = "crates/mj-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+toml = "0.9"
+sha2 = "0.10"
+hex = "0.4"
+# wall_salt を OS の CSPRNG から作る（LOG_FORMAT §4.6）
+getrandom = "0.3"
+# 牌山の RNG。アルゴリズムの出力を版で固定するため完全一致で指定する（LOG_FORMAT の rng = "chacha8-v1"）
+rand_chacha = { version = "=0.9.0", default-features = false }
+rand_core = { version = "=0.9.3", default-features = false }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
