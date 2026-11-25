@@ -119,7 +119,7 @@
 | `draws.same_wind_discards` | 第1打が全員同じ風牌（四風連打） | 真偽値 | `true`：鳴き・北抜きのない第1巡で全員の第1打が同じ風牌なら流局<br>`false`：流局しない | `false` | `draws.abortive_renchan` |
 | `draws.all_ron` | 放銃者以外の全員のロン（三家和・三麻のダブロン） | 真偽値 | `true`：放銃者以外の全員がロンしたら和了にせず流局<br>`false`：流局にしない（`calls.max_ron` まで和了） | `false` | `calls.max_ron` |
 | `draws.abortive_renchan` | 途中流局の連荘<br>九種九牌・四槓散了・全員立直・四風連打・全員のロンの流局 | 真偽値 | `true`：途中流局は親の連荘（本場を1つ積む）<br>`false`：途中流局は親流れ（本場は積む） | `true` |  |
-| `draws.nagashi_mangan` | 流し満貫<br>本場・供託は動かない。聴牌料と連荘の判定はふつうの荒牌流局と同じ | 真偽値 | `true`：荒牌流局のとき、河が么九牌だけで鳴かれていない人は満貫（ツモ和了と同じ払い方）を受け取る<br>`false`：流し満貫なし | `true` | `points.tsumo_payment` |
+| `draws.nagashi_mangan` | 流し満貫<br>本場・供託は動かない。成立したら聴牌料のやりとりはしない（majiang-core と同じ）。連荘の判定はふつうの荒牌流局と同じ | 真偽値 | `true`：荒牌流局のとき、河が么九牌だけで鳴かれていない人は満貫（ツモ和了と同じ払い方）を受け取る<br>`false`：流し満貫なし | `true` | `points.tsumo_payment` |
 | `draws.renchan` | 連荘の条件 | 列挙 | `agari`：和了連荘。親が和了したときだけ連荘（流局なら聴牌でも親流れ）<br>`tenpai`：聴牌連荘。親が和了または流局時に聴牌なら連荘（ノーテンなら親流れ）<br>`always`：流局なら親が聴牌でもノーテンでも連荘 | `"tenpai"` | `table.oorasu_stop` |
 | `draws.keishiki_tenpai` | 形式聴牌<br>荒牌流局の聴牌の判定 | 真偽値 | `true`：役のない聴牌・手の中の4枚目を待つ聴牌も聴牌とする<br>`false`：役のある聴牌で、待ちの牌が残っている場合だけ聴牌とする | `true` | `points.noten_penalty_total` |
 | `draws.noten_declaration` | ノーテン宣言 | 真偽値 | `true`：荒牌流局のとき、聴牌の人は「ノーテン」と宣言して手牌を伏せられる（聴牌料・連荘はノーテン扱い）<br>`false`：聴牌なら必ず聴牌扱い | `false` | `points.noten_penalty_total` |
