@@ -139,7 +139,7 @@ impl Scenario {
         let mut pile = draws;
         let back: Vec<Tile> = rinshan.into_iter().rev().collect();
         let middle = pile_len - pile.len() - back.len();
-        let mut mid: Vec<Tile> = pool.drain(..).collect();
+        let mut mid: Vec<Tile> = std::mem::take(&mut pool);
         if let Some(h) = haitei {
             // ハイテイ：通常のツモの最後（pile の残りが reserve 枚になる直前）
             let live = pile_len - self.rules.wall.reserve();
