@@ -7,6 +7,8 @@
 //!     # fixtures/rules/coverage.toml が「項目 × 値」をすべて含み、書かれたテストが実在するか（CI）
 //!     # --strict：未実装（pending）の行があっても失敗にする
 //! cargo run -p rules-catalog -- add-missing         # 対応表にない「項目 × 値」を pending で末尾に足す
+//! cargo run -p rules-catalog -- questions rules/mjsoul-sanma.toml
+//!     # プリセットの仮の値（meta.provisional）を確かめる質問票の下書き（Markdown）を標準出力へ
 //! ```
 //!
 //! テストの実在は `cargo test -p <package> -- --list --format terse` の出力で確かめる。
@@ -59,6 +61,7 @@ fn main() -> ExitCode {
             coverage(strict, summary.as_deref())
         }
         Some("add-missing") => add_missing(),
+        Some("questions") => questions(args.get(1).map(String::as_str).unwrap_or("")),
         _ => Err(
             "usage: rules-catalog gen | check | coverage [--strict] [--summary FILE] | add-missing"
                 .into(),
@@ -115,6 +118,84 @@ fn list_tests(package: &str) -> Result<BTreeSet<String>, String> {
         .collect())
 }
 
+/// 仮の値の項目ごとに、選択肢と回答欄のある質問を作る。
+fn questions(preset_path: &str) -> Result<(), String> {
+    use mj_core::catalog::{Kind, SECTIONS, item};
+    use mj_core::rules::{PresetFile, lookup};
+    let text = std::fs::read_to_string(root().join(preset_path)).map_err(|e| e.to_string())?;
+    let p = PresetFile::parse(&text).map_err(|e| e.to_string())?;
+    let mut n = 0;
+    let mut out = String::new();
+    for sec in SECTIONS {
+        let keys: Vec<&String> = p
+            .meta
+            .provisional
+            .iter()
+            .filter(|k| k.split('.').next() == Some(sec.prefix))
+            .collect();
+        if keys.is_empty() {
+            continue;
+        }
+        out.push_str(&format!("## {}\n\n", sec.title));
+        for k in keys {
+            let it = item(k).ok_or_else(|| format!("unknown key {k}"))?;
+            n += 1;
+            let cur = lookup(&p.body, k).cloned();
+            let mark = |v: &str| -> &'static str {
+                let is_cur = match &cur {
+                    Some(toml::Value::String(s)) => s == v,
+                    Some(toml::Value::Boolean(b)) => b.to_string() == v,
+                    Some(toml::Value::Array(a)) => a.iter().any(|x| x.as_str() == Some(v)),
+                    _ => false,
+                };
+                if is_cur { "　← 今の仮の値" } else { "" }
+            };
+            out.push_str(&format!("### Q{n}. {}（`{k}`）\n", it.title));
+            if !it.desc.is_empty() {
+                out.push_str(&format!("{}\n", it.desc));
+            }
+            out.push('\n');
+            match it.kind {
+                Kind::Bool { on, off } => {
+                    out.push_str(&format!(
+                        "- [ ] {on}{}\n- [ ] {off}{}\n",
+                        mark("true"),
+                        mark("false")
+                    ));
+                }
+                Kind::Int { unit, .. } => {
+                    let c = cur.as_ref().map(|v| v.to_string()).unwrap_or_default();
+                    out.push_str(&format!(
+                        "- 回答：（　　　）{unit}　（今の仮の値：{c}{unit}）\n"
+                    ));
+                }
+                Kind::IntPerRank { unit, .. } => {
+                    let c = cur.as_ref().map(|v| v.to_string()).unwrap_or_default();
+                    out.push_str(&format!(
+                        "- 回答：1位（　　　）{unit}、2位（　　　）{unit}、3位（　　　）{unit}　（今の仮の値：{c}）\n"
+                    ));
+                }
+                Kind::Enum(v) => {
+                    for (s, d) in v {
+                        out.push_str(&format!("- [ ] {d}{}\n", mark(s)));
+                    }
+                }
+                Kind::EnumSet(v) => {
+                    out.push_str("（当てはまるものすべてに印）\n\n");
+                    for (s, d) in v {
+                        out.push_str(&format!("- [ ] {d}{}\n", mark(s)));
+                    }
+                    out.push_str("- [ ] どれもない\n");
+                }
+            }
+            out.push_str("- [ ] その他（　　　　　　　　　　）\n- [ ] 分からない／ゲーム内の説明では確認できない\n\n");
+        }
+    }
+    print!("{out}");
+    eprintln!("{n} questions");
+    Ok(())
+}
+
 fn add_missing() -> Result<(), String> {
     let path = root().join(COVERAGE);
     let mut text = std::fs::read_to_string(&path).unwrap_or_default();
@@ -129,12 +210,7 @@ fn add_missing() -> Result<(), String> {
         for v in it.kind.coverage_values() {
             if !have.contains(&(it.key.to_string(), v.to_string())) {
                 text.push_str(&format!(
-                    "
-[[case]]
-key = \"{}\"
-value = \"{v}\"
-pending = \"未実装\"
-",
+                    "\n[[case]]\nkey = \"{}\"\nvalue = \"{v}\"\npending = \"未実装\"\n",
                     it.key
                 ));
                 added += 1;
