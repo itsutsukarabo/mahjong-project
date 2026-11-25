@@ -1,16 +1,21 @@
-//! 無作為な合法手での自己対戦の速さ（局/秒）と、局の終わり方の内訳。
+//! 自己対戦の速さ（局/秒）と、局の終わり方の内訳。
 //!
 //! ```text
 //! cargo run --release -p mj-core --example selfplay_bench -- [--rules tenhou-sanma|test-yonma]
-//!     [--mode single|game] [--seconds 10] [--threads 1]
+//!     [--mode single|game] [--seconds 10] [--threads 1] [--policy uniform|biased|greedy]
 //! ```
-//! `single` は1局戦（`table.length = single` に上書き）、`game` はプリセットの長さ（天鳳三麻は東南戦）。
-//! 観測（特徴量）は作らない。RiichiEnv の Rust コア単体の計測（`docs/research/ENGINE_SURVEY.md` §3.2）と同じ条件。
+//! - `single` は1局戦（`table.length = single` に上書き）、`game` はプリセットの長さ（天鳳三麻は東南戦）
+//! - `uniform`：判断ポイントごとに選択肢を一様な乱数で選ぶ。RiichiEnv の Rust コア単体の計測
+//!   （`docs/research/ENGINE_SURVEY.md` §3.2：全員ランダム合法手・観測なし）と同じ条件
+//! - `biased` / `greedy`：`mj_core::policy`（和了・立直・鳴きを通すための打ち手。`greedy` はシャンテン数の計算が重い）
+//!
+//! 観測（特徴量）は作らない。
 
 use mj_core::event::Event;
 use mj_core::game::{Game, WallSource};
+use mj_core::policy::{biased_choice, greedy_choice, uniform_choice};
 use mj_core::rules::{Rules, presets};
-use mj_core::wall::uniform_below;
+use mj_core::shanten::ShantenCalc;
 use rand_chacha::ChaCha8Rng;
 use rand_core::SeedableRng;
 use std::collections::BTreeMap;
@@ -25,7 +30,8 @@ struct Stats {
     ends: BTreeMap<String, u64>,
 }
 
-fn run(rules: &Rules, seed0: u64, until: Instant) -> Stats {
+fn run(rules: &Rules, seed0: u64, until: Instant, policy: &str) -> Stats {
+    let calc = ShantenCalc::new(rules.tiles.manzu);
     let mut st = Stats::default();
     let mut rng = ChaCha8Rng::seed_from_u64(seed0);
     let mut seed = seed0 << 32;
@@ -37,8 +43,17 @@ fn run(rules: &Rules, seed0: u64, until: Instant) -> Stats {
                 .decisions()
                 .iter()
                 .map(|d| {
-                    let i = uniform_below(&mut rng, d.choices.len() as u32) as usize;
-                    (d.seat, d.choices[i])
+                    let a = match policy {
+                        "biased" => biased_choice(&mut rng, &d.choices),
+                        "greedy" => {
+                            let k = g.current_kyoku();
+                            let hand = k.concealed_counts(d.seat);
+                            let melds = k.melds(d.seat).len() as u8;
+                            greedy_choice(&mut rng, &d.choices, &hand, melds, &calc, 30)
+                        }
+                        _ => uniform_choice(&mut rng, &d.choices),
+                    };
+                    (d.seat, a)
                 })
                 .collect();
             g.step(&acts).expect("legal");
@@ -50,14 +65,8 @@ fn run(rules: &Rules, seed0: u64, until: Instant) -> Stats {
             st.events += k.len() as u64;
             for e in k {
                 let key = match e {
-                    Event::Hora(h) => Some(
-                        if h.actor == h.target {
-                            "hora:tsumo"
-                        } else {
-                            "hora:ron"
-                        }
-                        .to_string(),
-                    ),
+                    Event::Hora(h) if h.actor == h.target => Some("hora:tsumo".to_string()),
+                    Event::Hora(_) => Some("hora:ron".to_string()),
                     Event::Ryukyoku(r) => Some(format!("ryukyoku:{}", r.reason)),
                     _ => None,
                 };
@@ -75,6 +84,7 @@ fn main() {
     let mut mode = "single".to_string();
     let mut seconds = 10u64;
     let mut threads = 1usize;
+    let mut policy = "uniform".to_string();
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         let v = args.next().expect("value");
@@ -83,6 +93,7 @@ fn main() {
             "--mode" => mode = v,
             "--seconds" => seconds = v.parse().unwrap(),
             "--threads" => threads = v.parse().unwrap(),
+            "--policy" => policy = v,
             _ => panic!("unknown {a}"),
         }
     }
@@ -102,7 +113,8 @@ fn main() {
         let hs: Vec<_> = (0..threads)
             .map(|t| {
                 let r = &rules;
-                s.spawn(move || run(r, t as u64 + 1, until))
+                let p = policy.as_str();
+                s.spawn(move || run(r, t as u64 + 1, until, p))
             })
             .collect();
         hs.into_iter().map(|h| h.join().unwrap()).collect()
@@ -119,7 +131,7 @@ fn main() {
         }
     }
     println!(
-        "rules={rules_name} mode={mode} threads={threads} seconds={el:.2} games={} kyokus={} kyoku/s={:.0} steps/kyoku={:.1} events/kyoku={:.1} us/step={:.2}",
+        "rules={rules_name} mode={mode} policy={policy} threads={threads} seconds={el:.2} games={} kyokus={} kyoku/s={:.0} steps/kyoku={:.1} events/kyoku={:.1} us/step={:.2}",
         total.games,
         total.kyokus,
         total.kyokus as f64 / el,
