@@ -37,13 +37,16 @@ git config --global --get core.longpaths
 
 ## 2. Rust
 
-### 2.1 いまの状態（Claude Code が 2026-11-22 に導入）
-- `rustup`（`%USERPROFILE%\.cargo\bin`）を **GNU ツールチェイン**（`x86_64-pc-windows-gnu`）で導入した
-  - 理由：MSVC のビルドツール（Visual Studio Build Tools）が入っておらず、入れるには数 GB の導入と管理者権限が要るため
+### 2.1 いまの状態（2026-11-26 に MSVC へ移行済み）
+- `rustup`（`%USERPROFILE%\.cargo\bin`）は 2026-11-22 に Claude Code が **GNU ツールチェイン**で導入した
+  （MSVC のビルドツールがなかったため）。2026-11-26 にオーナーが §2.3 の手順で **MSVC に移行**し、GNU 版は削除した
+  - 既定のホスト `x86_64-pc-windows-msvc`、既定のツールチェイン `1.100.0-x86_64-pc-windows-msvc`
+  - Visual Studio Build Tools 2022（17.14.45）、リンカー `VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\link.exe`
+  - 確認：リポジトリで `RUSTFLAGS` なしの `cargo test --workspace --locked` が全件成功（mj-core 17、mj-log 1+1+7）
 - リポジトリの `rust-toolchain.toml` で版を **1.100.0** に固定している（rustup が自動で入れる）
-- CI の Windows ランナーは MSVC を使う（GitHub の標準イメージに入っている）
+- CI の Windows ランナーも MSVC を使う（GitHub の標準イメージに入っている）
 
-### 2.2 GNU ツールチェインで当たる問題と回避策
+### 2.2 （参考）GNU ツールチェインで当たる問題と回避策
 `getrandom` 0.3 以降は Windows で `raw-dylib` を使い、GNU ツールチェインではリンク時に
 `dlltool` と、そこから呼ぶアセンブラ `as.exe` が要る。rustup の self-contained には `as.exe` がないので
 `error calling dlltool 'dlltool.exe': program not found` になる。
@@ -62,15 +65,26 @@ cargo test --workspace
 - `RUSTFLAGS` を変えると全体が再ビルドされる
 - この設定は**リポジトリに入れていない**（CI の MSVC / Linux では不要で、既定のバックエンドを使う）
 
-### 2.3 推奨：MSVC ツールチェインに切り替える（オーナー判断）
+### 2.3 MSVC ツールチェインに切り替える（実施済み）
 回避策なしでビルドできるようになり、CI の Windows と同じ構成になる。
 ```powershell
 # Visual Studio Build Tools（C++ ビルドツール）を導入（管理者、数 GB）
 winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
 
-# 既定のホストを MSVC に切り替え、固定版を入れ直す
+# 既定のホストを MSVC に切り替え、固定版を入れる
 rustup set default-host x86_64-pc-windows-msvc
 rustup toolchain install 1.100.0
+
+# 既定のツールチェインも MSVC 版にする
+# （set default-host は「これから入れる版」の種類を変えるだけで、既定のツールチェインは GNU のまま残る。
+#   リポジトリ内は rust-toolchain.toml で MSVC 版が選ばれるが、リポジトリ外の rustc は GNU のままになる）
+rustup default 1.100.0-x86_64-pc-windows-msvc
+
+# 不要になった GNU 版を削除
+rustup toolchain uninstall stable-x86_64-pc-windows-gnu 1.100.0-x86_64-pc-windows-gnu
+
+# 確認（host: x86_64-pc-windows-msvc になっていること）
+rustc -vV
 ```
 
 ---
