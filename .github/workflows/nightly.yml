@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       cases:
-        description: "number of cases"
+        description: "number of cases (shanten/waits and hora each)"
         default: "2000000"
 
 permissions:
@@ -57,6 +57,7 @@ jobs:
             echo "minimized failures (first 20):"
             echo '```'
             head -n 20 difftest-out/failures.jsonl || true
+            head -n 20 difftest-out/hora_failures.jsonl || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 

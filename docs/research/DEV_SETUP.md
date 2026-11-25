@@ -112,6 +112,13 @@ rustc -vV
 cd tools/difftest-majiang/node && npm ci && cd ../../..
 cargo run --release -p difftest-majiang -- --cases 20000 --seed 20261122 --out difftest-out
 ```
+- 層は2つ：シャンテン数・待ち（`--cases` 件）と、和了・点数（`--hora-cases` 件、既定は `--cases` と同じ）
+- 結果は `difftest-out/summary.json`。不一致は最小化して `failures.jsonl`・`hora_failures.jsonl` に書く
+
+### 自己対戦の速さ
+```bash
+cargo run --release -p mj-core --example selfplay_bench -- --seconds 10 --mode single --threads 1
+```
 
 ---
 
