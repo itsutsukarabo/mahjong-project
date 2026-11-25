@@ -71,7 +71,7 @@
 | `calls.kuikae` | 喰い替え<br>ポン・チーの直後の打牌の制限 | 列挙 | `forbidden`：喰い替えなし。鳴いた牌と同じ種類の牌も、チーの筋の牌も、その打牌では切れない<br>`suji_allowed`：鳴いた牌と同じ種類の牌（現物）は切れないが、チーの筋の牌は切れる<br>`allowed`：喰い替えあり。制限なし | `"forbidden"` | `calls.chi` |
 | `calls.haitei_call` | 河底牌の鳴き | 真偽値 | `true`：最後のツモ牌を切った牌（河底牌）をポン・チー・大明槓できる<br>`false`：河底牌はロン以外できない | `false` |  |
 | `calls.max_ron` | 同時に和了できる人数<br>1つの打牌に対して和了できる最大人数。1 は頭ハネ（放銃者から見て下家から順に優先）。これを超えた人は和了できない | 整数 | 1〜3（人） | `2` | `draws.all_ron`<br>`calls.multi_ron_deposit` |
-| `calls.multi_ron_deposit` | 複数の和了の積み棒・供託 | 列挙 | `upstream`：複数の和了のとき、積み棒と供託は放銃者から見て上家側（最初の和了者）が全部受け取る<br>`split`：積み棒は各和了者がそれぞれ受け取り、供託は和了者で等分する（1000点単位、余りは上家側から） | `"upstream"` | `calls.max_ron`<br>`points.honba_ron` |
+| `calls.multi_ron_deposit` | 複数の和了の積み棒・供託 | 列挙 | `upstream`：上家取り。複数の和了のとき、積み棒と供託は頭ハネで最優先の和了者（放銃者の下家から数えて最初の和了者。ほかの和了者から見て上家）が全部受け取る<br>`split`：積み棒は各和了者がそれぞれ受け取り、供託は和了者で等分する（1000点単位、余りは上家側から） | `"upstream"` | `calls.max_ron`<br>`points.honba_ron` |
 
 ## E'. 立直（`riichi`）
 

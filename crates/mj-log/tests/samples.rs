@@ -102,6 +102,68 @@ fn ryukyoku_reveal_and_closed_ankan_follow_rules() {
     );
 }
 
+/// 暗槓と流局を足したサンプルを、公開範囲の設定を変えて redact する。
+fn redact_with_visibility(ankan: &str, reveal: &str, viewer: Viewer) -> (Value, Value) {
+    let mut ev = parse_jsonl(FULL).unwrap();
+    ev[0]["rules"]["log_visibility"]["ankan"] = Value::from(ankan);
+    ev[0]["rules"]["log_visibility"]["ryukyoku_reveal"] = Value::from(reveal);
+    ev.push(serde_json::json!({
+        "game_id": "g-20261122-000001", "kyoku_idx": 0, "event_idx": 98, "type": "ankan",
+        "actor": 1, "consumed": ["E", "E", "E", "E"]}));
+    ev.push(serde_json::json!({
+        "game_id": "g-20261122-000001", "kyoku_idx": 0, "event_idx": 99, "type": "ryukyoku",
+        "reason": "exhaustive", "tenpai": [true, false, true],
+        "hands": [["1p"], ["2p"], ["3p"]], "deltas": [1000, -2000, 1000], "scores": [0, 0, 0]}));
+    let n = ev.len();
+    let red = redact(&ev, viewer).unwrap();
+    (red[n - 2]["consumed"].clone(), red[n - 1]["hands"].clone())
+}
+
+#[test]
+fn log_visibility_ankan_open_and_closed() {
+    use serde_json::json;
+    // open：誰の版でも暗槓の牌が見える。closed：本人以外は "?"
+    for v in [Viewer::Public, Viewer::Seat(0), Viewer::Seat(1)] {
+        assert_eq!(
+            redact_with_visibility("open", "all", v).0,
+            json!(["E", "E", "E", "E"])
+        );
+    }
+    assert_eq!(
+        redact_with_visibility("closed", "all", Viewer::Public).0,
+        json!(["?", "?", "?", "?"])
+    );
+    assert_eq!(
+        redact_with_visibility("closed", "all", Viewer::Seat(0)).0,
+        json!(["?", "?", "?", "?"])
+    );
+    assert_eq!(
+        redact_with_visibility("closed", "all", Viewer::Seat(1)).0,
+        json!(["E", "E", "E", "E"])
+    );
+}
+
+#[test]
+fn log_visibility_ryukyoku_reveal_each_value() {
+    use serde_json::json;
+    let hands = |reveal, v| redact_with_visibility("open", reveal, v).1;
+    // 聴牌は席0・席2
+    assert_eq!(
+        hands("tenpai_only", Viewer::Public),
+        json!([["1p"], null, ["3p"]])
+    );
+    assert_eq!(
+        hands("tenpai_only", Viewer::Seat(1)),
+        json!([["1p"], ["2p"], ["3p"]])
+    );
+    assert_eq!(
+        hands("all", Viewer::Public),
+        json!([["1p"], ["2p"], ["3p"]])
+    );
+    assert_eq!(hands("none", Viewer::Public), json!([null, null, null]));
+    assert_eq!(hands("none", Viewer::Seat(2)), json!([null, null, ["3p"]]));
+}
+
 #[test]
 fn sample_rules_equal_main_preset() {
     let ev = parse_jsonl(FULL).unwrap();
@@ -113,13 +175,20 @@ fn sample_rules_equal_main_preset() {
 fn annotations_point_at_existing_events() {
     let ev = parse_jsonl(FULL).unwrap();
     let ann = parse_jsonl(ANNOT).unwrap();
-    assert_eq!(validate_annotations(&ann, &ev).unwrap(), 3);
+    assert_eq!(validate_annotations(&ann, &ev).unwrap(), 4);
     let mut bad = ann.clone();
     bad[0]["event_idx"] = Value::from(500);
     assert!(validate_annotations(&bad, &ev).is_err());
     let mut dup = ann.clone();
     dup.push(ann[0].clone());
     assert!(validate_annotations(&dup, &ev).is_err());
+    // 判断ポイントは選択肢が2つ以上で、decision はその中にある
+    let mut one = ann.clone();
+    one[0]["choices"] = serde_json::json!(["pon:C,C"]);
+    assert!(validate_annotations(&one, &ev).is_err());
+    let mut outside = ann.clone();
+    outside[0]["decision"] = Value::from("daiminkan");
+    assert!(validate_annotations(&outside, &ev).is_err());
 }
 
 #[test]

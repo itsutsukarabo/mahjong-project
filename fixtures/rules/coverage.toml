@@ -765,24 +765,24 @@ pending = "未実装"
 [[case]]
 key = "log_visibility.ankan"
 value = "open"
-pending = "未実装"
+tests = ["mj-log::log_visibility_ankan_open_and_closed"]
 
 [[case]]
 key = "log_visibility.ankan"
 value = "closed"
-pending = "未実装"
+tests = ["mj-log::log_visibility_ankan_open_and_closed"]
 
 [[case]]
 key = "log_visibility.ryukyoku_reveal"
 value = "tenpai_only"
-pending = "未実装"
+tests = ["mj-log::log_visibility_ryukyoku_reveal_each_value"]
 
 [[case]]
 key = "log_visibility.ryukyoku_reveal"
 value = "all"
-pending = "未実装"
+tests = ["mj-log::log_visibility_ryukyoku_reveal_each_value"]
 
 [[case]]
 key = "log_visibility.ryukyoku_reveal"
 value = "none"
-pending = "未実装"
+tests = ["mj-log::log_visibility_ryukyoku_reveal_each_value"]

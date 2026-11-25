@@ -23,7 +23,7 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 GAME_ID = "g-20261122-000001"
-FORMAT_VERSION = "0.2"
+FORMAT_VERSION = "0.3"
 HIDDEN = "?"
 
 KINDS = ([f"{n}m" for n in range(1, 10)] + [f"{n}p" for n in range(1, 10)]
@@ -131,7 +131,7 @@ E(K, "reach_accepted", actor=1, scores=[35000, 34000, 35000], kyotaku=1)
 E(K, "tsumo", actor=2, pai="2s")
 E(K, "dahai", actor=2, pai="2s", tsumogiri=True)
 E(K, "tsumo", actor=0, pai="P")
-E(K, "dahai", actor=0, pai="P", tsumogiri=True)   # 席2は白を2枚持つがポンを見送る（注釈）
+E(K, "dahai", actor=0, pai="P", tsumogiri=True)   # 席2は白でロン（白・シャンポン待ち）もポンもできるが見送る（注釈）
 E(K, "tsumo", actor=1, pai="9s")
 E(K, "dahai", actor=1, pai="9s", tsumogiri=True)
 E(K, "hora", actor=0, target=1, pai="9s",
@@ -156,14 +156,28 @@ def by_idx(kyoku_idx, event_idx):
     return next(d for d in ev if d["kyoku_idx"] == kyoku_idx and d["event_idx"] == event_idx)
 
 
-assert by_idx(0, 8)["type"] == "dahai" and by_idx(0, 18)["pai"] == "P"
+# 注釈は判断ポイントごと（LOG_FORMAT §6、DECISION_POINTS）。event_idx は判断ポイントの直前のイベント。
+# choices は DECISION_POINTS §5 の表記と並び順（局進行の実装ができたら、エンジンで再生して一致を確かめる）
+assert by_idx(0, 8)["type"] == "dahai" and by_idx(0, 11)["type"] == "tsumo"
+assert by_idx(0, 18)["pai"] == "P" and by_idx(0, 20)["pai"] == "9s"
+RIICHI_CHOICES = (["reach:2p", "reach:5p", "reach:8p"]
+                  + [f"dahai:{t}" for t in ["2p", "3p", "4p", "5p", "6p", "7p", "8p", "3s", "5s", "6s", "E"]]
+                  + ["dahai:E:tsumogiri"])
 annotations = [
-    {"game_id": GAME_ID, "kyoku_idx": 0, "event_idx": 8, "seat": 0, "decision": "pon",
-     "model": "ai-ckpt-001200", "policy": [["pon", 0.83], ["pass", 0.17]], "value": 0.21},
+    # 席2の中に：席0はポンか見送り
+    {"game_id": GAME_ID, "kyoku_idx": 0, "event_idx": 8, "seat": 0, "decision": "pon:C,C",
+     "choices": ["pon:C,C", "pass"],
+     "model": "ai-ckpt-001200", "policy": [["pon:C,C", 0.83], ["pass", 0.17]], "value": 0.21},
+    # 席1の東ツモ：立直（8p 切り）を選ぶ。立直できるのは 2p・5p・8p 切り
+    {"game_id": GAME_ID, "kyoku_idx": 0, "event_idx": 11, "seat": 1, "decision": "reach:8p",
+     "choices": RIICHI_CHOICES, "model": "ai-ckpt-000800"},
+    # 席0の白に：席2はロン（見逃しになる）・ポン・見送りから見送り
     {"game_id": GAME_ID, "kyoku_idx": 0, "event_idx": 18, "seat": 2, "decision": "pass",
-     "model": "rulebot-v1"},
-    {"game_id": GAME_ID, "kyoku_idx": 0, "event_idx": 20, "seat": 0, "decision": "hora",
-     "model": "ai-ckpt-001200", "policy": [["hora", 0.99], ["pass", 0.01]], "value": 0.64},
+     "choices": ["ron", "pon:P,P", "pass"], "model": "rulebot-v1"},
+    # 席1の 9s に：席0はロン
+    {"game_id": GAME_ID, "kyoku_idx": 0, "event_idx": 20, "seat": 0, "decision": "ron",
+     "choices": ["ron", "pass"],
+     "model": "ai-ckpt-001200", "policy": [["ron", 0.99], ["pass", 0.01]], "value": 0.64},
 ]
 
 
@@ -234,9 +248,12 @@ def validate_annotations(annotations, ev):
     keys = [(a["game_id"], a["kyoku_idx"], a["event_idx"], a["seat"]) for a in annotations]
     assert len(set(keys)) == len(keys), "duplicate annotation key"
     ids = {(d["game_id"], d["kyoku_idx"], d["event_idx"]) for d in ev}
-    for g, k, e, s in keys:
+    for (g, k, e, s), a in zip(keys, annotations):
         assert (g, k, e) in ids, (g, k, e)
         assert 0 <= s < RULES["table"]["num_players"]
+        if "choices" in a:
+            assert len(a["choices"]) >= 2 and a["decision"] in a["choices"], a
+            assert all(p in a["choices"] for p, _ in a.get("policy", [])), a
 
 
 validate(ev)

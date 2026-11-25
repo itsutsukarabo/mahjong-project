@@ -11,7 +11,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 
-pub const FORMAT_VERSION: &str = "0.2";
+pub const FORMAT_VERSION: &str = "0.3";
 pub const HIDDEN: &str = "?";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -362,6 +362,32 @@ pub fn validate_annotations(annotations: &[Value], events: &[Value]) -> Result<u
         }
         if keys.insert((k.clone(), seat), ()).is_some() {
             return err(format!("duplicate annotation key {k:?} seat {seat}"));
+        }
+        let decision = a["decision"]
+            .as_str()
+            .ok_or_else(|| LogError(format!("annotation without decision: {a}")))?;
+        // choices があれば判断ポイント（選択肢2つ以上）で、decision と policy の行動を含む（LOG_FORMAT §6）
+        if let Some(choices) = a.get("choices") {
+            let choices: Vec<&str> = choices
+                .as_array()
+                .ok_or_else(|| LogError(format!("choices is not an array: {a}")))?
+                .iter()
+                .map(|c| c.as_str().unwrap_or(""))
+                .collect();
+            if choices.len() < 2 {
+                return err(format!("a decision point has >= 2 choices: {a}"));
+            }
+            if !choices.contains(&decision) {
+                return err(format!("decision is not among choices: {a}"));
+            }
+            if let Some(policy) = a.get("policy").and_then(Value::as_array) {
+                for p in policy {
+                    let act = p[0].as_str().unwrap_or("");
+                    if !choices.contains(&act) {
+                        return err(format!("policy action {act} is not among choices: {a}"));
+                    }
+                }
+            }
         }
     }
     Ok(keys.len())
