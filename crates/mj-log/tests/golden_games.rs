@@ -2,7 +2,8 @@
 //!
 //! `fixtures/golden/games/<name>.actions.json` の行動列をエンジンで再生し、
 //! (1) 各判断ポイントで行動がエンジンの選択肢にあること、(2) 全情報版が `validate_full` を通ること、
-//! (3) 席視点版・公開情報版に変換できること、(4) 牌譜の sha256 が `fixtures/golden/games.json` と一致すること、を確かめる。
+//! (3) 席視点版・公開情報版に変換できること、(4) 牌譜だけから再生（`mj_log::replay`）しても同じイベント列になること、
+//! (5) 牌譜の sha256 が `fixtures/golden/games.json` と一致すること、を確かめる。
 //!
 //! 行動列は「シャンテン数を下げる打ち手」（`mj_core::policy::greedy_choice`）を固定シードで動かして作った。
 //! エンジンの挙動を意図して変えたら `MJ_UPDATE_GOLDEN=1 cargo test -p mj-log --test golden_games` で作り直す。
@@ -128,6 +129,10 @@ fn golden_games_replay_and_match() {
         let mut salt = test_salt;
         let log = game_log(&g, &meta(name, rules.table.num_players), &mut salt);
         let report = validate_full(&log).unwrap_or_else(|e| panic!("{name}: {e}"));
+        // 牌譜だけから再生しても同じイベント列になり、判断ポイントの数が行動列と一致する
+        let replayed = mj_log::replay::replay(&log).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let n_decisions: usize = steps.iter().map(Vec::len).sum();
+        assert_eq!(replayed.len(), n_decisions, "{name}: decision points");
         for v in
             std::iter::once(Viewer::Public).chain((0..rules.table.num_players).map(Viewer::Seat))
         {

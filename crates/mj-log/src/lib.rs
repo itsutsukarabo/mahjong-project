@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 
+pub mod replay;
 pub mod write;
 
 pub const FORMAT_VERSION: &str = "0.3";

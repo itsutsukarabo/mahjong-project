@@ -200,3 +200,15 @@ fn tampered_wall_is_rejected() {
     ev[1]["wall_salt"] = Value::from("00");
     assert!(validate_full(&ev).unwrap_err().0.contains("wall_commit"));
 }
+
+#[test]
+fn sample_replays_on_the_engine_and_annotations_are_decision_points() {
+    // サンプルはエンジンで作った牌譜ではない（手で組んだ）ので、エンジンで再生して食い違いがないことを確かめる
+    let ev = parse_jsonl(FULL).unwrap();
+    let decisions = mj_log::replay::replay(&ev).unwrap_or_else(|e| panic!("{e}"));
+    let ann = parse_jsonl(ANNOT).unwrap();
+    assert_eq!(
+        mj_log::replay::check_annotations(&ann, &decisions).unwrap_or_else(|e| panic!("{e}")),
+        4
+    );
+}
