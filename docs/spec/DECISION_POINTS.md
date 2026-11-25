@@ -2,6 +2,9 @@
 
 状態：D-022 に基づく初版。エンジン（`mj-core`）の API の基本単位であり、注釈（`*.annot.jsonl`、LOG_FORMAT §6）と RL の行動選択の単位でもある。
 
+- 実装：`crates/mj-core/src/kyoku.rs`（`Kyoku::decisions` が判断ポイント、`Kyoku::step` で行動を受け取る）、行動の表記と並び順は `crates/mj-core/src/action.rs`
+- 検証：サンプルの牌譜をエンジンで再生し、注釈 4 件が判断ポイントで選択肢も一致すること（`crates/mj-log/tests/samples.rs`）、無作為な自己対戦で判断ポイントの選択肢が常に2つ以上・§5 の並びであること（`crates/mj-core/tests/selfplay.rs`）
+
 ## 1. 定義
 - **判断ポイント**：エンジンがある席に**選択肢（見送りを含む）を2つ以上**提示した瞬間
 - 注釈は判断ポイントごとに1つ。RL のエージェントが行動を選ぶ瞬間と同じ
