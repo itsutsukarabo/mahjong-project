@@ -59,7 +59,7 @@ jobs:
       - name: rules coverage table (fixtures/rules/coverage.toml)
         shell: bash
         run: |
-          cargo run --locked -q -p rules-catalog -- coverage --summary rules-coverage.md
+          cargo run --locked -q -p rules-catalog -- coverage --strict --summary rules-coverage.md
           cat rules-coverage.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: log samples (python generator is up to date)

@@ -255,22 +255,22 @@ tests = ["mj-core::wall::tests::dora_indicator_slots_set_wall_layout"]
 [[case]]
 key = "wall.dead_wall"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::dead_wall_values"]
 
 [[case]]
 key = "wall.rinshan_max"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::rinshan_max_values"]
 
 [[case]]
 key = "calls.chi"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::chi_true_and_false"]
 
 [[case]]
 key = "calls.chi"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::chi_true_and_false"]
 
 [[case]]
 key = "calls.kuitan"
@@ -285,112 +285,112 @@ tests = ["mj-core::yaku::tests::kuitan_true_and_false"]
 [[case]]
 key = "calls.atozuke"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::atozuke_true_and_false"]
 
 [[case]]
 key = "calls.atozuke"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::atozuke_true_and_false"]
 
 [[case]]
 key = "calls.kuikae"
 value = "forbidden"
-pending = "未実装"
+tests = ["mj-core::kuikae_each_value"]
 
 [[case]]
 key = "calls.kuikae"
 value = "suji_allowed"
-pending = "未実装"
+tests = ["mj-core::kuikae_each_value"]
 
 [[case]]
 key = "calls.kuikae"
 value = "allowed"
-pending = "未実装"
+tests = ["mj-core::kuikae_each_value"]
 
 [[case]]
 key = "calls.haitei_call"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::haitei_call_true_and_false"]
 
 [[case]]
 key = "calls.haitei_call"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::haitei_call_true_and_false"]
 
 [[case]]
 key = "calls.max_ron"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::max_ron_values"]
 
 [[case]]
 key = "calls.multi_ron_deposit"
 value = "upstream"
-pending = "未実装"
+tests = ["mj-core::multi_ron_deposit_upstream_and_split"]
 
 [[case]]
 key = "calls.multi_ron_deposit"
 value = "split"
-pending = "未実装"
+tests = ["mj-core::multi_ron_deposit_upstream_and_split"]
 
 [[case]]
 key = "riichi.min_points"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::riichi_min_points"]
 
 [[case]]
 key = "riichi.requires_draw"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::riichi_requires_draw_true_and_false"]
 
 [[case]]
 key = "riichi.requires_draw"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::riichi_requires_draw_true_and_false"]
 
 [[case]]
 key = "riichi.furiten_riichi"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::riichi_furiten_riichi_true_and_false"]
 
 [[case]]
 key = "riichi.furiten_riichi"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::riichi_furiten_riichi_true_and_false"]
 
 [[case]]
 key = "riichi.ankan_after_riichi"
 value = "forbidden"
-pending = "未実装"
+tests = ["mj-core::riichi_ankan_after_riichi_each_value"]
 
 [[case]]
 key = "riichi.ankan_after_riichi"
 value = "wait_unchanged"
-pending = "未実装"
+tests = ["mj-core::riichi_ankan_after_riichi_each_value"]
 
 [[case]]
 key = "riichi.ankan_after_riichi"
 value = "form_unchanged"
-pending = "未実装"
+tests = ["mj-core::riichi_ankan_after_riichi_each_value"]
 
 [[case]]
 key = "riichi.no_deposit_on_deal_in"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::riichi_no_deposit_on_deal_in_true_and_false"]
 
 [[case]]
 key = "riichi.no_deposit_on_deal_in"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::riichi_no_deposit_on_deal_in_true_and_false"]
 
 [[case]]
 key = "dora.ippatsu"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::dora_ippatsu_true_and_false"]
 
 [[case]]
 key = "dora.ippatsu"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::dora_ippatsu_true_and_false"]
 
 [[case]]
 key = "dora.ura"
@@ -405,127 +405,127 @@ tests = ["mj-core::yaku::tests::dora_ura_flag"]
 [[case]]
 key = "dora.kan_dora"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::dora_kan_dora_true_and_false_and_timing"]
 
 [[case]]
 key = "dora.kan_dora"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::dora_kan_dora_true_and_false_and_timing"]
 
 [[case]]
 key = "dora.kan_ura"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::dora_kan_ura_true_and_false"]
 
 [[case]]
 key = "dora.kan_ura"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::dora_kan_ura_true_and_false"]
 
 [[case]]
 key = "dora.kan_dora_timing"
 value = "ankan_immediate"
-pending = "未実装"
+tests = ["mj-core::dora_kan_dora_true_and_false_and_timing"]
 
 [[case]]
 key = "dora.kan_dora_timing"
 value = "all_immediate"
-pending = "未実装"
+tests = ["mj-core::dora_kan_dora_true_and_false_and_timing"]
 
 [[case]]
 key = "dora.kan_dora_timing"
 value = "all_delayed"
-pending = "未実装"
+tests = ["mj-core::dora_kan_dora_true_and_false_and_timing"]
 
 [[case]]
 key = "kita.mode"
 value = "none"
-pending = "未実装"
+tests = ["mj-core::kita_mode_none_and_nukidora"]
 
 [[case]]
 key = "kita.mode"
 value = "nukidora"
-pending = "未実装"
+tests = ["mj-core::kita_mode_none_and_nukidora"]
 
 [[case]]
 key = "kita.mandatory"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::kita_mandatory_true_and_false"]
 
 [[case]]
 key = "kita.mandatory"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::kita_mandatory_true_and_false"]
 
 [[case]]
 key = "kita.after_pon"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::kita_after_pon_true_and_false"]
 
 [[case]]
 key = "kita.after_pon"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::kita_after_pon_true_and_false"]
 
 [[case]]
 key = "kita.after_riichi"
 value = "forbidden"
-pending = "未実装"
+tests = ["mj-core::kita_after_riichi_forbidden_and_drawn_only"]
 
 [[case]]
 key = "kita.after_riichi"
 value = "drawn_only"
-pending = "未実装"
+tests = ["mj-core::kita_after_riichi_forbidden_and_drawn_only"]
 
 [[case]]
 key = "kita.ron_on_kita"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::kita_ron_on_kita_true_and_false_and_chankan"]
 
 [[case]]
 key = "kita.ron_on_kita"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::kita_ron_on_kita_true_and_false_and_chankan"]
 
 [[case]]
 key = "kita.ron_on_discard"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::kita_ron_on_discard_true_and_false"]
 
 [[case]]
 key = "kita.ron_on_discard"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::kita_ron_on_discard_true_and_false"]
 
 [[case]]
 key = "kita.ron_counts_as_chankan"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::kita_ron_on_kita_true_and_false_and_chankan"]
 
 [[case]]
 key = "kita.ron_counts_as_chankan"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::kita_ron_on_kita_true_and_false_and_chankan"]
 
 [[case]]
 key = "kita.breaks_ippatsu"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::kita_breaks_ippatsu_true_and_false"]
 
 [[case]]
 key = "kita.breaks_ippatsu"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::kita_breaks_ippatsu_true_and_false"]
 
 [[case]]
 key = "kita.breaks_first_turn"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::kita_breaks_first_turn_true_and_false"]
 
 [[case]]
 key = "kita.breaks_first_turn"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::kita_breaks_first_turn_true_and_false"]
 
 [[case]]
 key = "kita.north_as_meld"
@@ -545,107 +545,107 @@ tests = ["mj-core::yaku::tests::dora_per_kita_values"]
 [[case]]
 key = "draws.kyushu_kyuhai"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::kyushu_kyuhai_true_and_false"]
 
 [[case]]
 key = "draws.kyushu_kyuhai"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::kyushu_kyuhai_true_and_false"]
 
 [[case]]
 key = "draws.suukaikan"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::suukaikan_true_and_false"]
 
 [[case]]
 key = "draws.suukaikan"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::suukaikan_true_and_false"]
 
 [[case]]
 key = "draws.all_riichi"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::all_riichi_true_and_false"]
 
 [[case]]
 key = "draws.all_riichi"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::all_riichi_true_and_false"]
 
 [[case]]
 key = "draws.same_wind_discards"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::same_wind_discards_true_and_false"]
 
 [[case]]
 key = "draws.same_wind_discards"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::same_wind_discards_true_and_false"]
 
 [[case]]
 key = "draws.all_ron"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::all_ron_true_and_false"]
 
 [[case]]
 key = "draws.all_ron"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::all_ron_true_and_false"]
 
 [[case]]
 key = "draws.abortive_renchan"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::abortive_renchan_true_and_false"]
 
 [[case]]
 key = "draws.abortive_renchan"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::abortive_renchan_true_and_false"]
 
 [[case]]
 key = "draws.nagashi_mangan"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::nagashi_mangan_true_and_false"]
 
 [[case]]
 key = "draws.nagashi_mangan"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::nagashi_mangan_true_and_false"]
 
 [[case]]
 key = "draws.renchan"
 value = "agari"
-pending = "未実装"
+tests = ["mj-core::renchan_each_value"]
 
 [[case]]
 key = "draws.renchan"
 value = "tenpai"
-pending = "未実装"
+tests = ["mj-core::renchan_each_value"]
 
 [[case]]
 key = "draws.renchan"
 value = "always"
-pending = "未実装"
+tests = ["mj-core::renchan_each_value"]
 
 [[case]]
 key = "draws.keishiki_tenpai"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::keishiki_tenpai_true_and_false"]
 
 [[case]]
 key = "draws.keishiki_tenpai"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::keishiki_tenpai_true_and_false"]
 
 [[case]]
 key = "draws.noten_declaration"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::noten_declaration_true_and_false"]
 
 [[case]]
 key = "draws.noten_declaration"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::noten_declaration_true_and_false"]
 
 [[case]]
 key = "yakuman.composite"
@@ -670,17 +670,17 @@ tests = ["mj-core::yaku::tests::yakuman_composite_and_double_special"]
 [[case]]
 key = "yakuman.pao"
 value = "daisangen"
-pending = "未実装"
+tests = ["mj-core::pao_daisangen"]
 
 [[case]]
 key = "yakuman.pao"
 value = "daisuushii"
-pending = "未実装"
+tests = ["mj-core::pao_daisuushii"]
 
 [[case]]
 key = "yakuman.pao"
 value = "suukantsu"
-pending = "未実装"
+tests = ["mj-core::pao_suukantsu"]
 
 [[case]]
 key = "yakuman.pao_ron_split"
@@ -695,22 +695,22 @@ tests = ["mj-core::pao_ron_split_true_and_false"]
 [[case]]
 key = "yakuman.kokushi_ron_on_ankan"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::kokushi_ron_on_ankan_true_and_false"]
 
 [[case]]
 key = "yakuman.kokushi_ron_on_ankan"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::kokushi_ron_on_ankan_true_and_false"]
 
 [[case]]
 key = "chips.enabled"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::chips_enabled_true_and_false"]
 
 [[case]]
 key = "chips.enabled"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::chips_enabled_true_and_false"]
 
 [[case]]
 key = "chips.values.ippatsu"
