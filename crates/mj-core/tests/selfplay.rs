@@ -120,7 +120,7 @@ fn biased_selfplay_sanma_and_yonma() {
         }
     }
     assert!(
-        horas > 600 / scale,
+        horas as u64 > 600 / scale,
         "greedy play reaches hora often: {horas}"
     );
 }
