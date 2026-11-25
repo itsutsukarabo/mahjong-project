@@ -148,6 +148,8 @@ dependencies = [
  "getrandom",
  "hex",
  "mj-core",
+ "rand_chacha",
+ "rand_core",
  "serde_json",
  "sha2",
  "toml",

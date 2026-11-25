@@ -1,7 +1,7 @@
-//! 牌譜（`docs/spec/LOG_FORMAT.md` v0.2）の読み書き・検証・情報の秘匿（redact）。
+//! 牌譜（`docs/spec/LOG_FORMAT.md` v0.3）の読み書き・検証・情報の秘匿（redact）。
 //!
-//! 現時点では型付きのイベントは持たず、`serde_json::Value` の上で検証と変換を行う
-//! （局進行が mj-core に入った段階で型付きのイベントに置き換える）。
+//! 検証と変換は `serde_json::Value` の上で行う。エンジン（`mj-core`）の型付きのイベントから
+//! 牌譜を作るのは [`write`]。
 
 use mj_core::rules::{AnkanVisibility, Rules, RyukyokuReveal};
 use mj_core::tile::Tile;
@@ -10,6 +10,8 @@ use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
+
+pub mod write;
 
 pub const FORMAT_VERSION: &str = "0.3";
 pub const HIDDEN: &str = "?";
@@ -169,9 +171,12 @@ pub fn redact(events: &[Value], viewer: Viewer) -> Result<Vec<Value>, LogError> 
                     .and_then(Value::as_array)
                     .map(|a| a.iter().map(|b| b.as_bool().unwrap_or(false)).collect())
                     .unwrap_or_default();
+                // 九種九牌は宣言者の手牌を公開範囲に含める（LOG_FORMAT §4.4）
+                let declarer = o.get("actor").and_then(Value::as_u64);
                 if let Some(Value::Array(hands)) = o.get_mut("hands") {
                     for (i, h) in hands.iter_mut().enumerate() {
                         let shown = viewer.sees_seat(i as u64)
+                            || declarer == Some(i as u64)
                             || match rules.log_visibility.ryukyoku_reveal {
                                 RyukyokuReveal::All => true,
                                 RyukyokuReveal::TenpaiOnly => {
@@ -334,7 +339,8 @@ pub fn validate_full(events: &[Value]) -> Result<Report, LogError> {
                         event_key(e)?
                     ));
                 }
-                if !rinshan && pile.len() - front < rules.wall.reserve() {
+                // 王牌は常に dead_wall 枚：通常のツモの後も、まだ引いていない枚数が reserve 以上残る
+                if !rinshan && back - front < rules.wall.reserve() {
                     return err("drew past haitei (rules.wall.dead_wall)");
                 }
             }

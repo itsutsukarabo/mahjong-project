@@ -9,6 +9,7 @@ pub mod catalog;
 pub mod event;
 pub mod game;
 pub mod kyoku;
+pub mod policy;
 pub mod rules;
 pub mod shanten;
 pub mod tile;

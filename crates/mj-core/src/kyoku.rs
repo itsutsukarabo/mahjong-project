@@ -444,6 +444,21 @@ impl Kyoku {
         &self.rules
     }
 
+    /// 席の門前の牌（整列済み）。全情報（学習の価値関数・テスト用）で、クライアントへは送らない（原則4）
+    pub fn concealed(&self, seat: u8) -> Vec<Tile> {
+        self.players[usize::from(seat)].tiles()
+    }
+
+    /// 席の門前の牌の種類ごとの枚数
+    pub fn concealed_counts(&self, seat: u8) -> KindCounts {
+        self.players[usize::from(seat)].c
+    }
+
+    /// 席の副露（暗槓を含む）
+    pub fn melds(&self, seat: u8) -> &[Meld] {
+        &self.players[usize::from(seat)].melds
+    }
+
     /// 判断ポイントのすべての席の行動を受け取って進める。
     pub fn step(&mut self, actions: &[(u8, Action)]) -> Result<(), EngineError> {
         if self.decisions.is_empty() {
@@ -1842,6 +1857,7 @@ impl Kyoku {
         let oya_tenpai = tenpai[usize::from(self.oya)];
         self.emit(Event::Ryukyoku(Box::new(Ryukyoku {
             reason,
+            actor: None,
             tenpai: tenpai.clone(),
             hands: self.players.iter().map(Player::tiles).collect(),
             deltas,
@@ -1863,9 +1879,9 @@ impl Kyoku {
                 agari::is_tenpai(&p.c, p.melds.is_empty())
             })
             .collect();
-        let _ = declarer;
         self.emit(Event::Ryukyoku(Box::new(Ryukyoku {
             reason,
+            actor: declarer,
             tenpai: tenpai.clone(),
             hands: self.players.iter().map(Player::tiles).collect(),
             deltas: vec![0; n],

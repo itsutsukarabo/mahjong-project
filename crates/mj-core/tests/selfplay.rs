@@ -2,13 +2,20 @@
 
 use mj_core::event::Event;
 use mj_core::game::{Game, WallSource};
+use mj_core::policy::{greedy_choice, uniform_choice};
 use mj_core::rules::{Rules, presets};
-use mj_core::wall::uniform_below;
+use mj_core::shanten::ShantenCalc;
 use rand_chacha::ChaCha8Rng;
 use rand_core::SeedableRng;
 
 /// 対局を最後まで打つ。戻り値は局数。
 fn play(rules: &Rules, seed: u64) -> (Game, usize) {
+    play_with(rules, seed, false)
+}
+
+/// `biased`：シャンテン数を下げる打ち手（和了・立直・鳴きの分岐を通す）
+fn play_with(rules: &Rules, seed: u64, biased: bool) -> (Game, usize) {
+    let calc = ShantenCalc::new(rules.tiles.manzu);
     let mut g = Game::new(rules.clone(), WallSource::Seed(seed));
     let mut rng = ChaCha8Rng::seed_from_u64(seed ^ 0xabcdef);
     let mut steps = 0;
@@ -21,8 +28,15 @@ fn play(rules: &Rules, seed: u64) -> (Game, usize) {
                 let mut sorted = d.choices.clone();
                 sorted.sort();
                 assert_eq!(sorted, d.choices, "choices are in spec order");
-                let i = uniform_below(&mut rng, d.choices.len() as u32) as usize;
-                (d.seat, d.choices[i])
+                let a = if biased {
+                    let k = g.current_kyoku();
+                    let hand = k.concealed_counts(d.seat);
+                    let melds = k.melds(d.seat).len() as u8;
+                    greedy_choice(&mut rng, &d.choices, &hand, melds, &calc, 30)
+                } else {
+                    uniform_choice(&mut rng, &d.choices)
+                };
+                (d.seat, a)
             })
             .collect();
         g.step(&acts).expect("legal step");
@@ -84,4 +98,29 @@ fn selfplay_is_deterministic() {
     let ea: Vec<_> = a.kyokus().map(|k| k.to_vec()).collect();
     let eb: Vec<_> = b.kyokus().map(|k| k.to_vec()).collect();
     assert_eq!(ea, eb);
+}
+
+#[test]
+fn biased_selfplay_sanma_and_yonma() {
+    let mut horas = 0;
+    // デバッグビルド（CI の cargo test）ではシャンテン数の計算が遅いので局数を減らす
+    let scale = if cfg!(debug_assertions) { 3 } else { 1 };
+    for (rules, games) in [
+        (presets::tenhou_sanma(), 150 / scale),
+        (presets::test_yonma(), 80 / scale),
+    ] {
+        for seed in 0..games {
+            let (g, _) = play_with(&rules, seed, true);
+            check_invariants(&rules, &g);
+            horas += g
+                .kyokus()
+                .flatten()
+                .filter(|e| matches!(e, Event::Hora(_)))
+                .count();
+        }
+    }
+    assert!(
+        horas > 600 / scale,
+        "greedy play reaches hora often: {horas}"
+    );
 }

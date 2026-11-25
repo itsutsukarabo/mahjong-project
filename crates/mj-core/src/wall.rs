@@ -98,7 +98,7 @@ fn rng_for(game_seed: u64, kyoku_idx: u64) -> ChaCha8Rng {
 }
 
 /// `0..bound` から一様に1つ選ぶ（剰余の偏りを棄却で除く）。
-pub fn uniform_below(rng: &mut impl RngCore, bound: u32) -> u32 {
+pub fn uniform_below(rng: &mut (impl RngCore + ?Sized), bound: u32) -> u32 {
     assert!(bound > 0);
     let reject_below = bound.wrapping_neg() % bound; // (2^32 - bound) mod bound
     loop {

@@ -118,6 +118,8 @@ pub struct Hora {
 pub struct Ryukyoku {
     /// `exhaustive` / `kyushu_kyuhai` / `suukaikan` / `all_riichi` / `same_wind_discards` / `all_ron` / `nagashi_mangan`
     pub reason: &'static str,
+    /// 九種九牌の宣言者（九種九牌のときだけ）
+    pub actor: Option<u8>,
     pub tenpai: Vec<bool>,
     /// 全員の門前の手牌（公開範囲は mj-log の redact が決める）
     pub hands: Vec<Vec<Tile>>,
