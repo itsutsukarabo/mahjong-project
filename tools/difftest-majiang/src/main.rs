@@ -1,13 +1,18 @@
 //! mj-core と @kobalab/majiang-core の差分テスト（手牌レベル、四麻）。
 //!
+//! 層：シャンテン数・待ち（`Util.xiangting` / `Util.tingpai`）と、和了・点数（`Util.hule`、[`hora`]）。
+//!
 //! 1. 固定シード（または乱数シード）から手牌のケースを生成する
-//! 2. Node のハーネス（`node/harness.js`）に流し、majiang-core のシャンテン数・待ちを受け取る
+//! 2. Node のハーネス（`node/harness.js`）に流し、majiang-core の答えを受け取る
 //! 3. `case_id` で突き合わせ、比較した件数／除外した件数／不一致件数を出す
 //! 4. 不一致は最小化して `failures.jsonl` に書く
 //!
 //! 使い方：
-//! `difftest-majiang --cases 20000 --seed 20261122 [--random-seed] [--out DIR] [--node node] [--harness PATH]`
+//! `difftest-majiang --cases 20000 [--hora-cases N] --seed 20261122 [--random-seed] [--out DIR] [--node node] [--harness PATH]`
+//! （`--hora-cases` の既定は `--cases` と同じ）
 //! 不一致が1件でもあれば終了コード 1。
+
+mod hora;
 
 use mj_core::rules::Manzu;
 use mj_core::shanten::ShantenCalc;
@@ -100,6 +105,7 @@ struct Verdict {
 }
 
 /// 最小化の仕組みを確かめるための故障注入（`--inject-fault`）：1m を2枚以上持つ手のシャンテン数を1ずらす。
+/// 和了・点数の層では混一色の符を 10 ずらす（[`hora`]）。
 static INJECT_FAULT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 fn judge(calc: &ShantenCalc, c: &Case, a: &Answer) -> Result<Verdict, String> {
@@ -165,13 +171,31 @@ impl Harness {
 
     /// 1回に送る件数は少なめにする（パイプのバッファが詰まらないように）。
     fn ask(&mut self, cases: &[Case]) -> Vec<Answer> {
-        for c in cases {
-            let line = serde_json::json!({"case_id": c.case_id, "majiang": c.majiang});
-            writeln!(self.stdin, "{line}").unwrap();
+        let reqs: Vec<serde_json::Value> = cases
+            .iter()
+            .map(|c| serde_json::json!({"case_id": c.case_id, "majiang": c.majiang}))
+            .collect();
+        self.request(&reqs)
+    }
+
+    fn ask_hora(&mut self, cases: &[hora::HoraCase]) -> Vec<hora::HoraAnswer> {
+        let reqs: Vec<serde_json::Value> = cases
+            .iter()
+            .map(|c| {
+                serde_json::json!({"case_id": c.case_id, "op": "hule", "shoupai": c.shoupai,
+                                   "rongpai": c.rongpai, "param": c.param})
+            })
+            .collect();
+        self.request(&reqs)
+    }
+
+    fn request<T: serde::de::DeserializeOwned>(&mut self, reqs: &[serde_json::Value]) -> Vec<T> {
+        for r in reqs {
+            writeln!(self.stdin, "{r}").unwrap();
         }
         self.stdin.flush().unwrap();
-        let mut out = Vec::with_capacity(cases.len());
-        for _ in cases {
+        let mut out = Vec::with_capacity(reqs.len());
+        for _ in reqs {
             let mut line = String::new();
             let n = self.stdout.read_line(&mut line).unwrap();
             assert!(n > 0, "harness closed its output");
@@ -428,6 +452,7 @@ struct Counts {
 
 fn main() {
     let mut cases_n: usize = 20_000;
+    let mut hora_n: Option<usize> = None;
     let mut seed: u64 = 20_261_122;
     let mut random_seed = false;
     let mut out_dir: Option<PathBuf> = None;
@@ -440,6 +465,7 @@ fn main() {
         let mut val = || args.next().unwrap_or_else(|| panic!("{a} needs a value"));
         match a.as_str() {
             "--cases" => cases_n = val().parse().unwrap(),
+            "--hora-cases" => hora_n = Some(val().parse().unwrap()),
             "--seed" => seed = val().parse().unwrap(),
             "--random-seed" => random_seed = true,
             "--out" => out_dir = Some(PathBuf::from(val())),
@@ -509,6 +535,83 @@ fn main() {
         i += n;
     }
 
+    // ---- 和了・点数
+    let hora_n = hora_n.unwrap_or(cases_n);
+    let hora_rules = hora::rules();
+    let mut hgen = hora::HoraGen::new(ChaCha8Rng::seed_from_u64(seed ^ 0x686f7261));
+    let mut hora_counts = Counts::default();
+    let mut hora_by_palette: BTreeMap<&str, u64> = BTreeMap::new();
+    // 比べたケースに出た役（majiang-core の答えで数える。どの役が実際に突き合わされたかの記録）
+    let mut hora_yaku: BTreeMap<String, u64> = BTreeMap::new();
+    let mut hora_failures: Vec<serde_json::Value> = Vec::new();
+    let mut hora_budget = max_shrink_queries;
+    let mut i = 0;
+    while i < hora_n {
+        let n = chunk.min(hora_n - i);
+        let batch: Vec<hora::HoraCase> = (i..i + n)
+            .map(|j| hgen.case(j, seed, &hora_rules))
+            .collect();
+        let answers = harness.ask_hora(&batch);
+        let by_id: BTreeMap<&str, &hora::HoraAnswer> =
+            answers.iter().map(|a| (a.case_id.as_str(), a)).collect();
+        assert_eq!(by_id.len(), batch.len(), "duplicate or missing case_id");
+        for c in &batch {
+            let a = by_id
+                .get(c.case_id.as_str())
+                .unwrap_or_else(|| panic!("no answer for {}", c.case_id));
+            *hora_by_palette.entry(c.palette).or_default() += 1;
+            let theirs = hora::theirs_score(a).unwrap_or_else(|e| panic!("{e}"));
+            let ours = hora::ours_score(&hora_rules, c);
+            if theirs.is_none() && ours.is_none() {
+                // 役なし（どちらも和了にならない）は比べる値がないので除外
+                hora_counts.excluded += 1;
+                continue;
+            }
+            hora_counts.compared += 1;
+            for (id, _, _) in theirs
+                .iter()
+                .chain(ours.iter())
+                .take(1)
+                .flat_map(|x| x.yaku.iter())
+            {
+                *hora_yaku.entry(id.clone()).or_default() += 1;
+            }
+            if theirs != ours {
+                hora_counts.mismatched += 1;
+                // 最小化：状況役・ドラを外しても食い違うものへ縮める
+                let mut cur = c.clone();
+                let mut progress = true;
+                while progress && hora_budget > 0 {
+                    progress = false;
+                    for cand in hora::simpler(&cur) {
+                        if hora_budget == 0 {
+                            break;
+                        }
+                        hora_budget -= 1;
+                        let a = harness.ask_hora(std::slice::from_ref(&cand));
+                        let t = hora::theirs_score(&a[0]).ok().flatten();
+                        if t != hora::ours_score(&hora_rules, &cand) {
+                            cur = cand;
+                            progress = true;
+                            break;
+                        }
+                    }
+                }
+                let a = harness.ask_hora(std::slice::from_ref(&cur));
+                hora_failures.push(serde_json::json!({
+                    "seed": seed,
+                    "original": {"case_id": c.case_id, "palette": c.palette, "shoupai": c.shoupai,
+                                 "rongpai": c.rongpai, "param": c.param,
+                                 "ours": ours, "majiang": theirs},
+                    "minimized": {"shoupai": cur.shoupai, "rongpai": cur.rongpai, "param": cur.param,
+                                  "ours": hora::ours_score(&hora_rules, &cur),
+                                  "majiang": hora::theirs_score(&a[0]).ok().flatten()},
+                }));
+            }
+        }
+        i += n;
+    }
+
     let mut budget = max_shrink_queries;
     let mut records = Vec::new();
     for (c, v) in &failures {
@@ -532,7 +635,13 @@ fn main() {
         "shanten": shanten,
         "waits": waits,
         "waits_excluded_reason": "14枚形（ツモ後）は majiang-core の tingpai が null を返すため比較しない",
+        "hora": hora_counts,
+        "hora_cases": hora_n,
+        "hora_by_palette": hora_by_palette,
+        "hora_yaku": hora_yaku,
+        "hora_excluded_reason": "役がなく、どちらも和了にならないケース（比べる値がない）",
         "failures": failures.len(),
+        "hora_failures": hora_failures.len(),
         "majiang_core": "1.4.1",
     });
     println!("{}", serde_json::to_string_pretty(&summary).unwrap());
@@ -547,11 +656,18 @@ fn main() {
         for r in &records {
             writeln!(f, "{r}").unwrap();
         }
+        let mut f = std::fs::File::create(dir.join("hora_failures.jsonl")).unwrap();
+        for r in &hora_failures {
+            writeln!(f, "{r}").unwrap();
+        }
     }
     for r in records.iter().take(20) {
         eprintln!("MISMATCH {r}");
     }
-    if !failures.is_empty() {
+    for r in hora_failures.iter().take(20) {
+        eprintln!("HORA MISMATCH {r}");
+    }
+    if !failures.is_empty() || !hora_failures.is_empty() {
         std::process::exit(1);
     }
 }

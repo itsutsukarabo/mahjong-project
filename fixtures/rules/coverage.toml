@@ -185,42 +185,42 @@ pending = "未実装"
 [[case]]
 key = "points.kiriage_mangan"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::kiriage_mangan_true_and_false"]
 
 [[case]]
 key = "points.kiriage_mangan"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::kiriage_mangan_true_and_false"]
 
 [[case]]
 key = "points.kazoe_yakuman"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::kazoe_yakuman_true_and_false"]
 
 [[case]]
 key = "points.kazoe_yakuman"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::kazoe_yakuman_true_and_false"]
 
 [[case]]
 key = "points.min_han"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::min_han_excludes_dora"]
 
 [[case]]
 key = "points.double_wind_pair_fu"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::double_wind_pair_fu_values"]
 
 [[case]]
 key = "points.rinshan_tsumo_fu"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::rinshan_tsumo_fu_true_and_false"]
 
 [[case]]
 key = "points.rinshan_tsumo_fu"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::rinshan_tsumo_fu_true_and_false"]
 
 [[case]]
 key = "tiles.manzu"
@@ -275,12 +275,12 @@ pending = "未実装"
 [[case]]
 key = "calls.kuitan"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::kuitan_true_and_false"]
 
 [[case]]
 key = "calls.kuitan"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::kuitan_true_and_false"]
 
 [[case]]
 key = "calls.atozuke"
@@ -395,12 +395,12 @@ pending = "未実装"
 [[case]]
 key = "dora.ura"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::dora_ura_flag"]
 
 [[case]]
 key = "dora.ura"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::dora_ura_flag"]
 
 [[case]]
 key = "dora.kan_dora"
@@ -530,17 +530,17 @@ pending = "未実装"
 [[case]]
 key = "kita.north_as_meld"
 value = "otakaze"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::north_as_meld_otakaze_and_yakuhai"]
 
 [[case]]
 key = "kita.north_as_meld"
 value = "yakuhai"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::north_as_meld_otakaze_and_yakuhai"]
 
 [[case]]
 key = "kita.dora_per_kita"
 value = "*"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::dora_per_kita_values"]
 
 [[case]]
 key = "draws.kyushu_kyuhai"
@@ -650,22 +650,22 @@ pending = "未実装"
 [[case]]
 key = "yakuman.composite"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::yakuman_composite_and_double_special"]
 
 [[case]]
 key = "yakuman.composite"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::yakuman_composite_and_double_special"]
 
 [[case]]
 key = "yakuman.double_special"
 value = "true"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::yakuman_composite_and_double_special"]
 
 [[case]]
 key = "yakuman.double_special"
 value = "false"
-pending = "未実装"
+tests = ["mj-core::yaku::tests::yakuman_composite_and_double_special"]
 
 [[case]]
 key = "yakuman.pao"
