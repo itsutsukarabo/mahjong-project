@@ -25,6 +25,9 @@ const NO_TILE: i16 = 38;
 /// 付加1, 付加2, 位置（局の中の順番 0〜）]
 pub const EVENT_FIELDS: usize = 6;
 
+/// イベント列の長さの上限（D-045：1局 192 件）
+pub const MAX_EVENTS: usize = 192;
+
 /// イベントの種類（トークンの 0 欄）
 pub mod ev {
     pub const DORA: i16 = 1;

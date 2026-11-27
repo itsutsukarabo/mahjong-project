@@ -9,7 +9,7 @@
 - テスト対応表：`fixtures/rules/coverage.toml`。下の「値」の行ごとに、その分岐を確かめるテストを対応付ける（数値の項目は1つ以上）
 - 「打ち方」：打ち方に効く項目（RL の観測のルール設定に入れる。D-042）。全項目に必須の印（`Item::play`）で、付け忘れはコンパイルエラーになる
 
-項目数：**101**、テスト対応表の行数（項目 × 値）：**190**
+項目数：**102**、テスト対応表の行数（項目 × 値）：**192**
 
 ## A. 対局の形（`table`）
 
@@ -110,6 +110,7 @@
 | `kita.ron_on_discard` | 切った北へのロン | 真偽値 | `true`：捨てられた北に、北待ちで役がある人はロンできる<br>`false`：捨てられた北にはロンできない | `true` | 効く | `kita.ron_on_kita` |
 | `kita.ron_counts_as_chankan` | 北抜きへのロンの槍槓 | 真偽値 | `true`：北抜きへのロンに槍槓（1翻）が付く<br>`false`：槍槓は付かない | `false` | 効く | `kita.ron_on_kita` |
 | `kita.breaks_ippatsu` | 北抜きで一発が消える | 真偽値 | `true`：誰かが北を抜いたら全員の一発が消える（鳴きと同じ）<br>`false`：北抜きでは一発は消えない | `true` | 効く | `dora.ippatsu` |
+| `kita.ippatsu_on_kita_ron` | 北抜きへのロンの一発<br>`kita.breaks_ippatsu = true` のときだけ違いが出る | 真偽値 | `true`：立直者が一発の巡目のうちに、他家が抜いた北でロンしたら一発が付く（北抜きが一発を消すのは、北抜きが通った後）<br>`false`：北抜きの時点で一発が消えるので、北抜きへのロンに一発は付かない | `true` | 効く | `kita.breaks_ippatsu`<br>`kita.ron_on_kita` |
 | `kita.breaks_first_turn` | 北抜きで第1巡が終わる | 真偽値 | `true`：誰かが北を抜いたら地和・九種九牌・ダブル立直の条件（第1巡で鳴きがない）が消える<br>`false`：北抜きでは消えない | `true` | 効く | `draws.kyushu_kyuhai` |
 | `kita.north_as_meld` | 北を面子に使ったとき | 列挙 | `otakaze`：北を刻子・雀頭に使ったら、自風・場風でなければ役も符もない字牌（オタ風）<br>`yakuhai`：北の刻子は常に役牌（1翻） | `"otakaze"` | 効く | `kita.mandatory` |
 | `kita.dora_per_kita` | 抜いた北1枚のドラ<br>抜いた北1枚あたりのドラの数（北がドラ表示でドラになっていれば、さらにその分を足す） | 整数 | 0〜4（翻） | `1` | 効く | `kita.mode` |

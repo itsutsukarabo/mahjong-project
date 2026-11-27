@@ -83,6 +83,7 @@ ron_on_kita = false
 ron_on_discard = true
 ron_counts_as_chankan = false
 breaks_ippatsu = true
+ippatsu_on_kita_ron = true
 breaks_first_turn = true
 north_as_meld = "otakaze"
 dora_per_kita = 1

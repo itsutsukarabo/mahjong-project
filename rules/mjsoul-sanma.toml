@@ -89,6 +89,7 @@ ron_on_kita = true                       # M2「役がある場合、抜き北�
 ron_on_discard = true                    # オーナー確認（2026-11-28）質問票 Q18
 ron_counts_as_chankan = false            # M2「槍槓の役はつかない仕様」
 breaks_ippatsu = true                    # M4「北を抜いた時点で、一発、ダブルリーチや九種九牌の判定が消える」
+ippatsu_on_kita_ron = true               # オーナー確認（2026-11-28）D-046「つく」
 breaks_first_turn = true                 # M4（同上）
 north_as_meld = "otakaze"                # M4「北を面子で使用した場合はオタ風」
 dora_per_kita = 1                        # オーナー確認（2026-11-28）質問票 Q19

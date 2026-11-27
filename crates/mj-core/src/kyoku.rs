@@ -1359,7 +1359,8 @@ impl Kyoku {
         if self.rules.kita.breaks_first_turn {
             self.uninterrupted = false;
         }
-        if self.rules.kita.breaks_ippatsu {
+        // 一発を消すのは北抜きの時点か、北抜きが通った後か（`kita.ippatsu_on_kita_ron`。後なら北抜きへのロンに一発が付く）
+        if self.rules.kita.breaks_ippatsu && !self.rules.kita.ippatsu_on_kita_ron {
             self.break_ippatsu_all();
         }
         self.emit(Event::Kita { actor, pai: north });
@@ -1492,6 +1493,9 @@ impl Kyoku {
                 self.draw(actor, true);
             }
             RespondKind::Kita => {
+                if self.rules.kita.breaks_ippatsu && self.rules.kita.ippatsu_on_kita_ron {
+                    self.break_ippatsu_all();
+                }
                 // 北抜きが通ったら、補充の嶺上牌をツモる直前に後めくりのカンドラをめくる（オーナー確認 2026-11-28）
                 if self.rules.dora.kan_dora_on_kita {
                     self.flush_pending_dora();

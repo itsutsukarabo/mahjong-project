@@ -513,6 +513,24 @@ fn kita_breaks_ippatsu_true_and_false() {
 }
 
 #[test]
+fn kita_ippatsu_on_kita_ron_true_and_false() {
+    // 席1 が立直（北の単騎待ち）。一発の巡目のうちに席0 が北を抜き、席1 がロン
+    let run = |rules: Rules| {
+        let mut k = Scenario::new(rules, &[N0B, N1, J2])
+            .draws("E W S F")
+            .kyoku();
+        act(&mut k, 0, "dahai:E:tsumogiri");
+        act(&mut k, 1, "reach:W:tsumogiri");
+        act(&mut k, 2, "dahai:S:tsumogiri");
+        act(&mut k, 0, "kita");
+        act(&mut k, 1, "ron");
+        last_hora(&k).yaku.iter().any(|y| y.yaku == Yaku::Ippatsu)
+    };
+    assert!(run(sanma()), "D-046：北抜きへのロンに一発が付く");
+    assert!(!run(with("[kita]\nippatsu_on_kita_ron = false")));
+}
+
+#[test]
 fn kita_breaks_first_turn_true_and_false() {
     // 席0 が第1巡に北を抜いた後、席1 の第1ツモで九種九牌を宣言できるか
     let s1 = "1m 9m 1p 9p 1s 9s E S W 2p 3p 4p 5p";

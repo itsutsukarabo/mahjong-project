@@ -28,7 +28,8 @@ pub struct EnvConfig {
     pub reward: RewardSpec,
     /// 対局ごとに全情報版の牌譜（JSONL）を返す
     pub record_logs: bool,
-    /// イベント列の長さの上限（超えたら古い方を捨てる。OBSERVATION §3 の案は 160）
+    /// イベント列の長さの上限（D-045：1局 192）。超えた行は先頭から上限までを入れ、`events_overflow` に印を付けて
+    /// 件数を数え、警告を出す（古いイベントを黙って捨てることはしない）
     pub max_events: usize,
 }
 
@@ -44,6 +45,8 @@ pub struct Batch {
     /// 行 × max_events × EVENT_FIELDS（足りない分は -1）
     pub events: Vec<i16>,
     pub events_len: Vec<i32>,
+    /// イベント列が上限を超えた行（D-045）
+    pub events_overflow: Vec<bool>,
     /// 行 × 325
     pub mask: Vec<bool>,
     /// 行 × critic の次元
@@ -161,6 +164,8 @@ pub struct VecEnv {
     tables: Vec<Table>,
     policy_dim: usize,
     critic_dim: usize,
+    /// これまでにイベント列が上限を超えた行の数（D-045：学習の統計に残す）
+    overflow_total: u64,
 }
 
 impl VecEnv {
@@ -178,6 +183,7 @@ impl VecEnv {
             tables: Vec::new(),
             policy_dim: layout.policy(),
             critic_dim: layout.critic,
+            overflow_total: 0,
             cfg,
         };
         env.tables = (0..env.cfg.num_tables)
@@ -196,6 +202,10 @@ impl VecEnv {
 
     pub fn max_events(&self) -> usize {
         self.cfg.max_events
+    }
+
+    pub fn overflow_total(&self) -> u64 {
+        self.overflow_total
     }
 
     fn new_table(&self, idx: usize, games_started: u64) -> Table {
@@ -293,7 +303,7 @@ impl VecEnv {
         Ok(self.pack(rows, finished))
     }
 
-    fn pack(&self, rows: Vec<Row>, finished: Vec<Finished>) -> Batch {
+    fn pack(&mut self, rows: Vec<Row>, finished: Vec<Finished>) -> Batch {
         let l = self.cfg.max_events;
         let mut b = Batch {
             finished,
@@ -307,9 +317,19 @@ impl VecEnv {
             b.policy.extend(&r.policy);
             b.critic.extend(&r.critic);
             b.mask.extend(&r.mask);
-            // 古い方を捨てて最後の l 個（位置の欄は元の順番のまま）
-            let skip = r.events.len().saturating_sub(l);
-            let kept = &r.events[skip..];
+            // 上限を超えたら先頭から l 個を入れ、印を付けて数える（D-045）
+            let over = r.events.len() > l;
+            if over {
+                self.overflow_total += 1;
+                eprintln!(
+                    "warning: event sequence {} > max_events {l} (table {}, decision {})",
+                    r.events.len(),
+                    r.table,
+                    r.decision_id
+                );
+            }
+            b.events_overflow.push(over);
+            let kept = &r.events[..r.events.len().min(l)];
             b.events_len.push(kept.len() as i32);
             for tok in kept {
                 b.events.extend(tok);
@@ -429,7 +449,7 @@ mod tests {
             threads,
             reward: RewardSpec::parse("tenhou-sanma-7dan+").unwrap(),
             record_logs: true,
-            max_events: 160,
+            max_events: 192,
         }
     }
 
@@ -471,6 +491,17 @@ mod tests {
         let b = run(5, 4, 300);
         assert_eq!(a, b);
         assert!(!a.1.is_empty(), "some games finished");
+        let mut env = VecEnv::new(cfg(5, 2));
+        let mut b = env.observe();
+        for _ in 0..300 {
+            let a = first_legal(&b);
+            b = env.step(&b.decision_id.clone(), &a).unwrap();
+        }
+        assert_eq!(
+            env.overflow_total(),
+            0,
+            "event sequence exceeded max_events (D-045)"
+        );
     }
 
     #[test]

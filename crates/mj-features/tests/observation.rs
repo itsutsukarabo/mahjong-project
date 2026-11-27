@@ -11,7 +11,7 @@ use mj_core::policy::uniform_choice;
 use mj_core::rules::{Rules, presets};
 use mj_core::tile::{Tile, TileKind};
 use mj_core::wall::uniform_below;
-use mj_features::obs::{Observer, RewardInput};
+use mj_features::obs::{MAX_EVENTS, Observer, RewardInput};
 use rand_chacha::ChaCha8Rng;
 use rand_core::SeedableRng;
 
@@ -85,6 +85,12 @@ fn check(rules: Rules, games: u64, random: bool) -> (u64, u64) {
                 assert_eq!(a.policy.len(), layout.policy());
                 assert_eq!(a.critic.len(), layout.critic);
                 assert!(a.policy.iter().all(|x| x.is_finite()));
+                // D-045：イベント列の上限（1局 192）を超えたらテストは失敗
+                assert!(
+                    a.events.len() <= MAX_EVENTS,
+                    "events {} > {MAX_EVENTS}",
+                    a.events.len()
+                );
                 // 決定論
                 assert_eq!(a, obs.observe(events, d.seat, &d.choices, &reward));
                 assert_eq!(a, obs2.observe(events, d.seat, &d.choices, &reward));

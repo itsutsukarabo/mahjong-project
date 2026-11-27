@@ -86,6 +86,7 @@ ron_on_kita = true                       # 3人打ち「抜いた北は役満以
 ron_on_discard = true                    # オーナー（切った北にも、北待ちで役があればロンできる）
 ron_counts_as_chankan = false            # オーナー（槍槓は付かない）
 breaks_ippatsu = true                    # 「抜きは鳴きと同じ扱い(一発/地和/九種/両立直は消える)」
+ippatsu_on_kita_ron = true               # オーナー確認（2026-11-28）D-046「つく」
 breaks_first_turn = true
 north_as_meld = "otakaze"                # 「北を面子で使用した場合はオタ風」
 dora_per_kita = 1                        # 「北は抜きドラ」（1枚＝ドラ1）

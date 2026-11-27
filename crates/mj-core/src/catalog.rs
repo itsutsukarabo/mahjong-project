@@ -748,6 +748,18 @@ pub const CATALOG: &[Item] = &[
         play: true,
     },
     Item {
+        key: "kita.ippatsu_on_kita_ron",
+        title: "北抜きへのロンの一発",
+        kind: b(
+            "立直者が一発の巡目のうちに、他家が抜いた北でロンしたら一発が付く（北抜きが一発を消すのは、北抜きが通った後）",
+            "北抜きの時点で一発が消えるので、北抜きへのロンに一発は付かない",
+        ),
+        desc: "`kita.breaks_ippatsu = true` のときだけ違いが出る",
+        default: "true",
+        related: &["kita.breaks_ippatsu", "kita.ron_on_kita"],
+        play: true,
+    },
+    Item {
         key: "kita.breaks_first_turn",
         title: "北抜きで第1巡が終わる",
         kind: b(

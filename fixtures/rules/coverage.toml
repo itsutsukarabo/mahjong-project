@@ -956,3 +956,13 @@ tests = ["mj-core::furiten_on_yakuless_pass_true_and_false"]
 key = "calls.furiten_on_yakuless_pass"
 value = "false"
 tests = ["mj-core::furiten_on_yakuless_pass_true_and_false"]
+
+[[case]]
+key = "kita.ippatsu_on_kita_ron"
+value = "true"
+tests = ["mj-core::kita_ippatsu_on_kita_ron_true_and_false"]
+
+[[case]]
+key = "kita.ippatsu_on_kita_ron"
+value = "false"
+tests = ["mj-core::kita_ippatsu_on_kita_ron_true_and_false"]

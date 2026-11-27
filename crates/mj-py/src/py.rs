@@ -3,7 +3,7 @@
 //! ```python
 //! import mj_py
 //! env = mj_py.VecEnv(rules="tenhou-sanma", num_tables=64, seed=1, threads=0,
-//!                    reward="tenhou-sanma-7dan+", record_logs=False, max_events=160, overrides="")
+//!                    reward="tenhou-sanma-7dan+", record_logs=False, max_events=192, overrides="")
 //! b = env.observe()                       # dict of numpy arrays（行 = 判断ポイント）
 //! b = env.step(b["decision_id"], actions) # actions: 行ごとの行動の番号（0〜324）
 //! ```
@@ -47,6 +47,10 @@ fn to_py<'py>(py: Python<'py>, inner: &Inner, b: Batch) -> PyResult<Bound<'py, P
     )?;
     d.set_item("events_len", Array1::from(b.events_len).into_pyarray(py))?;
     d.set_item(
+        "events_overflow",
+        Array1::from(b.events_overflow).into_pyarray(py),
+    )?;
+    d.set_item(
         "mask",
         Array2::from_shape_vec((n, NUM_ACTIONS), b.mask)
             .map_err(err)?
@@ -80,7 +84,7 @@ fn to_py<'py>(py: Python<'py>, inner: &Inner, b: Batch) -> PyResult<Bound<'py, P
 #[pymethods]
 impl VecEnv {
     #[new]
-    #[pyo3(signature = (rules="tenhou-sanma", num_tables=64, seed=0, threads=0, reward="tenhou-sanma-7dan+", record_logs=false, max_events=160, overrides=""))]
+    #[pyo3(signature = (rules="tenhou-sanma", num_tables=64, seed=0, threads=0, reward="tenhou-sanma-7dan+", record_logs=false, max_events=192, overrides=""))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         rules: &str,
@@ -126,6 +130,12 @@ impl VecEnv {
     #[getter]
     fn critic_dim(&self) -> usize {
         self.inner.critic_dim()
+    }
+
+    /// これまでにイベント列が上限を超えた行の数（D-045）
+    #[getter]
+    fn overflow_total(&self) -> u64 {
+        self.inner.overflow_total()
     }
 
     #[getter]

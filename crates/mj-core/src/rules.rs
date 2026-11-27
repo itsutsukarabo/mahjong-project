@@ -279,6 +279,7 @@ pub struct KitaRules {
     pub ron_on_discard: bool,
     pub ron_counts_as_chankan: bool,
     pub breaks_ippatsu: bool,
+    pub ippatsu_on_kita_ron: bool,
     pub breaks_first_turn: bool,
     pub north_as_meld: NorthAsMeld,
     pub dora_per_kita: u8,
