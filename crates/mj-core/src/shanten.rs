@@ -13,10 +13,14 @@
 //!
 //! この定義は @kobalab/majiang-core の `Util.xiangting` / `Util.tingpai` と同じ数え方で、
 //! 差分テスト（`tools/difftest-majiang`）で突き合わせる。実装は独立（数牌の分解を全探索する）。
+//! 1色の分解の結果は [`ShantenCalc`] の中に覚えておく（同じ形を2回目からは探索しない）。
+//! そのため `ShantenCalc` はスレッドをまたいで共有できない（スレッドごとに作る）。
 
 use crate::rules::Manzu;
 use crate::tile::{KindCounts, NUM_KINDS, Suit, TileKind};
 use crate::wall::kind_in_use;
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 /// シャンテン数の計算に要るルールの情報。
 #[derive(Debug, Clone)]
@@ -24,6 +28,8 @@ pub struct ShantenCalc {
     /// 順子を作れない種類（字牌、三麻の 1m・9m）
     honor_like: [bool; NUM_KINDS],
     in_use: [bool; NUM_KINDS],
+    /// 1色の枚数（5進数の符号）→ 分解の候補（パレート最小）
+    cache: RefCell<HashMap<u32, Vec<Mdg>>>,
 }
 
 /// 面子・搭子・孤立牌の数。
@@ -138,7 +144,11 @@ impl ShantenCalc {
             honor_like[k.index()] =
                 k.is_honor() || (manzu == Manzu::TerminalsOnly && k.suit() == Some(Suit::Man));
         }
-        Self { honor_like, in_use }
+        Self {
+            honor_like,
+            in_use,
+            cache: RefCell::new(HashMap::new()),
+        }
     }
 
     /// 一般形・七対子・国士無双の最小。`melds` は副露（暗槓を含む）の数。
@@ -190,7 +200,17 @@ impl ShantenCalc {
                     *slot = c[k];
                 }
             }
-            groups.push(suit_partitions(&mut suit));
+            let code = suit.iter().fold(0u32, |a, &x| a * 5 + u32::from(x));
+            let cached = self.cache.borrow().get(&code).cloned();
+            let parts = match cached {
+                Some(p) => p,
+                None => {
+                    let p = suit_partitions(&mut suit);
+                    self.cache.borrow_mut().insert(code, p.clone());
+                    p
+                }
+            };
+            groups.push(parts);
         }
         let mut best = i8::MAX;
         for a in &groups[0] {
