@@ -1,0 +1,18 @@
+[package]
+name = "mj-features"
+version = "0.1.0"
+description = "RL のための変換（mj-core の外）：行動の番号表（docs/spec/ACTION_SPACE.md）。観測の特徴量は次回"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+mj-core.workspace = true
+
+[dev-dependencies]
+mj-bots.workspace = true
+rand_chacha.workspace = true
+rand_core.workspace = true
+
+[lints]
+workspace = true

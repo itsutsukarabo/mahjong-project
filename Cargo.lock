@@ -162,6 +162,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "mj-features"
+version = "0.1.0"
+dependencies = [
+ "mj-bots",
+ "mj-core",
+ "rand_chacha",
+ "rand_core",
+]
+
+[[package]]
 name = "mj-log"
 version = "0.1.0"
 dependencies = [
