@@ -1,0 +1,22 @@
+# 四麻の局単位の差分テスト（tools/difftest-majiang の --game-cases）で使うルール。
+# fixtures/rules/test-yonma.toml に、majiang-core（@kobalab/majiang-core 1.4.1）の対局進行（Majiang.Game）と
+# 本PJのルールが違う項目を、majiang-core に合わせる上書きだけを書く（プリセットではない）。
+# 違う項目の一覧と根拠（majiang-core のソースの場所）は docs/research/ENGINE_SURVEY.md §5。
+
+[table]
+# majiang-core の既定「延長戦方式 = 1」（サドンデス）：延長戦の局で 30000 点以上の人がいれば、親が連荘しても終わる
+# （lib/game.js の last()）。本PJの天鳳・雀魂は continue（「延長戦方式 = 2」連荘優先サドンデスと同じ）。
+# 差分テストは両方の組み合わせで回す（continue のときは majiang-core に 延長戦方式 = 2 を渡す）
+extension_renchan = "end_if_reached"
+
+[points]
+# majiang-core の精算は返し点 30000（lib/game.js の jieju()：(持ち点 − 30000) / 1000 ＋ 順位点、トップは残り）
+returning = 30000
+
+[draws]
+# majiang-core の流局時の聴牌は Util.tingpai が空でないこと。tingpai は手牌に4枚ある種類を除く（lib/xiangting.js）
+keishiki_tenpai = "no_pure_karaten"
+
+[yakuman]
+# majiang-core の包は大三元・大四喜だけ（lib/hule.js の baojia）
+pao = ["daisangen", "daisuushii"]

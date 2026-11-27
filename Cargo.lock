@@ -40,6 +40,7 @@ dependencies = [
 name = "difftest-majiang"
 version = "0.1.0"
 dependencies = [
+ "mj-bots",
  "mj-core",
  "rand_chacha",
  "rand_core",

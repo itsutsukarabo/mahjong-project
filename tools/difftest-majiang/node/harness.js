@@ -9,9 +9,15 @@
 //   入力 {"case_id": "...", "op": "hule", "shoupai": "...", "rongpai": "m5=" | null, "param": {...}}
 //   param は Majiang.Util.hule_param の引数（rule は既定の Majiang.rule()）
 //   出力 {"case_id": "...", "hule": {hupai, fu, fanshu, damanguan, defen} | null}
+// 対局（op = "game"）:
+//   入力 {"case_id": "...", "op": "game", "script": {title, player, qijia, log}, "rule": {...}}
+//   script は majiang-core の牌譜の形。Majiang.Dev.Game（牌譜の打牌・副露を返事にして対局をやり直す）で再生する。
+//   rule は Majiang.rule() への上書き
+//   出力 {"case_id": "...", "game": {log, defen, rank, point}}（majiang-core が作り直した牌譜）
 "use strict";
 
 const Majiang = require("@kobalab/majiang-core");
+const MajiangDev = require("@kobalab/majiang-core/dev");
 const readline = require("node:readline");
 
 const HONORS = ["E", "S", "W", "N", "P", "F", "C"];
@@ -36,6 +42,13 @@ function hule(c) {
   };
 }
 
+function game(c) {
+  const g = new MajiangDev.Dev.Game(c.script, Majiang.rule(c.rule || {}));
+  g.do_sync();
+  const p = g._paipu;
+  return { log: p.log, defen: p.defen, rank: p.rank, point: p.point };
+}
+
 const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
 rl.on("line", (line) => {
   if (!line.trim()) return;
@@ -44,6 +57,8 @@ rl.on("line", (line) => {
   try {
     if (c.op === "hule") {
       out = { case_id: c.case_id, hule: hule(c) };
+    } else if (c.op === "game") {
+      out = { case_id: c.case_id, game: game(c) };
     } else {
       const shoupai = Majiang.Shoupai.fromString(c.majiang);
       const tingpai = Majiang.Util.tingpai(shoupai);

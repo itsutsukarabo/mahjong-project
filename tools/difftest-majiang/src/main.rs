@@ -12,6 +12,7 @@
 //! （`--hora-cases` の既定は `--cases` と同じ）
 //! 不一致が1件でもあれば終了コード 1。
 
+mod game;
 mod hora;
 
 use mj_core::rules::Manzu;
@@ -187,6 +188,23 @@ impl Harness {
             })
             .collect();
         self.request(&reqs)
+    }
+
+    fn ask_game(
+        &mut self,
+        case_id: &str,
+        script: &serde_json::Value,
+        rule: &serde_json::Value,
+    ) -> serde_json::Value {
+        let req =
+            serde_json::json!({"case_id": case_id, "op": "game", "script": script, "rule": rule});
+        let mut out: Vec<serde_json::Value> = self.request(std::slice::from_ref(&req));
+        let a = out.pop().expect("one answer");
+        assert_eq!(a["case_id"], case_id, "case_id of the game answer");
+        if let Some(e) = a.get("error") {
+            panic!("harness error for {case_id}: {e}");
+        }
+        a["game"].clone()
     }
 
     fn request<T: serde::de::DeserializeOwned>(&mut self, reqs: &[serde_json::Value]) -> Vec<T> {
@@ -453,6 +471,7 @@ struct Counts {
 fn main() {
     let mut cases_n: usize = 20_000;
     let mut hora_n: Option<usize> = None;
+    let mut game_n: Option<usize> = None;
     let mut seed: u64 = 20_261_122;
     let mut random_seed = false;
     let mut out_dir: Option<PathBuf> = None;
@@ -466,6 +485,7 @@ fn main() {
         match a.as_str() {
             "--cases" => cases_n = val().parse().unwrap(),
             "--hora-cases" => hora_n = Some(val().parse().unwrap()),
+            "--game-cases" => game_n = Some(val().parse().unwrap()),
             "--seed" => seed = val().parse().unwrap(),
             "--random-seed" => random_seed = true,
             "--out" => out_dir = Some(PathBuf::from(val())),
@@ -612,6 +632,52 @@ fn main() {
         i += n;
     }
 
+    // ---- 四麻の局単位（ボット同士の半荘を majiang-core の Dev.Game で再生して突き合わせる）
+    let game_n = game_n.unwrap_or(cases_n / 500);
+    let variants = game::variants();
+    let mut games = Counts::default();
+    let mut game_kyokus = Counts::default();
+    let mut game_by_variant: BTreeMap<&str, u64> = BTreeMap::new();
+    let mut game_ends: BTreeMap<String, u64> = BTreeMap::new();
+    // 延長戦（西入以降）の局の数（組み合わせごと）。延長戦の親の連荘の分岐が試されたかの目安
+    let mut game_extension: BTreeMap<&str, u64> = BTreeMap::new();
+    let mut game_failures: Vec<serde_json::Value> = Vec::new();
+    for i in 0..game_n {
+        let (vname, rules, mrule) = &variants[i % variants.len()];
+        let gseed = (seed ^ 0x67616d65).wrapping_add(i as u64);
+        let case_id = format!("game-{i}");
+        let (script, ours) = game::play(rules, gseed);
+        let theirs = harness.ask_game(&case_id, &script, mrule);
+        let v = game::judge(&ours, &theirs);
+        games.compared += 1;
+        *game_by_variant.entry(vname).or_default() += 1;
+        game_kyokus.compared += v.kyokus_matched as u64;
+        for k in ours["log"].as_array().unwrap() {
+            for e in k.as_array().unwrap() {
+                if e.get("qipai")
+                    .is_some_and(|q| q["zhuangfeng"].as_u64() >= Some(2))
+                {
+                    *game_extension.entry(vname).or_default() += 1;
+                }
+                if let Some(h) = e.get("pingju") {
+                    *game_ends
+                        .entry(h["_name"].as_str().unwrap().to_string())
+                        .or_default() += 1;
+                } else if e.get("hule").is_some() {
+                    *game_ends.entry("和了".into()).or_default() += 1;
+                }
+            }
+        }
+        if let Some(m) = &v.first_mismatch {
+            games.mismatched += 1;
+            game_kyokus.mismatched += 1;
+            game_failures.push(serde_json::json!({
+                "seed": seed, "case_id": case_id, "variant": vname, "game_seed": gseed,
+                "verdict": v, "mismatch": m, "script": script, "majiang": theirs,
+            }));
+        }
+    }
+
     let mut budget = max_shrink_queries;
     let mut records = Vec::new();
     for (c, v) in &failures {
@@ -640,8 +706,16 @@ fn main() {
         "hora_by_palette": hora_by_palette,
         "hora_yaku": hora_yaku,
         "hora_excluded_reason": "役がなく、どちらも和了にならないケース（比べる値がない）",
+        "games": games,
+        "game_cases": game_n,
+        "game_kyokus": game_kyokus,
+        "game_by_variant": game_by_variant,
+        "game_kyoku_ends": game_ends,
+        "game_extension_kyokus": game_extension,
+        "game_note": "games：半荘ごと（compared＝比べた半荘、mismatched＝どこかで食い違った半荘）。game_kyokus：最初の食い違いまでに一致した局（compared）と、食い違った局（mismatched）。ルールは fixtures/rules/majiang-yonma-game.toml、打ち手は mj-bots の RuleBot",
         "failures": failures.len(),
         "hora_failures": hora_failures.len(),
+        "game_failures": game_failures.len(),
         "majiang_core": "1.4.1",
     });
     println!("{}", serde_json::to_string_pretty(&summary).unwrap());
@@ -660,6 +734,10 @@ fn main() {
         for r in &hora_failures {
             writeln!(f, "{r}").unwrap();
         }
+        let mut f = std::fs::File::create(dir.join("game_failures.jsonl")).unwrap();
+        for r in &game_failures {
+            writeln!(f, "{r}").unwrap();
+        }
     }
     for r in records.iter().take(20) {
         eprintln!("MISMATCH {r}");
@@ -667,7 +745,10 @@ fn main() {
     for r in hora_failures.iter().take(20) {
         eprintln!("HORA MISMATCH {r}");
     }
-    if !failures.is_empty() || !hora_failures.is_empty() {
+    for r in game_failures.iter().take(5) {
+        eprintln!("GAME MISMATCH {} {}", r["case_id"], r["mismatch"]);
+    }
+    if !failures.is_empty() || !hora_failures.is_empty() || !game_failures.is_empty() {
         std::process::exit(1);
     }
 }

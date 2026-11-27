@@ -216,6 +216,28 @@ LOG_FORMAT のサンプル和了（親・中ポン・ドラ2・ロン）を `Uti
 - ルール設定を majiang-core の `rule` に写す対応表を1か所に置き、写せない項目のあるケースは比較から外して件数を報告する（「比較した件数／除外した件数」を毎回出す）
 - 差分テストのためにも、**自作エンジンは4麻モードを持つ**（人数パラメータ）。三麻だけだと majiang-core と局進行レベルで比較できない
 
+### 6.1 L3 局進行（四麻）の実装と、majiang-core とルールが違う項目（2026-11-28 追記）
+- 実装：`tools/difftest-majiang/src/game.rs`（`--game-cases N`、既定は `--cases / 500`）と `node/harness.js` の `op = "game"`
+  - mj-core で `mj-bots` の `RuleBot` 同士の四麻の半荘を回す → 牌譜を majiang-core の牌譜形式に変換 → `Majiang.Dev.Game` で再生 → 局ごとに 進行（`qipai` の場・局・本場・供託・持ち点、ツモ・打牌・副露の並び）、カンドラの並び、結果（和了者ごとの `fenpei`・`defen`、流局の種類と `fenpei`）、終局（持ち点・順位・ポイント）を比べる
+  - `Dev.Game` は牌譜の打牌・副露を返事として使うので、majiang-core がこちらの行動を受け付けなければ「進行」が食い違う（合法手の判定の比較を兼ねる）
+  - 検出の確認：`--inject-fault` でこちらの最初の和了の点数の移動を 100 点ずらすと、2 半荘とも「結果」で食い違いになった［実測］
+- ルール：`fixtures/rules/majiang-yonma-game.toml`（`test-yonma.toml` への上書き）。**majiang-core と本PJのルールが違う項目**（majiang-core 1.4.1 の既定の `Majiang.rule()` と、本PJの天鳳三麻・雀魂三麻・`test-yonma` との違い）：
+
+| 項目 | majiang-core | 本PJ | 差分テストでの扱い |
+|---|---|---|---|
+| 延長戦の局での親の連荘（`table.extension_renchan`） | `延長戦方式 = 1`：30000 点以上の人がいれば連荘でも終わる（`lib/game.js` の `last()`）。`= 2`（連荘優先）も選べる | 天鳳・雀魂・test-yonma は `continue`（`= 2` と同じ） | 半分ずつ：`end_if_reached` ↔ `延長戦方式 = 1`、`continue` ↔ `= 2` |
+| 精算の返し点 | 30000（`jieju()`：(持ち点 − 30000) / 1000 ＋ 順位点、トップは残り） | test-yonma は 25000（返しなし） | `points.returning = 30000` |
+| 流局時の聴牌（`draws.keishiki_tenpai`） | `Util.tingpai` が空でないこと。tingpai は手牌に4枚ある種類を除く（`lib/xiangting.js`）→ `no_pure_karaten` | test-yonma・天鳳三麻は `any` | `no_pure_karaten` |
+| 包の対象（`yakuman.pao`） | 大三元・大四喜だけ（`lib/hule.js`） | test-yonma は四槓子も | `["daisangen", "daisuushii"]` |
+| 4枚使いの単騎待ちでの立直 | できない（`Game.allow_lizhi` は tingpai が空でないことを要る） | できる（`IMPLICIT_RULES_AUDIT.md` B1。キーなし） | ボットは待ちが残っていない立直をしないので、差分テストでは起きない。キーを足すかはオーナーの判断待ち |
+| 後めくりのカンドラ（`dora.kan_dora_timing`） | 打牌の直後（応答の前）にめくる | 天鳳・雀魂は `ankan_immediate_after_pass`（打牌が通った後） | test-yonma は `ankan_immediate`（majiang-core と同じ） |
+| 暗槓のカンドラの位置 | 嶺上ツモの後に `kaigang` | 暗槓の直後（嶺上ツモの前）に `dora` | めくった表示牌の並びだけを比べる（点数に影響しない） |
+| 包のときの積み棒・複合役満（`yakuman.pao_honba`・`pao_scope`） | 積み棒はふつう（ロンは放銃者）、包の役満の分だけ | 天鳳は `pao`・`full`、雀魂は `pao`・`pao_yaku_only` | test-yonma は `normal`・`pao_yaku_only` |
+| 天和の和了牌（`yakuman.tenhou_win_tile`） | ツモった牌 | 天鳳・雀魂は `best` | test-yonma は `drawn` |
+| 和了止め・聴牌止め | 途中流局の連荘では止めない（`_no_game`） | 同じ（2026-11-28 に直した。`IMPLICIT_RULES_AUDIT.md` B17） | — |
+
+- 三麻（北抜き・ツモ損など）は majiang-core では比べられない（§5「三麻への対応」）。三麻の局進行は RiichiEnv との差分テスト（`tools/difftest-riichienv`）
+
 ---
 
 ## 7. 片付け
