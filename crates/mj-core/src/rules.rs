@@ -235,6 +235,7 @@ pub struct RiichiRules {
     pub furiten_riichi: bool,
     pub ankan_after_riichi: RiichiAnkan,
     pub no_deposit_on_deal_in: bool,
+    pub pure_karaten_riichi: bool,
 }
 
 rule_enum! {
@@ -280,6 +281,8 @@ pub struct KitaRules {
     pub breaks_first_turn: bool,
     pub north_as_meld: NorthAsMeld,
     pub dora_per_kita: u8,
+    pub furiten: bool,
+    pub pon_north: bool,
 }
 
 rule_enum! {
@@ -314,9 +317,20 @@ pub struct DrawRules {
     pub all_ron: bool,
     pub abortive_renchan: bool,
     pub nagashi_mangan: bool,
+    pub nagashi_payment: NagashiPayment,
+    pub nagashi_pays_honba: bool,
+    pub nagashi_takes_kyotaku: bool,
+    pub nagashi_with_own_calls: bool,
     pub renchan: Renchan,
     pub keishiki_tenpai: KeishikiTenpai,
     pub noten_declaration: bool,
+}
+
+rule_enum! {
+    NagashiPayment {
+        AsTsumo = "as_tsumo" => "満貫のツモ和了と同じ払い方（子なら親が 4000・子が 2000、`points.tsumo_payment` に従う）",
+        SplitMangan = "split_mangan" => "満貫のロンの点数（子 8000・親 12000）を、支払う人の人数で等分する（100点単位に切り上げ）",
+    }
 }
 
 rule_enum! {

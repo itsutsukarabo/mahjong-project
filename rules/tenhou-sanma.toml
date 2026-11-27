@@ -66,6 +66,7 @@ requires_draw = true                     # オーナー確認（2026-11-28）回
 furiten_riichi = true                    # 「振聴リーチあり」
 ankan_after_riichi = "wait_unchanged"    # 「待ちが変わらない場合のみ。送り槓不可、牌姿や役の増減は不問」
 no_deposit_on_deal_in = true             # 「リーチ宣言牌で放銃した場合は供託料は発生しない」
+pure_karaten_riichi = true               # オーナー確認（2026-11-28）D-033 B1（今の動作のまま）
 
 [dora]
 ippatsu = true                           # 役一覧【懸賞】一発
@@ -87,6 +88,8 @@ breaks_ippatsu = true                    # 「抜きは鳴きと同じ扱い(一
 breaks_first_turn = true
 north_as_meld = "otakaze"                # 「北を面子で使用した場合はオタ風」
 dora_per_kita = 1                        # 「北は抜きドラ」（1枚＝ドラ1）
+furiten = false                          # オーナー確認（2026-11-28）D-033 B5（今の動作のまま）
+pon_north = true                         # オーナー確認（2026-11-28）D-033 B6（今の動作のまま）
 
 [draws]
 kyushu_kyuhai = true                     # 途中流局「九種九牌…四槓散了…」
@@ -96,6 +99,10 @@ same_wind_discards = false               # オーナー（第1打が3人とも�
 all_ron = false                          # オーナー（放銃者以外の2人が同時にロンなら両方和了）
 abortive_renchan = true                  # 「すべて連荘」
 nagashi_mangan = true                    # 「流し満貫あり」＋オーナー確認（2026-11-28）回答D「聴牌料の清算を満貫の清算に代える。連荘は親の聴牌で決める」
+nagashi_payment = "as_tsumo"             # オーナー確認（2026-11-28）D-033 B3（今の動作のまま）
+nagashi_pays_honba = false               # オーナー確認（2026-11-28）D-033 B2（今の動作のまま）
+nagashi_takes_kyotaku = false            # オーナー確認（2026-11-28）D-033 B2（今の動作のまま）
+nagashi_with_own_calls = true            # オーナー確認（2026-11-28）D-033 B4（今の動作のまま）
 renchan = "tenpai"                       # 「ノーテン親流れ、聴牌連荘」
 keishiki_tenpai = "any"                  # T4「形式聴牌あり。5枚目を待つ聴牌あり」（オーナー確認（2026-11-28）I-1）
 noten_declaration = false                # オーナー（ノーテン宣言なし）

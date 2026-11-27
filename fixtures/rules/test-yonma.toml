@@ -63,6 +63,7 @@ requires_draw = true
 furiten_riichi = true
 ankan_after_riichi = "wait_unchanged"
 no_deposit_on_deal_in = true
+pure_karaten_riichi = true
 
 [dora]
 ippatsu = true
@@ -84,6 +85,8 @@ breaks_ippatsu = true
 breaks_first_turn = true
 north_as_meld = "otakaze"
 dora_per_kita = 1
+furiten = false
+pon_north = true
 
 [draws]
 kyushu_kyuhai = true
@@ -93,6 +96,10 @@ same_wind_discards = true
 all_ron = true
 abortive_renchan = true
 nagashi_mangan = true
+nagashi_payment = "as_tsumo"
+nagashi_pays_honba = false
+nagashi_takes_kyotaku = false
+nagashi_with_own_calls = true
 renchan = "tenpai"
 keishiki_tenpai = "any"
 noten_declaration = false

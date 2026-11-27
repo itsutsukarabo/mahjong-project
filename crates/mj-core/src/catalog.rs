@@ -534,6 +534,17 @@ pub const CATALOG: &[Item] = &[
         default: "true",
         related: &["points.riichi_deposit"],
     },
+    Item {
+        key: "riichi.pure_karaten_riichi",
+        title: "4枚使いの単騎待ちでの立直",
+        kind: b(
+            "自分で4枚使っている牌しか待ちがない形（4枚使いの単騎待ち）でも立直できる",
+            "立直できない（手の中に4枚ない待ちが1つ以上要る）",
+        ),
+        desc: "",
+        default: "true",
+        related: &["draws.keishiki_tenpai"],
+    },
     // ---- dora
     Item {
         key: "dora.ippatsu",
@@ -690,6 +701,28 @@ pub const CATALOG: &[Item] = &[
         default: "1",
         related: &["kita.mode"],
     },
+    Item {
+        key: "kita.furiten",
+        title: "抜いた北とフリテン",
+        kind: b(
+            "抜いた北を自分の捨て牌とみなす（北待ちならフリテン）",
+            "抜いた北は捨て牌ではない（フリテンに関わらない）",
+        ),
+        desc: "流し満貫の条件にはどちらの値でも関わらない（北は么九牌なので、捨て牌とみなしても条件は変わらない）",
+        default: "false",
+        related: &["draws.nagashi_mangan"],
+    },
+    Item {
+        key: "kita.pon_north",
+        title: "捨てられた北の鳴き",
+        kind: b(
+            "捨てられた北をポン・大明槓できる",
+            "捨てられた北は鳴けない（ロンだけ）",
+        ),
+        desc: "北抜きあり（`kita.mode = \"nukidora\"`）のときだけ使う",
+        default: "true",
+        related: &["kita.mode", "kita.ron_on_discard"],
+    },
     // ---- F. draws
     Item {
         key: "draws.kyushu_kyuhai",
@@ -767,6 +800,47 @@ pub const CATALOG: &[Item] = &[
         desc: "本場・供託は動かない。成立したら聴牌料のやりとりはしない（majiang-core と同じ）。連荘の判定はふつうの荒牌流局と同じ",
         default: "true",
         related: &["points.tsumo_payment"],
+    },
+    Item {
+        key: "draws.nagashi_payment",
+        title: "流し満貫の払い方",
+        kind: Kind::Enum(NagashiPayment::VALUES),
+        desc: "",
+        default: "\"as_tsumo\"",
+        related: &["draws.nagashi_mangan", "points.tsumo_payment"],
+    },
+    Item {
+        key: "draws.nagashi_pays_honba",
+        title: "流し満貫の本場",
+        kind: b(
+            "本場をツモ和了と同じく受け取る（流し満貫が2人以上なら親から順で最初の人だけ）",
+            "本場は払わない",
+        ),
+        desc: "",
+        default: "false",
+        related: &["draws.nagashi_mangan"],
+    },
+    Item {
+        key: "draws.nagashi_takes_kyotaku",
+        title: "流し満貫の供託",
+        kind: b(
+            "場の供託を受け取る（2人以上なら親から順で最初の人だけ）",
+            "供託は場に残す（次の和了者が受け取る）",
+        ),
+        desc: "",
+        default: "false",
+        related: &["draws.nagashi_mangan"],
+    },
+    Item {
+        key: "draws.nagashi_with_own_calls",
+        title: "自分が鳴いた流し満貫",
+        kind: b(
+            "自分がポン・チー・大明槓・加槓をしていても成立する（成立しないのは捨て牌を鳴かれたときと、么九牌以外を切ったとき）",
+            "自分が鳴いたら成立しない（暗槓・北抜きは鳴きに数えない）",
+        ),
+        desc: "",
+        default: "true",
+        related: &["draws.nagashi_mangan"],
     },
     Item {
         key: "draws.renchan",

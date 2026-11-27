@@ -1,6 +1,6 @@
 # IMPLICIT RULES AUDIT — 確認なしに決めていた挙動の点検
 
-状態：2026-11-28 の点検（作業1）。対象は**メインのプリセット（天鳳三麻、`rules/tenhou-sanma.toml`）で実際に使われる挙動**。
+状態：2026-11-28 の点検（作業1）。**オーナーの判断（D-033〜D-035）**：B1〜B6 は今の動作のままでキーにした（下の「まとめ」）、導出（B7・B9・B10・B11）と B17 の修正は承認。対象は**メインのプリセット（天鳳三麻、`rules/tenhou-sanma.toml`）で実際に使われる挙動**。
 
 ## 点検のしかた
 1. **カタログの全 89 項目**：`docs/spec/RULES_PRESETS.md` の天鳳三麻の出典の列を1行ずつ見た。出典が「本PJ」の 12 項目のうち、対局の結果に影響するものを下の表 A に載せた
@@ -46,12 +46,16 @@
 ## C. 前回「どのプリセットでも使っていない値」とした項目（D-031 の追記で承認済み）
 ツモ折半の端数、ダブロンの供託の等分、後付けなし、立直後の暗槓の `form_unchanged`：承認済み。流し満貫の聴牌料（回答 D）、包のツモ（回答 E・I-3）：確認済み。
 
-## まとめ（オーナーに決めてほしいもの）
-- **B1** 4枚使いの単騎待ちで立直できるか（天鳳三麻・雀魂三麻のそれぞれ）。できないなら `riichi` にキーを足す（例：`riichi.pure_karaten = false`）
-- **B2・B3** 流し満貫の本場・供託と、支払い方（ツモ損の扱い）
-- **B4** 流し満貫は自分が鳴いていても成立するか
-- **B5** 抜いた北が流し満貫・フリテンに関わらないこと（天鳳三麻）
-- **B6** 北をポンできるか（天鳳三麻）
-- 導出（B7・B9・B10・B11）は導き方を見てほしい
+## まとめ（オーナーの判断、2026-11-28）
+| # | キー（天鳳三麻・雀魂三麻の値） | テスト |
+|---|---|---|
+| B1 | `riichi.pure_karaten_riichi = true` | `riichi_pure_karaten_riichi_true_and_false` |
+| B2 | `draws.nagashi_pays_honba = false`、`draws.nagashi_takes_kyotaku = false` | `nagashi_pays_honba_and_takes_kyotaku` |
+| B3 | `draws.nagashi_payment = "as_tsumo"`（もう1つの値 `split_mangan`） | `nagashi_payment_each_value` |
+| B4 | `draws.nagashi_with_own_calls = true` | `nagashi_with_own_calls_true_and_false` |
+| B5 | `kita.furiten = false` | `kita_furiten_true_and_false` |
+| B6 | `kita.pon_north = true` | `kita_pon_north_true_and_false` |
 
-キーを足すと決まったものは、カタログ・プリセット・テスト対応表をそろえて足す（D-025）。
+- 導出（B7・B9・B10・B11）：承認（D-034）
+- B17 の修正：承認（D-035）
+- 四麻の局単位の差分テストでは、B1 は majiang-core に合わせて `false`（`fixtures/rules/majiang-yonma-game.toml`）

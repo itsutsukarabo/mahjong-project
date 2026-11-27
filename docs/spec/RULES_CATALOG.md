@@ -8,7 +8,7 @@
 - **既定値**はメインのプリセット（天鳳三麻相当、D-011）の値。プリセットはすべての項目に値を書く（`docs/spec/RULES_PRESETS.md`）
 - テスト対応表：`fixtures/rules/coverage.toml`。下の「値」の行ごとに、その分岐を確かめるテストを対応付ける（数値の項目は1つ以上）
 
-項目数：**91**、テスト対応表の行数（項目 × 値）：**170**
+項目数：**98**、テスト対応表の行数（項目 × 値）：**184**
 
 ## A. 対局の形（`table`）
 
@@ -83,6 +83,7 @@
 | `riichi.furiten_riichi` | 振聴立直 | 真偽値 | `true`：振聴でも立直できる<br>`false`：振聴では立直できない | `true` |  |
 | `riichi.ankan_after_riichi` | 立直後の暗槓 | 列挙 | `forbidden`：立直後の暗槓はできない<br>`wait_unchanged`：ツモった牌での暗槓で、待ちが変わらなければできる（牌姿・役の増減は問わない。送り槓は不可）<br>`form_unchanged`：ツモった牌での暗槓で、待ちが変わらず、どの面子の取り方でもその牌が刻子のときだけできる | `"wait_unchanged"` |  |
 | `riichi.no_deposit_on_deal_in` | 宣言牌での放銃の供託 | 真偽値 | `true`：立直の宣言牌でロンされたら立直は不成立で、供託を出さない<br>`false`：宣言牌でロンされても供託を出す | `true` | `points.riichi_deposit` |
+| `riichi.pure_karaten_riichi` | 4枚使いの単騎待ちでの立直 | 真偽値 | `true`：自分で4枚使っている牌しか待ちがない形（4枚使いの単騎待ち）でも立直できる<br>`false`：立直できない（手の中に4枚ない待ちが1つ以上要る） | `true` | `draws.keishiki_tenpai` |
 
 ## E''. ドラ・一発（`dora`）
 
@@ -110,6 +111,8 @@
 | `kita.breaks_first_turn` | 北抜きで第1巡が終わる | 真偽値 | `true`：誰かが北を抜いたら地和・九種九牌・ダブル立直の条件（第1巡で鳴きがない）が消える<br>`false`：北抜きでは消えない | `true` | `draws.kyushu_kyuhai` |
 | `kita.north_as_meld` | 北を面子に使ったとき | 列挙 | `otakaze`：北を刻子・雀頭に使ったら、自風・場風でなければ役も符もない字牌（オタ風）<br>`yakuhai`：北の刻子は常に役牌（1翻） | `"otakaze"` | `kita.mandatory` |
 | `kita.dora_per_kita` | 抜いた北1枚のドラ<br>抜いた北1枚あたりのドラの数（北がドラ表示でドラになっていれば、さらにその分を足す） | 整数 | 0〜4（翻） | `1` | `kita.mode` |
+| `kita.furiten` | 抜いた北とフリテン<br>流し満貫の条件にはどちらの値でも関わらない（北は么九牌なので、捨て牌とみなしても条件は変わらない） | 真偽値 | `true`：抜いた北を自分の捨て牌とみなす（北待ちならフリテン）<br>`false`：抜いた北は捨て牌ではない（フリテンに関わらない） | `false` | `draws.nagashi_mangan` |
+| `kita.pon_north` | 捨てられた北の鳴き<br>北抜きあり（`kita.mode = "nukidora"`）のときだけ使う | 真偽値 | `true`：捨てられた北をポン・大明槓できる<br>`false`：捨てられた北は鳴けない（ロンだけ） | `true` | `kita.mode`<br>`kita.ron_on_discard` |
 
 ## F. 流局（`draws`）
 
@@ -122,6 +125,10 @@
 | `draws.all_ron` | 放銃者以外の全員のロン（三家和・三麻のダブロン） | 真偽値 | `true`：放銃者以外の全員がロンしたら和了にせず流局<br>`false`：流局にしない（`calls.max_ron` まで和了） | `false` | `calls.max_ron` |
 | `draws.abortive_renchan` | 途中流局の連荘<br>九種九牌・四槓散了・全員立直・四風連打・全員のロンの流局 | 真偽値 | `true`：途中流局は親の連荘（本場を1つ積む）<br>`false`：途中流局は親流れ（本場は積む） | `true` |  |
 | `draws.nagashi_mangan` | 流し満貫<br>本場・供託は動かない。成立したら聴牌料のやりとりはしない（majiang-core と同じ）。連荘の判定はふつうの荒牌流局と同じ | 真偽値 | `true`：荒牌流局のとき、河が么九牌だけで鳴かれていない人は満貫（ツモ和了と同じ払い方）を受け取る<br>`false`：流し満貫なし | `true` | `points.tsumo_payment` |
+| `draws.nagashi_payment` | 流し満貫の払い方 | 列挙 | `as_tsumo`：満貫のツモ和了と同じ払い方（子なら親が 4000・子が 2000、`points.tsumo_payment` に従う）<br>`split_mangan`：満貫のロンの点数（子 8000・親 12000）を、支払う人の人数で等分する（100点単位に切り上げ） | `"as_tsumo"` | `draws.nagashi_mangan`<br>`points.tsumo_payment` |
+| `draws.nagashi_pays_honba` | 流し満貫の本場 | 真偽値 | `true`：本場をツモ和了と同じく受け取る（流し満貫が2人以上なら親から順で最初の人だけ）<br>`false`：本場は払わない | `false` | `draws.nagashi_mangan` |
+| `draws.nagashi_takes_kyotaku` | 流し満貫の供託 | 真偽値 | `true`：場の供託を受け取る（2人以上なら親から順で最初の人だけ）<br>`false`：供託は場に残す（次の和了者が受け取る） | `false` | `draws.nagashi_mangan` |
+| `draws.nagashi_with_own_calls` | 自分が鳴いた流し満貫 | 真偽値 | `true`：自分がポン・チー・大明槓・加槓をしていても成立する（成立しないのは捨て牌を鳴かれたときと、么九牌以外を切ったとき）<br>`false`：自分が鳴いたら成立しない（暗槓・北抜きは鳴きに数えない） | `true` | `draws.nagashi_mangan` |
 | `draws.renchan` | 連荘の条件 | 列挙 | `agari`：和了連荘。親が和了したときだけ連荘（流局なら聴牌でも親流れ）<br>`tenpai`：聴牌連荘。親が和了または流局時に聴牌なら連荘（ノーテンなら親流れ）<br>`always`：流局なら親が聴牌でもノーテンでも連荘 | `"tenpai"` | `table.oorasu_stop` |
 | `draws.keishiki_tenpai` | 形式聴牌<br>荒牌流局の聴牌の判定（聴牌料・連荘・流局時の手牌の公開に使う）。立直できるかの聴牌の判定には使わない | 列挙 | `any`：役のない聴牌も、自分で4枚使っている牌の単騎待ち（5枚目を待つ形）も聴牌とする<br>`no_pure_karaten`：役のない聴牌は聴牌とする。自分で4枚使っている牌しか待ちがない形（4枚使いの単騎待ち）はノーテン<br>`yaku_required`：役のある聴牌で、自分で4枚使っていない待ちがある場合だけ聴牌とする | `"any"` | `points.noten_penalty_total` |
 | `draws.noten_declaration` | ノーテン宣言 | 真偽値 | `true`：荒牌流局のとき、聴牌の人は「ノーテン」と宣言して手牌を伏せられる（聴牌料・連荘はノーテン扱い）<br>`false`：聴牌なら必ず聴牌扱い | `false` | `points.noten_penalty_total` |

@@ -856,3 +856,73 @@ tests = ["mj-core::kan_dora_on_kita_true_and_false"]
 key = "dora.kan_dora_on_kita"
 value = "false"
 tests = ["mj-core::kan_dora_on_kita_true_and_false"]
+
+[[case]]
+key = "riichi.pure_karaten_riichi"
+value = "true"
+tests = ["mj-core::riichi_pure_karaten_riichi_true_and_false"]
+
+[[case]]
+key = "riichi.pure_karaten_riichi"
+value = "false"
+tests = ["mj-core::riichi_pure_karaten_riichi_true_and_false"]
+
+[[case]]
+key = "kita.furiten"
+value = "true"
+tests = ["mj-core::kita_furiten_true_and_false"]
+
+[[case]]
+key = "kita.furiten"
+value = "false"
+tests = ["mj-core::kita_furiten_true_and_false"]
+
+[[case]]
+key = "kita.pon_north"
+value = "true"
+tests = ["mj-core::kita_pon_north_true_and_false"]
+
+[[case]]
+key = "kita.pon_north"
+value = "false"
+tests = ["mj-core::kita_pon_north_true_and_false"]
+
+[[case]]
+key = "draws.nagashi_payment"
+value = "as_tsumo"
+tests = ["mj-core::nagashi_payment_each_value"]
+
+[[case]]
+key = "draws.nagashi_payment"
+value = "split_mangan"
+tests = ["mj-core::nagashi_payment_each_value"]
+
+[[case]]
+key = "draws.nagashi_pays_honba"
+value = "true"
+tests = ["mj-core::nagashi_pays_honba_and_takes_kyotaku"]
+
+[[case]]
+key = "draws.nagashi_pays_honba"
+value = "false"
+tests = ["mj-core::nagashi_pays_honba_and_takes_kyotaku"]
+
+[[case]]
+key = "draws.nagashi_takes_kyotaku"
+value = "true"
+tests = ["mj-core::nagashi_pays_honba_and_takes_kyotaku"]
+
+[[case]]
+key = "draws.nagashi_takes_kyotaku"
+value = "false"
+tests = ["mj-core::nagashi_pays_honba_and_takes_kyotaku"]
+
+[[case]]
+key = "draws.nagashi_with_own_calls"
+value = "true"
+tests = ["mj-core::nagashi_with_own_calls_true_and_false"]
+
+[[case]]
+key = "draws.nagashi_with_own_calls"
+value = "false"
+tests = ["mj-core::nagashi_with_own_calls_true_and_false"]

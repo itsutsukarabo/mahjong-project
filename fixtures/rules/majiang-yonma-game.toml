@@ -20,3 +20,7 @@ keishiki_tenpai = "no_pure_karaten"
 [yakuman]
 # majiang-core の包は大三元・大四喜だけ（lib/hule.js の baojia）
 pao = ["daisangen", "daisuushii"]
+
+[riichi]
+# majiang-core は4枚使いの単騎待ちだけの形では立直できない（Game.allow_lizhi は tingpai が空でないことを要る）
+pure_karaten_riichi = false

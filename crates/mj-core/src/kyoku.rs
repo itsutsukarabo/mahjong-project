@@ -922,7 +922,9 @@ impl Kyoku {
             if can_riichi {
                 let mut c = p.c;
                 c[t.kind().index()] -= 1;
-                let tenpai = agari::is_tenpai(&c, p.melds.is_empty());
+                let tenpai = agari::is_tenpai(&c, p.melds.is_empty())
+                    && (rules.riichi.pure_karaten_riichi
+                        || agari::waits(&c, p.melds.is_empty()) != 0);
                 let furiten_ok = rules.riichi.furiten_riichi
                     || agari::waits(&c, p.melds.is_empty())
                         & (p.discard_mask | (1 << t.kind().index()))
@@ -1020,6 +1022,15 @@ impl Kyoku {
                 && (self.live() > 0 || rules.calls.haitei_call)
             {
                 let n = p.c[ki];
+                // 北抜きありで捨てられた北を鳴けないルール（`kita.pon_north = false`）
+                let n = if ki == NORTH
+                    && rules.kita.mode == KitaMode::Nukidora
+                    && !rules.kita.pon_north
+                {
+                    0
+                } else {
+                    n
+                };
                 if n >= 3 && self.kan_total() < 4 && self.can_rinshan() {
                     opts.push(Action::Daiminkan);
                 }
@@ -1337,6 +1348,10 @@ impl Kyoku {
             let p = &mut self.players[usize::from(actor)];
             p.remove(north);
             p.kita += 1;
+            // 抜いた北を捨て牌とみなすルールなら、北待ちはフリテン（`kita.furiten`）
+            if self.rules.kita.furiten {
+                p.discard_mask |= 1 << NORTH;
+            }
         }
         self.drawn = None;
         if self.rules.kita.breaks_first_turn {
@@ -1493,6 +1508,9 @@ impl Kyoku {
     fn apply_call(&mut self, s: u8, target: u8, tile: Tile, a: Action) {
         self.interrupt();
         self.players[usize::from(target)].nagashi = false;
+        if !self.rules.draws.nagashi_with_own_calls {
+            self.players[usize::from(s)].nagashi = false;
+        }
         let (kind, consumed): (MeldKind, Vec<Tile>) = match a {
             Action::Pon(x, y) => (MeldKind::Pon, vec![x, y]),
             Action::Chi(x, y) => (MeldKind::Chi, vec![x, y]),
@@ -1786,19 +1804,51 @@ impl Kyoku {
         let reason;
         if !nagashi.is_empty() {
             reason = "nagashi_mangan";
+            let r = WinResult {
+                yaku: Vec::new(),
+                han: 5,
+                fu: 0,
+                yakuman: 0,
+                kazoe: false,
+                base: 2000,
+            };
+            // 本場・供託は、流し満貫の人のうち親から順で最初の人だけ（`draws.nagashi_pays_honba`・`nagashi_takes_kyotaku`）
+            let first = (0..self.n)
+                .map(|i| (self.oya + i) % self.n)
+                .find(|s| nagashi.contains(s));
             for &s in &nagashi {
-                let r = WinResult {
-                    yaku: Vec::new(),
-                    han: 5,
-                    fu: 0,
-                    yakuman: 0,
-                    kazoe: false,
-                    base: 2000,
+                let honba_on = rules.draws.nagashi_pays_honba && Some(s) == first;
+                let d = match rules.draws.nagashi_payment {
+                    NagashiPayment::AsTsumo => self.hora_payment(s, None, &r, None, honba_on).0,
+                    NagashiPayment::SplitMangan => {
+                        let total = if s == self.oya { 12000 } else { 8000 };
+                        let payers = i32::from(self.n) - 1;
+                        let each = (total + 100 * payers - 1) / payers / 100 * 100;
+                        let he = if honba_on {
+                            rules.points.honba_tsumo_each * self.honba as i32
+                        } else {
+                            0
+                        };
+                        (0..self.n)
+                            .map(|x| {
+                                if x == s {
+                                    (each + he) * payers
+                                } else {
+                                    -(each + he)
+                                }
+                            })
+                            .collect()
+                    }
                 };
-                let (d, _) = self.hora_payment(s, None, &r, None, false);
                 for (x, y) in deltas.iter_mut().zip(d) {
                     *x += y;
                 }
+            }
+            if rules.draws.nagashi_takes_kyotaku
+                && let Some(s) = first
+            {
+                deltas[usize::from(s)] += self.kyotaku as i32 * rules.points.riichi_deposit;
+                self.kyotaku = 0;
             }
         } else {
             reason = "exhaustive";

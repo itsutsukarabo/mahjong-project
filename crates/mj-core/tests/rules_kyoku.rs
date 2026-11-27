@@ -909,6 +909,177 @@ fn nagashi_mangan_true_and_false() {
     assert_eq!(reason, "exhaustive");
 }
 
+/// 流し満貫の局（席2 が么九牌だけを切る。上の `nagashi_mangan_true_and_false` と同じ形）を、本場・供託を付けて回す。
+/// （流局の種類, 点数の移動, 次の局の供託）
+fn nagashi_run(rules: Rules, honba: u32, kyotaku: u32) -> (&'static str, Vec<i32>, u32) {
+    let yao = ["1m", "9m", "1p", "9p", "1s", "9s", "E", "S", "W"];
+    let simple = [
+        "2p", "3p", "4p", "5p", "6p", "7p", "8p", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "2p",
+        "3p", "4p", "6p", "7p", "8p",
+    ];
+    let mut draws = Vec::new();
+    let (mut y, mut s) = (0, 0);
+    for i in 0..29 {
+        if i % 3 == 2 {
+            draws.push(yao[y]);
+            y += 1;
+        } else {
+            draws.push(simple[s]);
+            s += 1;
+        }
+    }
+    let s0 = "1m 1m 2p 6p 3s 7s S W F F C N N";
+    let s1 = "9m 9m 1p 4p 8p 2s 6s 9s P P C N N";
+    let s2 = "1m 9m 1p 5p 7p 3s 4s 8s E S P F C";
+    let mut k = Scenario::new(rules, &[s0, s1, s2])
+        .draws(&draws.join(" "))
+        .honba(honba, kyotaku)
+        .kyoku();
+    auto_to_end(&mut k);
+    let r = ryukyoku(&k);
+    (
+        r.reason,
+        r.deltas.clone(),
+        k.outcome().unwrap().kyotaku_next,
+    )
+}
+
+#[test]
+fn nagashi_payment_each_value() {
+    let (_, d, _) = nagashi_run(with(SHORT), 0, 0);
+    assert_eq!(
+        d,
+        vec![-4000, -2000, 6000],
+        "as_tsumo：子の満貫ツモ（ツモ損）"
+    );
+    let (_, d, _) = nagashi_run(
+        with(&format!(
+            "{SHORT}\n[draws]\nnagashi_payment = 'split_mangan'"
+        )),
+        0,
+        0,
+    );
+    assert_eq!(
+        d,
+        vec![-4000, -4000, 8000],
+        "split_mangan：子の満貫 8000 を2人で等分"
+    );
+}
+
+#[test]
+fn nagashi_pays_honba_and_takes_kyotaku() {
+    // 2本場・供託1本
+    let (_, d, kyotaku) = nagashi_run(with(SHORT), 2, 1);
+    assert_eq!(
+        (d, kyotaku),
+        (vec![-4000, -2000, 6000], 1),
+        "本場は払わず、供託は場に残す"
+    );
+    let r = with(&format!("{SHORT}\n[draws]\nnagashi_pays_honba = true"));
+    let (_, d, _) = nagashi_run(r, 2, 1);
+    assert_eq!(d, vec![-5000, -3000, 8000], "本場 500 × 2 × 2人");
+    let r = with(&format!("{SHORT}\n[draws]\nnagashi_takes_kyotaku = true"));
+    let (_, d, kyotaku) = nagashi_run(r, 2, 1);
+    assert_eq!(
+        (d, kyotaku),
+        (vec![-4000, -2000, 7000], 0),
+        "供託を受け取る"
+    );
+}
+
+#[test]
+fn nagashi_with_own_calls_true_and_false() {
+    // 席2 が最初に席0 の 8s をポンして 1m を切り、あとは么九牌だけをツモ切りする
+    let yao = ["1m", "9m", "1p", "9p", "1s", "9s", "E", "S", "W", "F", "C"];
+    let simple = [
+        "2p", "3p", "4p", "5p", "6p", "7p", "8p", "2s", "3s", "4s", "5s", "6s", "7s", "2p", "2p",
+        "3p", "4p", "6p", "7p", "8p",
+    ];
+    let mut draws = vec!["8s"];
+    let (mut y, mut s) = (0, 0);
+    for i in 1..29 {
+        if i % 3 == 0 {
+            draws.push(yao[y]);
+            y += 1;
+        } else {
+            draws.push(simple[s]);
+            s += 1;
+        }
+    }
+    let s0 = "1m 1m 2p 6p 3s 7s S W F F C N N";
+    let s1 = "9m 9m 1p 4p 8p 2s 6s 9s P P C N N";
+    let s2 = "1m 9m 1p 5p 7p 3s 4s 8s 8s E S P F";
+    let run = |rules: Rules| {
+        let mut k = Scenario::new(rules, &[s0, s1, s2])
+            .draws(&draws.join(" "))
+            .kyoku();
+        act(&mut k, 0, "dahai:8s:tsumogiri");
+        act(&mut k, 2, "pon:8s,8s");
+        act(&mut k, 2, "dahai:1m");
+        auto_to_end(&mut k);
+        ryukyoku(&k).reason
+    };
+    assert_eq!(run(with(SHORT)), "nagashi_mangan");
+    assert_eq!(
+        run(with(&format!(
+            "{SHORT}\n[draws]\nnagashi_with_own_calls = false"
+        ))),
+        "exhaustive"
+    );
+}
+
+#[test]
+fn riichi_pure_karaten_riichi_true_and_false() {
+    // 親（席0）：1p を4枚使い、W を切ると 1p の5枚目待ちだけの形（4枚使いの単騎待ち）
+    let s0 = "1p 1p 1p 1p 5s 6s 7s E E E C C C";
+    let s1 = "1m 1m 9m 2p 6p 9p 3s 7s S W F F P";
+    let s2 = "9m 9m 3p 4p 8p 2s 6s 9s S N P P F";
+    let run = |rules: Rules| {
+        let k = Scenario::new(rules, &[s0, s1, s2]).draws("W").kyoku();
+        has(&k, 0, "reach:W:tsumogiri")
+    };
+    assert!(run(sanma()));
+    assert!(!run(with("[riichi]\npure_karaten_riichi = false")));
+}
+
+#[test]
+fn kita_furiten_true_and_false() {
+    // 席1 が北を抜き、嶺上の 2s を引いて S を切ると北の単騎待ち。席2 が切った北にロンできるか
+    let s0 = "1m 1m 9m 3p 6p 9p 3s 7s E W F F C";
+    let s1 = "1p 2p 3p 4p 5p 6p 7p 8p 9p 2s 2s N S";
+    let s2 = "9m 9m 1p 4p 8p 5s 6s 9s E W P P N";
+    let run = |rules: Rules| {
+        let mut k = Scenario::new(rules, &[s0, s1, s2])
+            .draws("C N E")
+            .rinshan("2s")
+            .kyoku();
+        act(&mut k, 0, "dahai:C:tsumogiri");
+        act(&mut k, 1, "kita");
+        act(&mut k, 1, "dahai:S");
+        act(&mut k, 2, "dahai:N");
+        has(&k, 1, "ron")
+    };
+    assert!(run(sanma()), "抜いた北は捨て牌ではない：ロンできる");
+    assert!(
+        !run(with("[kita]\nfuriten = true")),
+        "抜いた北を捨て牌とみなす：フリテン"
+    );
+}
+
+#[test]
+fn kita_pon_north_true_and_false() {
+    // 席0 が北を切る。席1 は北を2枚持つ
+    let s0 = "N 1m 9m 2p 6p 9p 3s 7s S W F F C";
+    let s1 = "1p 2p 3p 4p 5p 6p 7p 8p 9p 2s 3s N N";
+    let run = |rules: Rules| {
+        let mut k = Scenario::new(rules, &[s0, s1, J2]).draws("E").kyoku();
+        act(&mut k, 0, "dahai:N");
+        has(&k, 1, "pon:N,N")
+    };
+    assert!(run(sanma()));
+    assert!(!run(with("[kita]\npon_north = false")));
+}
+
 // ------------------------------------------------------------------ 役満の包・槍槓
 
 #[test]

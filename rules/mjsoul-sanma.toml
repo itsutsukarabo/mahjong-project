@@ -14,9 +14,7 @@
 [meta]
 id = "mjsoul-sanma"
 name = "雀魂三麻相当（段位戦 三人麻雀）"
-provisional = [
-    "yakuman.pao_tsumo_honba",
-]
+provisional = []
 
 [table]
 num_players = 3                          # M1〜M3（三人麻雀）
@@ -71,6 +69,7 @@ requires_draw = true                     # M4「ツモ番がある場合に可�
 furiten_riichi = true                    # M4「フリテンリーチあり」
 ankan_after_riichi = "wait_unchanged"    # M4「待ち牌の種類が変わらない場合のみ。送り槓不可、牌姿や役の増減は不問」
 no_deposit_on_deal_in = true             # オーナー確認（2026-11-28）質問票 Q14
+pure_karaten_riichi = true               # オーナー確認（2026-11-28）D-033 B1（今の動作のまま）
 
 [dora]
 ippatsu = true                           # M4「北を抜いた時点で、一発…の判定が消える」（一発がある前提）
@@ -92,6 +91,8 @@ breaks_ippatsu = true                    # M4「北を抜いた時点で、一�
 breaks_first_turn = true                 # M4（同上）
 north_as_meld = "otakaze"                # M4「北を面子で使用した場合はオタ風」
 dora_per_kita = 1                        # オーナー確認（2026-11-28）質問票 Q19
+furiten = false                          # オーナー確認（2026-11-28）D-033 B5（今の動作のまま）
+pon_north = true                         # オーナー確認（2026-11-28）D-033 B6（今の動作のまま）
 
 [draws]
 kyushu_kyuhai = true                     # M4「途中流局は九種九牌・四槓散了のみ」
@@ -101,6 +102,10 @@ same_wind_discards = false               # M4（同上）
 all_ron = false                          # M4「ダブロンあり」（流局にしない）
 abortive_renchan = true                  # M4「すべて連荘」
 nagashi_mangan = true                    # M4「流し満貫あり。聴牌清算を満貫清算に代替。親の聴牌で連荘」
+nagashi_payment = "as_tsumo"             # オーナー確認（2026-11-28）D-033 B3（今の動作のまま）
+nagashi_pays_honba = false               # オーナー確認（2026-11-28）D-033 B2（今の動作のまま）
+nagashi_takes_kyotaku = false            # オーナー確認（2026-11-28）D-033 B2（今の動作のまま）
+nagashi_with_own_calls = true            # オーナー確認（2026-11-28）D-033 B4（今の動作のまま）
 renchan = "tenpai"                       # M4「ノーテン親流れ、聴牌連荘」
 keishiki_tenpai = "no_pure_karaten"      # M4「形式聴牌あり。カラテンの形式は手持ち4枚での単騎待ちのみ不可」＋オーナー確認（2026-11-28）I-1
 noten_declaration = false                # オーナー確認（2026-11-28）質問票 Q21
@@ -112,7 +117,7 @@ pao = ["daisangen", "daisuushii"]        # M4「パオ（責任払い）あり�
 pao_ron_split = true                     # M4「ツモ＝全額・ロン＝折半」
 pao_scope = "pao_yaku_only"              # M4「複合役満の場合にはパオ部分のみ責任払い」＋オーナー確認（2026-11-28）I-3
 pao_honba = "pao"                        # M4「積み棒は包」＋オーナー確認（2026-11-28）I-3（ツモでもロンでも包の人が全額）
-pao_tsumo_honba = "tsumo_total"          # 仮。本場がロン300・ツモ100×2で額が違う。どちらの額かは未確認（質問票）
+pao_tsumo_honba = "tsumo_total"          # オーナー確認（2026-11-28）D-032「200点（1人100点×2人分）」
 kokushi_ron_on_ankan = true              # M4「国士無双の暗槓の槍槓あり」
 tenhou_win_tile = "best"                 # M4「天和発生時は、最も高得点となる牌をツモ牌とする」＋オーナー確認（2026-11-28）I-4
 
