@@ -1,0 +1,27 @@
+[package]
+name = "mj-py"
+version = "0.1.0"
+description = "RL 環境：多数の卓をまとめて進め、判断ポイントごとの観測・合法手マスクを返す。Python からは PyO3（maturin、feature = python）で呼ぶ"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+name = "mj_py"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# maturin でビルドするとき（pyproject.toml）だけ有効にする。cargo test --workspace は Python なしで回る
+python = ["dep:pyo3", "dep:numpy"]
+
+[dependencies]
+mj-core.workspace = true
+mj-features.workspace = true
+mj-log.workspace = true
+serde_json.workspace = true
+rayon = "1.12"
+pyo3 = { version = "0.30", optional = true, features = ["abi3-py310"] }
+numpy = { version = "0.30", optional = true }
+
+[lints]
+workspace = true

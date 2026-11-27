@@ -50,6 +50,9 @@ jobs:
       - name: clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
+      - name: mj-py with the Python feature (PyO3) compiles
+        run: cargo check --locked -p mj-py --features python
+
       - name: test (unit + golden + log samples)
         run: cargo test --workspace --locked
 

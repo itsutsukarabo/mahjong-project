@@ -7,6 +7,7 @@
 //! 初版の 325 個の対応は `fixtures/features/action_ids.txt` に固定し、テストで確かめる。
 
 pub mod obs;
+pub mod reward;
 
 use mj_core::action::Action;
 use mj_core::tile::{Tile, TileKind};

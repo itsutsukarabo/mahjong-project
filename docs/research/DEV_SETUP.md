@@ -126,6 +126,16 @@ cargo run --release -p difftest-riichienv -- --cases 20000 --game-cases 200 --se
 - 結果は `difftest-riichienv-out/summary.json`（層ごとの比較・除外・不一致、変換表の件数）。不一致は `*_failures.jsonl`
 - 変換表に当たった手の例（`conversions.jsonl`）は `fixtures/difftest-riichienv/` に写して回帰テストにする
 
+### RL 環境（mj-py、PyO3・maturin）
+```bash
+python -m venv .venv-mjpy                       # リポジトリの直下（.gitignore 済み）
+.venv-mjpy/Scripts/python -m pip install maturin numpy   # Linux は bin/python
+cd crates/mj-py && VIRTUAL_ENV=../../.venv-mjpy ../../.venv-mjpy/Scripts/maturin develop --release
+../../.venv-mjpy/Scripts/python python/bench_random.py --tables 256 --threads 0 --seconds 15
+```
+- `cargo test --workspace` は Python なしで回る（PyO3 の部分は feature `python`。CI は `cargo check -p mj-py --features python` で通ることだけ確かめる）
+- WSL では Windows の作業ツリーを `git archive` で写し、WSL の中の venv でビルドした（2026-11-29 は WSL から PyPI・crates.io に接続できた）
+
 ### 自己対戦の速さ
 ```bash
 cargo run --release -p mj-core --example selfplay_bench -- --seconds 10 --mode single --threads 1

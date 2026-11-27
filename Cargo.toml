@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/mj-core", "crates/mj-log", "crates/mj-bots", "crates/mj-features", "tools/difftest-majiang", "tools/difftest-riichienv", "tools/rules-catalog"]
+members = ["crates/mj-core", "crates/mj-log", "crates/mj-bots", "crates/mj-features", "crates/mj-py", "tools/difftest-majiang", "tools/difftest-riichienv", "tools/rules-catalog"]
 
 [workspace.package]
 edition = "2024"
@@ -10,6 +10,8 @@ publish = false
 [workspace.dependencies]
 mj-core = { path = "crates/mj-core" }
 mj-bots = { path = "crates/mj-bots" }
+mj-features = { path = "crates/mj-features" }
+mj-log = { path = "crates/mj-log" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 toml = "0.9"
