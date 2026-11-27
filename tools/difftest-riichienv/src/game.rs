@@ -494,11 +494,13 @@ fn run(
     }
     if out.mismatch.is_none() {
         let mut a = flow_no_dora(&our_flow(k.events()));
-        // 検出の確認用（--inject-fault）：こちらの和了の点数の移動を 100 点ずらす
+        // 検出の確認用（--inject-fault）：こちらの最初の点数の移動（和了か流局）を 100 点ずらす。
+        // 和了のない局（流局・九種九牌）も確かめられるように、流局の点数の移動もずらす
         if crate::INJECT_FAULT.load(std::sync::atomic::Ordering::Relaxed)
-            && let Some(h) = a.iter_mut().find(|v| v[0] == "hora")
+            && let Some(v) = a.iter_mut().find(|v| v[0] == "hora" || v[0] == "ryukyoku")
         {
-            h[3][0] = json!(h[3][0].as_i64().unwrap_or(0) + 100);
+            let i = if v[0] == "hora" { 3 } else { 1 };
+            v[i][0] = json!(v[i][0].as_i64().unwrap_or(0) + 100);
         }
         let b = flow_no_dora(&their_flow(&their_events));
         if doras(&our_flow(k.events())) != doras(&their_flow(&their_events)) {

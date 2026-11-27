@@ -336,7 +336,15 @@ pub fn judge(ours: &Value, theirs: &Value) -> GameVerdict {
             .into_iter()
             .flatten()
             .flat_map(|k| k.as_array_mut().into_iter().flatten())
-            .find_map(|e| e.get_mut("hule"))
+            .find_map(|e| {
+                // 和了か流局の、最初の点数の移動（和了のない局も確かめる）
+                let is_hule = e.get("hule").is_some();
+                if is_hule {
+                    e.get_mut("hule")
+                } else {
+                    e.get_mut("pingju")
+                }
+            })
     {
         f["fenpei"][0] = json!(f["fenpei"][0].as_i64().unwrap_or(0) + 100);
     }
