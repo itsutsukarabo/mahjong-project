@@ -8,10 +8,12 @@
 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` | cargo workspace（Rust 1.100.0 に固定） |
 | `crates/mj-core/` | `rules.rs`・`catalog.rs`（ルールの全項目＝正、D-025）、`tile.rs`、`wall.rs`（`chacha8-v1`）、`shanten.rs`、`agari.rs`（和了・待ちの表引き）、`yaku.rs`（役・符・点数）、`score.rs`（点数・祝儀の移動）、`action.rs`・`event.rs`・`kyoku.rs`（判断ポイント単位の局進行、D-022）、`game.rs`（対局の進行・精算）、`policy.rs`・`scenario.rs`（テスト・計測用）、`examples/selfplay_bench.rs` |
 | `crates/mj-log/` | 牌譜 v0.4 の検証・`wall_commit`・`wall_salt`・redact（全情報→席視点/公開）、`write.rs`（エンジンの対局→牌譜）、`replay.rs`（牌譜→エンジンで再生・注釈の検査）、サンプルとゴールデンのテスト |
-| `tools/difftest-majiang/` | Rust の差分テスト本体（シャンテン数・待ち、和了・点数。生成・比較・最小化）＋ `node/`（majiang-core 1.4.1 を呼ぶハーネス） |
+| `crates/mj-bots/` | ルールベースのボット（`RuleBot`：シャンテン数・受け入れ・簡単な押し引き。公開の情報だけを読む）と、ボット同士の対局の統計・速さ（`examples/bot_bench.rs`） |
+| `tools/difftest-majiang/` | Rust の差分テスト本体（シャンテン数・待ち、和了・点数、四麻の局進行。生成・比較・最小化）＋ `node/`（majiang-core 1.4.1 を呼ぶハーネス） |
+| `tools/difftest-riichienv/` | 三麻の差分テスト（シャンテン数・待ち、和了・点数、北抜きを含む局進行）＋ `harness/`（RiichiEnv 0.4.11 を隔離した venv で呼ぶ Python） |
 | `tools/rules-catalog/` | `docs/spec/RULES_CATALOG.md` の生成と、テスト対応表（`fixtures/rules/coverage.toml`）の検査、質問票の下書き |
 | `rules/` | プリセット（`tenhou-sanma.toml`, `mjsoul-sanma.toml`）。出典は `docs/spec/RULES_PRESETS.md` |
-| `fixtures/` | `rules/`（テスト専用の四麻ルール `test-yonma.toml`、テスト対応表 `coverage.toml`）、`golden/walls.json`（固定シードの牌山のハッシュ）、`golden/games.json` と `golden/games/*.actions.json`（固定の行動列から作った牌譜のハッシュ） |
+| `fixtures/` | `rules/`（テスト専用の四麻ルール `test-yonma.toml`、差分テスト用の上書き `majiang-yonma-game.toml`・`riichienv-sanma.toml`、テスト対応表 `coverage.toml`）、`difftest-riichienv/`（変換表に当たった手の例）、`golden/walls.json`（固定シードの牌山のハッシュ）、`golden/games.json` と `golden/games/*.actions.json`（固定の行動列から作った牌譜のハッシュ） |
 | `.github/workflows/` | `ci.yml`（main への push、Ubuntu/Windows）、`nightly.yml`（差分テスト大規模版） |
 
 それ以外（mj-features, mj-sim, mj-py, mj-wasm, python/, web/ など）はまだ作っていない。

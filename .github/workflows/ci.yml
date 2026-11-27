@@ -84,10 +84,31 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: install RiichiEnv in an isolated venv (D-010, pinned)
+        shell: bash
+        run: |
+          python -m venv .venv-riichienv
+          if [ -x .venv-riichienv/bin/python ]; then RPY=.venv-riichienv/bin/python; else RPY=.venv-riichienv/Scripts/python.exe; fi
+          "$RPY" -m pip install --quiet -r tools/difftest-riichienv/harness/requirements.txt
+          echo "RIICHIENV_PYTHON=$RPY" >> "$GITHUB_ENV"
+
+      - name: difftest vs RiichiEnv (sanma, small, fixed seed)
+        shell: bash
+        run: |
+          cargo run --release --locked -p difftest-riichienv --             --cases "$DIFFTEST_CASES" --game-cases 200 --seed "$DIFFTEST_SEED"             --python "$RIICHIENV_PYTHON" --out difftest-riichienv-out
+          {
+            echo "### difftest RiichiEnv (${{ matrix.os }})"
+            echo '```json'
+            cat difftest-riichienv-out/summary.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: upload difftest result
         if: always()
         uses: actions/upload-artifact@v5
         with:
           name: difftest-${{ matrix.os }}
-          path: difftest-out/
+          path: |
+            difftest-out/
+            difftest-riichienv-out/
           if-no-files-found: ignore

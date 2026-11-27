@@ -115,6 +115,17 @@ cargo run --release -p difftest-majiang -- --cases 20000 --seed 20261122 --out d
 - 層は2つ：シャンテン数・待ち（`--cases` 件）と、和了・点数（`--hora-cases` 件、既定は `--cases` と同じ）
 - 結果は `difftest-out/summary.json`。不一致は最小化して `failures.jsonl`・`hora_failures.jsonl` に書く
 
+- 四麻の局単位（`--game-cases N`、既定は `--cases / 500`）：ボット同士の半荘を majiang-core の `Dev.Game` で再生して比べる。結果は `game_failures.jsonl`
+
+### RiichiEnv との三麻の差分テスト（隔離した venv）
+```bash
+python -m venv .venv-riichienv          # リポジトリの直下（.gitignore 済み）。本体の依存には入れない（D-010）
+.venv-riichienv/Scripts/python -m pip install -r tools/difftest-riichienv/harness/requirements.txt   # Linux は bin/python
+cargo run --release -p difftest-riichienv -- --cases 20000 --game-cases 200 --seed 20261122   --python .venv-riichienv/Scripts/python --out difftest-riichienv-out
+```
+- 結果は `difftest-riichienv-out/summary.json`（層ごとの比較・除外・不一致、変換表の件数）。不一致は `*_failures.jsonl`
+- 変換表に当たった手の例（`conversions.jsonl`）は `fixtures/difftest-riichienv/` に写して回帰テストにする
+
 ### 自己対戦の速さ
 ```bash
 cargo run --release -p mj-core --example selfplay_bench -- --seconds 10 --mode single --threads 1

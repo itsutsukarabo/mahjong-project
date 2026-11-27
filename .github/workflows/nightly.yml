@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       cases:
-        description: "number of cases (shanten/waits and hora each)"
+        description: "number of cases (shanten/waits and hora each; majiang-core games = cases / 500)"
         default: "2000000"
 
 permissions:
@@ -46,11 +46,25 @@ jobs:
             --out difftest-out
         # シードは summary.json に記録されるので、失敗したケースは同じシードで再現できる
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12.10"
+
+      - name: install RiichiEnv in an isolated venv (D-010, pinned)
+        run: |
+          python -m venv .venv-riichienv
+          .venv-riichienv/bin/python -m pip install --quiet -r tools/difftest-riichienv/harness/requirements.txt
+
+      - name: difftest vs RiichiEnv (sanma, large, random seed)
+        if: always()
+        run: |
+          cargo run --release --locked -p difftest-riichienv --             --cases "${{ github.event.inputs.cases || '2000000' }}" --game-cases 20000 --random-seed             --python .venv-riichienv/bin/python --out difftest-riichienv-out
+
       - name: summary
         if: always()
         run: |
           {
-            echo "### nightly difftest"
+            echo "### nightly difftest (majiang-core)"
             echo '```json'
             cat difftest-out/summary.json || true
             echo '```'
@@ -58,6 +72,16 @@ jobs:
             echo '```'
             head -n 20 difftest-out/failures.jsonl || true
             head -n 20 difftest-out/hora_failures.jsonl || true
+            head -n 3 difftest-out/game_failures.jsonl | cut -c1-2000 || true
+            echo '```'
+            echo "### nightly difftest (RiichiEnv)"
+            echo '```json'
+            cat difftest-riichienv-out/summary.json || true
+            echo '```'
+            echo '```'
+            head -n 5 difftest-riichienv-out/hand_failures.jsonl || true
+            head -n 5 difftest-riichienv-out/hora_failures.jsonl | cut -c1-2000 || true
+            head -n 5 difftest-riichienv-out/game_failures.jsonl | cut -c1-2000 || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -66,5 +90,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: nightly-difftest-${{ github.run_id }}
-          path: difftest-out/
+          path: |
+            difftest-out/
+            difftest-riichienv-out/
           retention-days: 90
