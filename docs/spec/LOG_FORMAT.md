@@ -1,6 +1,6 @@
-# LOG FORMAT — 牌譜（イベント列）形式 v0.3
+# LOG FORMAT — 牌譜（イベント列）形式 v0.4
 
-状態：**承認済みの方針（D-014・D-017・D-022）に基づく v0.3**。
+状態：**承認済みの方針（D-014・D-017・D-022・D-028）に基づく v0.4**。
 
 ## 変更履歴
 | 版 | 内容 |
@@ -8,6 +8,7 @@
 | 0.1 | 初版（Phase 0 の案） |
 | 0.2 | レビューでの修正：注釈のキーに `seat` を追加し見送りの判断にも付けられるようにした／`hora.hand.tehai` に和了牌を含まないことを明記／`ryukyoku` の全情報版・公開版のフィールドを1つの表に統一（`hidden_hands` を廃止し `hands` に一本化）／`wall_salt` は暗号論的乱数で作りシードから導出しないことを明記／祝儀のフィールド（`kyoku_end.chips`、`game_end.chips_total`）を追加／暗槓の中身と流局時の手牌公開範囲をルール設定 `log_visibility` で変えられるようにした。**追加の変更（Claude Code の提案）**：牌山を `live`＋`rinshan` の2列から `pile` の1列（先頭からツモ・末尾から嶺上）に変えた（§4.2。理由：天鳳三麻の「嶺上牌は8枚」と、嶺上を引くたびにハイテイがずれる処理を、王牌の枚数をルール値にして表すため）。`seed.rng = "manual"`（手で組んだ牌山）を追加 |
 | 0.3 | 注釈を「判断ポイント」で定義した（D-022、§6、`docs/spec/DECISION_POINTS.md`）：キーの `event_idx` は判断ポイントの直前のイベント、`decision` の表記を DECISION_POINTS §5 に統一（`hora` → `ron`／`tsumo`、`pon` → `pon:C,C` など）、任意のフィールド `choices` を追加／牌山の1列化を承認（D-017）し、ハイテイの位置を `rules.wall.dead_wall`（王牌の枚数）から導く形にした（`rules.wall.reserve` は廃止）／同時和了の `hora` の並びを「放銃者の下家から順（頭ハネの優先順）」と書き直した（v0.2 の「上家順」は誤り）／ルールの北ロンのキーを `kita.ron_on_kita`・`kita.ron_on_discard` に分けた。**局進行（mj-core）の実装に合わせた追加**：`hora.pao`（包の人）、役満の役は `{id, yakuman}`（倍数）で書く、`hora.hand.melds` に暗槓も含める、`ryukyoku.actor`（九種九牌の宣言者）、`game_end.settlement`（精算）・`game_end.tobi`（飛んだ席） |
+| 0.4 | v0.3 の「局進行の実装に合わせた追加」（`hora.pao`、役満の `{id, yakuman}`、`melds` に暗槓、`ryukyoku.actor`、`game_end.settlement`・`tobi`）をオーナーが承認した（D-028）。**ルールの変更に合わせた追加**：後めくりのカンドラを打牌が通った後にめくるルール（`rules.dora.kan_dora_timing = "ankan_immediate_after_pass"`）での `dora` の位置（§4.1。打牌がロンされたら `dora` は出ない）／天和で和了牌を選ぶルール（`rules.yakuman.tenhou_win_tile = "best"`）では `hora.pai` が直前の `tsumo` の牌と違うことがある／`rules` に足したキー（`yakuman.pao_scope`・`pao_honba`・`pao_tsumo_honba`・`tenhou_win_tile`、`draws.keishiki_tenpai` は真偽値から文字列に） |
 
 ---
 
@@ -41,7 +42,7 @@
 ### 4.1 一覧
 | type | 主なフィールド |
 |---|---|
-| `game_start` | `format_version`("0.3"), `visibility`, `engine{name,version,git}`, `rules`（§4.3）, `seed{game_seed, rng}`, `players[{seat,name}]` |
+| `game_start` | `format_version`("0.4"), `visibility`, `engine{name,version,git}`, `rules`（§4.3）, `seed{game_seed, rng}`, `players[{seat,name}]` |
 | `kyoku_start` | `bakaze`, `kyoku`(1〜), `honba`, `kyotaku`, `oya`, `scores`, `dora_indicator`, `tehais`（席ごと13枚・整列済み）, `wall`（§4.2）, `wall_salt`, `wall_commit` |
 | `tsumo` | `actor`, `pai`, `rinshan`（省略時 false。槓・北抜きの補充） |
 | `dahai` | `actor`, `pai`, `tsumogiri` |
@@ -56,10 +57,13 @@
 | `kyoku_end` | `reason`, `scores`, `kyotaku`, `honba_next`, `renchan`, `chips`（§4.5） |
 | `game_end` | `scores`（残った供託の精算後）, `ranks`（1始まり）, `settlement`（持ち点 − 返し点 ＋ ウマ ＋ オカ、点）, `tobi`（飛んだ席、bool[人数]。1局戦は `rules.table.tobi_single_kyoku` で記録だけ）, `chips_total`（§4.5） |
 
-- **`hora.hand.tehai` は和了牌を含まない**（ロンでもツモでも、和了牌は `pai` だけに書く。ツモ和了なら直前の `tsumo` で引いた牌が `pai`）。`hand.melds` は副露と暗槓（`{type, pai, consumed, target}`。`type` は `chi`/`pon`/`daiminkan`/`kakan`/`ankan`、暗槓は `pai`・`target` なしで `consumed` に4枚）。北抜きは含めない（`kita` イベントで分かる）
+- **`hora.hand.tehai` は和了牌を含まない**（ロンでもツモでも、和了牌は `pai` だけに書く。ツモ和了なら直前の `tsumo` で引いた牌が `pai`。ただし天和で `rules.yakuman.tenhou_win_tile = "best"` なら、手牌14枚のうち点数が最も高くなる牌が `pai`）。`hand.melds` は副露と暗槓（`{type, pai, consumed, target}`。`type` は `chi`/`pon`/`daiminkan`/`kakan`/`ankan`、暗槓は `pai`・`target` なしで `consumed` に4枚）。北抜きは含めない（`kita` イベントで分かる）
 - 役の `id` は `crates/mj-core/src/yaku.rs` の `Yaku::id`（例：`riichi`, `menzen_tsumo`, `yakuhai_chun`, `yakuhai_bakaze`, `chiitoitsu`, `daisangen`, `dora`, `aka`, `ura`, `kita`＝抜きドラ）
 - 「見送り（パス）」はイベントにしない（起きたことだけを記録する）。判断の記録は注釈（§6）に置く
-- 大明槓・加槓のカンドラを後めくりにするルールでは、槓の後の打牌の直後（応答の前）に `dora` を出す（majiang-core と同じ順）
+- 大明槓・加槓のカンドラを後めくりにするルールでの `dora` の位置（`rules.dora.kan_dora_timing`）：
+  - `ankan_immediate`・`all_delayed`：槓の後の打牌の直後（応答の前）に `dora` を出す（majiang-core と同じ順）
+  - `ankan_immediate_after_pass`（天鳳三麻・雀魂三麻）：打牌が通った後に出す。順は `dahai` →（`reach_accepted`）→ `dora` → 次のイベント（`pon`・`chi`・`daiminkan`・`tsumo`・`ryukyoku`）。打牌がロンされたら `dora` は出ず、そのカンドラは数えない
+  - どの値でも、槓の後に打牌の前にもう一度槓をしたら、その槓の前に `dora` を出す
 - 立直は `reach` → `dahai` → `reach_accepted`。宣言牌でロンされた場合は `reach_accepted` が出ない
 - 同時和了は `hora` を複数並べ、放銃者の下家から順（頭ハネの優先順、DECISION_POINTS §6）に並べる
 - 形式を変えるときは `format_version` を上げ、この文書を先に更新する（CLAUDE.md 原則2）
@@ -143,7 +147,7 @@ AI の判断の記録・行動確率・価値の推定などは牌譜に混ぜ�
 
 - **注釈は「判断ポイント」ごとに1つ**（D-022）。判断ポイント＝エンジンがある席に選択肢（見送りを含む）を2つ以上提示した瞬間。種類の一覧と、キーが一意になる理由は `docs/spec/DECISION_POINTS.md`
 - **キー：`(game_id, kyoku_idx, event_idx, seat)`**。`event_idx` は**判断ポイントの直前に起きたイベント**
-  - 例：ツモ後の打牌 → その `tsumo`／他家の打牌へのポン・ロン・見送り → その `dahai`／ポン後の打牌 → その `pon`／北抜きへのロン → その `kita`／後めくりのカンドラがある打牌への応答 → その直後の `dora`
+  - 例：ツモ後の打牌 → その `tsumo`／他家の打牌へのポン・ロン・見送り → その `dahai`／ポン後の打牌 → その `pon`／北抜きへのロン → その `kita`／後めくりのカンドラがある打牌への応答 → その `dahai`（天鳳三麻・雀魂三麻）、`kan_dora_timing = "ankan_immediate"` などでは直後の `dora`
   - 同じ (event_idx, seat) に判断ポイントが2つ生じないことはエンジンの設計で保証する（DECISION_POINTS §3：1場1席1判断、立直などの複合行動、場の解決で必ずイベントが出る）
   - **見送りの判断にも注釈を付けられる**（牌譜には見送りのイベントがないので、注釈だけが記録になる）
 - フィールド

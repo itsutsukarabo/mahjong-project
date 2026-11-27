@@ -560,7 +560,7 @@ pub const CATALOG: &[Item] = &[
         title: "カンドラをめくる時機",
         kind: Kind::Enum(KanDoraTiming::VALUES),
         desc: "",
-        default: "\"ankan_immediate\"",
+        default: "\"ankan_immediate_after_pass\"",
         related: &["dora.kan_dora"],
     },
     // ---- D. kita
@@ -756,12 +756,9 @@ pub const CATALOG: &[Item] = &[
     Item {
         key: "draws.keishiki_tenpai",
         title: "形式聴牌",
-        kind: b(
-            "役のない聴牌・手の中の4枚目を待つ聴牌も聴牌とする",
-            "役のある聴牌で、待ちの牌が残っている場合だけ聴牌とする",
-        ),
-        desc: "荒牌流局の聴牌の判定",
-        default: "true",
+        kind: Kind::Enum(KeishikiTenpai::VALUES),
+        desc: "荒牌流局の聴牌の判定（聴牌料・連荘・流局時の手牌の公開に使う）。立直できるかの聴牌の判定には使わない",
+        default: "\"any\"",
         related: &["points.noten_penalty_total"],
     },
     Item {
@@ -799,17 +796,49 @@ pub const CATALOG: &[Item] = &[
         key: "yakuman.pao",
         title: "包（責任払い）の対象",
         kind: Kind::EnumSet(PaoYaku::VALUES),
-        desc: "包の人はツモなら全額、ロンなら `yakuman.pao_ron_split` に従って払う",
+        desc: "包の人はツモなら対象の額をツモの支払いの合計（ツモ損なら北家の分を除いた額）で全額、ロンなら `yakuman.pao_ron_split` に従って払う。対象の額は `yakuman.pao_scope`",
         default: "[\"daisangen\", \"daisuushii\"]",
-        related: &["yakuman.pao_ron_split"],
+        related: &[
+            "yakuman.pao_ron_split",
+            "yakuman.pao_scope",
+            "yakuman.pao_honba",
+        ],
     },
     Item {
         key: "yakuman.pao_ron_split",
         title: "包のロンの払い",
         kind: b("放銃者と包の人が半分ずつ払う", "放銃者が全額払う"),
-        desc: "",
+        desc: "責任払いの対象の額（`yakuman.pao_scope`）について。対象外の額は放銃者が払う",
         default: "true",
-        related: &["yakuman.pao"],
+        related: &["yakuman.pao", "yakuman.pao_scope"],
+    },
+    Item {
+        key: "yakuman.pao_scope",
+        title: "複合役満の責任払いの範囲",
+        kind: Kind::Enum(PaoScope::VALUES),
+        desc: "包の役満にほかの役満が複合したとき（例：大三元＋字一色）",
+        default: "\"full\"",
+        related: &["yakuman.pao", "yakuman.pao_ron_split"],
+    },
+    Item {
+        key: "yakuman.pao_honba",
+        title: "包のときの積み棒",
+        kind: Kind::Enum(PaoHonba::VALUES),
+        desc: "",
+        default: "\"pao\"",
+        related: &["yakuman.pao_tsumo_honba", "points.honba_ron"],
+    },
+    Item {
+        key: "yakuman.pao_tsumo_honba",
+        title: "包の人が払うツモの積み棒の額",
+        kind: Kind::Enum(PaoTsumoHonba::VALUES),
+        desc: "包の人がツモの積み棒を払うとき（`yakuman.pao_honba = \"pao\"`、または `normal` でツモの全額が包の対象のとき）の額。本場の額がロン（`points.honba_ron`）とツモの合計で違うルールでだけ差が出る",
+        default: "\"tsumo_total\"",
+        related: &[
+            "yakuman.pao_honba",
+            "points.honba_ron",
+            "points.honba_tsumo_each",
+        ],
     },
     Item {
         key: "yakuman.kokushi_ron_on_ankan",
@@ -821,6 +850,14 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &[],
+    },
+    Item {
+        key: "yakuman.tenhou_win_tile",
+        title: "天和の和了牌",
+        kind: Kind::Enum(TenhouWinTile::VALUES),
+        desc: "天和の符・役（四暗刻単騎・国士無双十三面待ち・純正九蓮宝燈など）を数えるときの和了牌。同じ点数なら第1ツモの牌、次に牌の順で先の牌",
+        default: "\"best\"",
+        related: &["yakuman.double_special"],
     },
     // ---- H. chips
     Item {

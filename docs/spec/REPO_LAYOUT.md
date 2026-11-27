@@ -7,7 +7,7 @@
 |---|---|
 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` | cargo workspace（Rust 1.100.0 に固定） |
 | `crates/mj-core/` | `rules.rs`・`catalog.rs`（ルールの全項目＝正、D-025）、`tile.rs`、`wall.rs`（`chacha8-v1`）、`shanten.rs`、`agari.rs`（和了・待ちの表引き）、`yaku.rs`（役・符・点数）、`score.rs`（点数・祝儀の移動）、`action.rs`・`event.rs`・`kyoku.rs`（判断ポイント単位の局進行、D-022）、`game.rs`（対局の進行・精算）、`policy.rs`・`scenario.rs`（テスト・計測用）、`examples/selfplay_bench.rs` |
-| `crates/mj-log/` | 牌譜 v0.3 の検証・`wall_commit`・`wall_salt`・redact（全情報→席視点/公開）、`write.rs`（エンジンの対局→牌譜）、`replay.rs`（牌譜→エンジンで再生・注釈の検査）、サンプルとゴールデンのテスト |
+| `crates/mj-log/` | 牌譜 v0.4 の検証・`wall_commit`・`wall_salt`・redact（全情報→席視点/公開）、`write.rs`（エンジンの対局→牌譜）、`replay.rs`（牌譜→エンジンで再生・注釈の検査）、サンプルとゴールデンのテスト |
 | `tools/difftest-majiang/` | Rust の差分テスト本体（シャンテン数・待ち、和了・点数。生成・比較・最小化）＋ `node/`（majiang-core 1.4.1 を呼ぶハーネス） |
 | `tools/rules-catalog/` | `docs/spec/RULES_CATALOG.md` の生成と、テスト対応表（`fixtures/rules/coverage.toml`）の検査、質問票の下書き |
 | `rules/` | プリセット（`tenhou-sanma.toml`, `mjsoul-sanma.toml`）。出典は `docs/spec/RULES_PRESETS.md` |

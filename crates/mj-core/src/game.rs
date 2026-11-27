@@ -6,7 +6,7 @@
 //! - 規定の最後の局が親流れで終わったとき：`table.extension = none` なら終了。`sudden_death` なら、
 //!   終了点数（`table.extension_threshold`、`extension_threshold_counts_kyotaku` ならトップに供託を足して判定）
 //!   以上の人がいれば終了、いなければ次の場（延長戦）へ
-//! - 延長戦では、どの局の終わりでも終了点数以上の人がいれば終了。`table.extension_last_wind` の最後の局が親流れで終われば終了
+//! - 延長戦では、親流れの局の終わりに終了点数以上の人がいれば終了（親が連荘するときは続ける。オーナー確認 2026-11-28 I-2）。`table.extension_last_wind` の最後の局が親流れで終われば終了
 //! - 和了止め・聴牌止め（`table.oorasu_stop = auto`）：規定の最後の局か延長戦の局で親が連荘したとき、
 //!   親が単独トップ（同点は起家に近い席が上）で、延長戦ありなら親が終了点数以上なら終了
 //!
@@ -146,9 +146,8 @@ pub fn progress(rules: &Rules, st: &mut TableState, o: &KyokuOutcome) -> bool {
                 return true;
             }
         }
-        if in_extension && extension_on && someone_reached(rules, st) {
-            return true;
-        }
+        // 親が連荘するときは、延長戦の局で誰かが終了点数に届いていても続ける（オーナー確認 2026-11-28 I-2。
+        // 延長戦でない最終局と同じ扱い）。終わるのは和了止め・聴牌止め（上）と飛びだけ
         st.honba = o.honba_next;
         return false;
     }

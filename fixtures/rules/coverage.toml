@@ -425,7 +425,7 @@ tests = ["mj-core::dora_kan_ura_true_and_false"]
 [[case]]
 key = "dora.kan_dora_timing"
 value = "ankan_immediate"
-tests = ["mj-core::dora_kan_dora_true_and_false_and_timing"]
+tests = ["mj-core::kan_dora_timing_after_pass_and_ron"]
 
 [[case]]
 key = "dora.kan_dora_timing"
@@ -628,16 +628,6 @@ value = "always"
 tests = ["mj-core::renchan_each_value"]
 
 [[case]]
-key = "draws.keishiki_tenpai"
-value = "true"
-tests = ["mj-core::keishiki_tenpai_true_and_false"]
-
-[[case]]
-key = "draws.keishiki_tenpai"
-value = "false"
-tests = ["mj-core::keishiki_tenpai_true_and_false"]
-
-[[case]]
 key = "draws.noten_declaration"
 value = "true"
 tests = ["mj-core::noten_declaration_true_and_false"]
@@ -786,3 +776,63 @@ tests = ["mj-log::log_visibility_ryukyoku_reveal_each_value"]
 key = "log_visibility.ryukyoku_reveal"
 value = "none"
 tests = ["mj-log::log_visibility_ryukyoku_reveal_each_value"]
+
+[[case]]
+key = "dora.kan_dora_timing"
+value = "ankan_immediate_after_pass"
+tests = ["mj-core::kan_dora_timing_after_pass_and_ron", "mj-core::dora_kan_dora_true_and_false_and_timing"]
+
+[[case]]
+key = "draws.keishiki_tenpai"
+value = "any"
+tests = ["mj-core::keishiki_tenpai_each_value"]
+
+[[case]]
+key = "draws.keishiki_tenpai"
+value = "no_pure_karaten"
+tests = ["mj-core::keishiki_tenpai_each_value"]
+
+[[case]]
+key = "draws.keishiki_tenpai"
+value = "yaku_required"
+tests = ["mj-core::keishiki_tenpai_each_value"]
+
+[[case]]
+key = "yakuman.pao_scope"
+value = "full"
+tests = ["mj-core::pao_scope_full_and_pao_yaku_only"]
+
+[[case]]
+key = "yakuman.pao_scope"
+value = "pao_yaku_only"
+tests = ["mj-core::pao_scope_full_and_pao_yaku_only", "mj-core::pao_honba_pao_and_normal"]
+
+[[case]]
+key = "yakuman.pao_honba"
+value = "pao"
+tests = ["mj-core::pao_honba_pao_and_normal"]
+
+[[case]]
+key = "yakuman.pao_honba"
+value = "normal"
+tests = ["mj-core::pao_honba_pao_and_normal"]
+
+[[case]]
+key = "yakuman.pao_tsumo_honba"
+value = "tsumo_total"
+tests = ["mj-core::pao_tsumo_honba_each_value"]
+
+[[case]]
+key = "yakuman.pao_tsumo_honba"
+value = "ron_amount"
+tests = ["mj-core::pao_tsumo_honba_each_value"]
+
+[[case]]
+key = "yakuman.tenhou_win_tile"
+value = "drawn"
+tests = ["mj-core::tenhou_win_tile_drawn_and_best"]
+
+[[case]]
+key = "yakuman.tenhou_win_tile"
+value = "best"
+tests = ["mj-core::tenhou_win_tile_drawn_and_best"]

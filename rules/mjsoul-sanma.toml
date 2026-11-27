@@ -6,41 +6,21 @@
 #
 # M4：雀魂公式のルール説明（共通基本ルール・共通詳細ルール・三人麻雀）。オーナーが 2026-11-26 に貼り付けたもの。
 #
-# 全項目に値を書く（D-025）。公式で確認できた項目と本PJの値以外は「# 仮」で、天鳳三麻（rules/tenhou-sanma.toml）と
-# 同じ値を仮に入れてある。雀魂のルールとして確認した値ではない（meta.provisional）。
+# オーナー確認（2026-11-28）：M4 にない項目の質問票への回答と、カタログで表せなかったルール（I-1〜I-4）の回答。
+#
+# 全項目に値を書く（D-025）。公式・オーナー確認・本PJの値のどれでもない値は「# 仮」（meta.provisional）。
 # 確認は質問票 docs/spec/RULES_QUESTIONS_MJSOUL.md で行う。
 
 [meta]
 id = "mjsoul-sanma"
 name = "雀魂三麻相当（段位戦 三人麻雀）"
 provisional = [
-    "table.length",
-    "points.honba_ron",
-    "points.honba_tsumo_each",
-    "points.noten_penalty_total",
-    "points.riichi_deposit",
-    "points.kiriage_mangan",
-    "points.kazoe_yakuman",
-    "tiles.red_fives.p",
-    "tiles.red_fives.s",
-    "wall.dora_indicator_slots",
-    "wall.dead_wall",
-    "calls.kuikae",
-    "calls.haitei_call",
-    "riichi.no_deposit_on_deal_in",
-    "kita.mandatory",
-    "kita.after_pon",
-    "kita.after_riichi",
-    "kita.ron_on_discard",
-    "kita.dora_per_kita",
-    "draws.keishiki_tenpai",
-    "draws.noten_declaration",
-    "yakuman.double_special",
+    "yakuman.pao_tsumo_honba",
 ]
 
 [table]
 num_players = 3                          # M1〜M3（三人麻雀）
-length = "hanchan"                       # 仮
+length = "hanchan"                       # オーナー確認（2026-11-28）質問票 Q1
 extension = "sudden_death"               # M4「以降サドンデスルールで終了」
 extension_threshold = 40000              # M4 三人麻雀「一位必要点数：40000」
 extension_threshold_counts_kyotaku = false # M4「一位必要点数(供託未収)以上になった時点で終了」
@@ -56,60 +36,60 @@ starting = 35000                         # M4「配原：35000」
 returning = 35000                        # M4「35000点開始の35000点返し」
 uma = [15000, 0, -15000]                 # M4「ウマ15-0-15（順位ウマのみ）」
 tsumo_payment = "loss"                   # M1「三人麻雀段位戦ではツモ損が有効です」
-honba_ron = 1000                         # 仮
-honba_tsumo_each = 500                   # 仮
-noten_penalty_total = 2000               # 仮
-riichi_deposit = 1000                    # 仮
-kiriage_mangan = false                   # 仮
-kazoe_yakuman = true                     # 仮
+honba_ron = 300                          # オーナー確認（2026-11-28）質問票 Q2
+honba_tsumo_each = 100                   # オーナー確認（2026-11-28）質問票 Q3
+noten_penalty_total = 2000               # オーナー確認（2026-11-28）質問票 Q4
+riichi_deposit = 1000                    # オーナー確認（2026-11-28）質問票 Q5
+kiriage_mangan = false                   # オーナー確認（2026-11-28）質問票 Q6
+kazoe_yakuman = true                     # オーナー確認（2026-11-28）質問票 Q7
 min_han = 1                              # M4「常に1飜縛り」
 double_wind_pair_fu = 4                  # M4「連風牌がアタマになった場合は4符」
 rinshan_tsumo_fu = true                  # M4「嶺上開花のツモ時は通常のツモと同じ2符」
 
 [tiles]
 manzu = "terminals_only"                 # M4「二萬～八萬を使用しない」「一萬」→九萬→一萬
-red_fives = { m = 0, p = 1, s = 1 }      # M4「赤ドラ：2枚」。m = 0 は萬子が1m・9mだけなので確定。p・s の内訳（1枚ずつか）は仮
+red_fives = { m = 0, p = 1, s = 1 }      # M4「赤ドラ：2枚」（m = 0 は萬子が1m・9mだけ）＋オーナー確認（2026-11-28）質問票 Q8・Q9（5p・5s 各1）
 
 [wall]
-dora_indicator_slots = 5                 # 仮
-dead_wall = 14                           # 仮
+dora_indicator_slots = 5                 # オーナー確認（2026-11-28）質問票 Q10
+dead_wall = 14                           # オーナー確認（2026-11-28）質問票 Q11
 rinshan_max = 8                          # M4「嶺上牌は8枚」
 
 [calls]
 chi = false                              # M4「チーは禁止」
 kuitan = true                            # M4「喰い断：あり」
 atozuke = true                           # M4「後付け：あり」
-kuikae = "forbidden"                     # 仮
-haitei_call = false                      # 仮
+kuikae = "forbidden"                     # オーナー確認（2026-11-28）質問票 Q12
+haitei_call = false                      # オーナー確認（2026-11-28）質問票 Q13
 max_ron = 2                              # M4 三人麻雀「ダブロンあり」
 multi_ron_deposit = "upstream"           # M4「積み棒/供託は上家取り」
 
 [riichi]
 min_points = 1000                        # M4「持ち点が1000点以上でツモ番がある場合に可能」
-requires_draw = true                     # M4（同上）
+requires_draw = true                     # M4「ツモ番がある場合に可能」＋オーナー確認（2026-11-28）回答F（残り3枚以上）
 furiten_riichi = true                    # M4「フリテンリーチあり」
 ankan_after_riichi = "wait_unchanged"    # M4「待ち牌の種類が変わらない場合のみ。送り槓不可、牌姿や役の増減は不問」
-no_deposit_on_deal_in = true             # 仮
+no_deposit_on_deal_in = true             # オーナー確認（2026-11-28）質問票 Q14
 
 [dora]
 ippatsu = true                           # M4「北を抜いた時点で、一発…の判定が消える」（一発がある前提）
 ura = true                               # M4「槓ドラ/槓裏あり」（裏ドラがある前提）
 kan_dora = true                          # M4「槓ドラ/槓裏あり」
 kan_ura = true                           # M4「槓ドラ/槓裏あり」
-kan_dora_timing = "ankan_immediate"      # M4「暗槓は即乗り、明槓/加槓は後めくり（打牌後または続く槓の直前）」
+kan_dora_timing = "ankan_immediate_after_pass" # M4「暗槓は即乗り、明槓/加槓は後めくり（打牌後または続く槓の直前）」＋オーナー確認（2026-11-28）回答C（ロンされたら乗らない）
 
 [kita]
 mode = "nukidora"                        # M2（抜き北を前提とした説明）
-mandatory = false                        # 仮
-after_pon = false                        # 仮
-after_riichi = "drawn_only"              # 仮
+mandatory = false                        # オーナー確認（2026-11-28）質問票 Q15
+after_pon = false                        # オーナー確認（2026-11-28）質問票 Q16
+after_riichi = "drawn_only"              # オーナー確認（2026-11-28）質問票 Q17
 ron_on_kita = true                       # M2「役がある場合、抜き北に対してロンできます」
-ron_on_discard = true                    # 仮
+ron_on_discard = true                    # オーナー確認（2026-11-28）質問票 Q18
 ron_counts_as_chankan = false            # M2「槍槓の役はつかない仕様」
 breaks_ippatsu = true                    # M4「北を抜いた時点で、一発、ダブルリーチや九種九牌の判定が消える」
 breaks_first_turn = true                 # M4（同上）
 north_as_meld = "otakaze"                # M4「北を面子で使用した場合はオタ風」
-dora_per_kita = 1                        # 仮
+dora_per_kita = 1                        # オーナー確認（2026-11-28）質問票 Q19
 
 [draws]
 kyushu_kyuhai = true                     # M4「途中流局は九種九牌・四槓散了のみ」
@@ -120,15 +100,19 @@ all_ron = false                          # M4「ダブロンあり」（流局�
 abortive_renchan = true                  # M4「すべて連荘」
 nagashi_mangan = true                    # M4「流し満貫あり。聴牌清算を満貫清算に代替。親の聴牌で連荘」
 renchan = "tenpai"                       # M4「ノーテン親流れ、聴牌連荘」
-keishiki_tenpai = true                   # 仮。M4「形式聴牌あり。カラテンの形式は手持ち4枚での単騎待ちのみ不可」はカタログの値で表せない（true は4枚使いの単騎も聴牌、false は役も要る）
-noten_declaration = false                # 仮
+keishiki_tenpai = "no_pure_karaten"      # M4「形式聴牌あり。カラテンの形式は手持ち4枚での単騎待ちのみ不可」＋オーナー確認（2026-11-28）I-1
+noten_declaration = false                # オーナー確認（2026-11-28）質問票 Q21
 
 [yakuman]
 composite = true                         # M4「役満の複合あり」
-double_special = false                   # 仮
+double_special = true                    # オーナー確認（2026-11-28）質問票 Q22
 pao = ["daisangen", "daisuushii"]        # M4「パオ（責任払い）あり（大三元/大四喜のみ）」
 pao_ron_split = true                     # M4「ツモ＝全額・ロン＝折半」
+pao_scope = "pao_yaku_only"              # M4「複合役満の場合にはパオ部分のみ責任払い」＋オーナー確認（2026-11-28）I-3
+pao_honba = "pao"                        # M4「積み棒は包」＋オーナー確認（2026-11-28）I-3（ツモでもロンでも包の人が全額）
+pao_tsumo_honba = "tsumo_total"          # 仮。本場がロン300・ツモ100×2で額が違う。どちらの額かは未確認（質問票）
 kokushi_ron_on_ankan = true              # M4「国士無双の暗槓の槍槓あり」
+tenhou_win_tile = "best"                 # M4「天和発生時は、最も高得点となる牌をツモ牌とする」＋オーナー確認（2026-11-28）I-4
 
 [chips]
 enabled = false                          # オーナー確認（2026-11-26）「雀魂段位には祝儀の概念はない」

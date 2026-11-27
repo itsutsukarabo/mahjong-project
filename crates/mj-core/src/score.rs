@@ -1,10 +1,10 @@
 //! 点数・祝儀の移動（和了・荒牌流局）。局の状態に依らない純粋な計算なので、局進行から切り出してある。
 //!
 //! ルールの項目：`points.tsumo_payment`・`honba_ron`・`honba_tsumo_each`・`noten_penalty_total`、
-//! `yakuman.pao_ron_split`、`chips.*`。
+//! `yakuman.pao_ron_split`・`pao_honba`・`pao_tsumo_honba`、`chips.*`。
 
 use crate::event::ChipItem;
-use crate::rules::{Rules, TsumoPayment};
+use crate::rules::{PaoHonba, PaoTsumoHonba, Rules, TsumoPayment};
 use crate::yaku::{WinResult, Yaku, round_up_100};
 
 /// 支払いの場面
@@ -21,8 +21,10 @@ pub struct PayCtx {
 /// - ツモ：親は子が 基本点 ×2 ずつ、子のツモは親が ×2・子が ×1 を払う（各100点単位に切り上げ）。
 ///   本場は支払う人1人あたり `honba_tsumo_each` × 本場。三麻（いない北家1人分）は `tsumo_payment` に従う：
 ///   `loss` は払わない、`split` はその分を支払う人で等分して上乗せ（100点単位に切り上げ）
-/// - 包（`pao = Some((包の人, 包の役満の基本点))`）：ツモは包の人が全額（その分はロンと同じ倍率）、
-///   ロンは `pao_ron_split` なら半分を包の人が払う（majiang-core と同じ）。ツモの全額が包なら本場も包の人が払う
+/// - 包（`pao = Some((包の人, 責任払いの対象の基本点))`。対象の額は `yakuman.pao_scope` で呼び出し側が決める）：
+///   ツモは対象の額を、ふつうのツモの支払いの合計（ツモ損なら北家の分を除いた額）で包の人が全額払い、
+///   残りの額はふつうのツモとして包の人も含めて分担する。ロンは `pao_ron_split` なら対象の額の半分を包の人が払い、
+///   残りは放銃者が払う。積み棒は `yakuman.pao_honba`・`pao_tsumo_honba`
 /// - `honba_on = false`：本場を払わない（ダブロンの2人目の上家取り、流し満貫）
 pub fn hora_deltas(
     rules: &Rules,
@@ -36,75 +38,98 @@ pub fn hora_deltas(
     let n = usize::from(ctx.n);
     let mut d = vec![0i64; n];
     let wi = usize::from(w);
-    let oya_w = w == ctx.oya;
     let honba = if honba_on { i64::from(ctx.honba) } else { 0 };
-    let mul = if oya_w { 6 } else { 4 };
-    let mut base = base;
+    let mul = if w == ctx.oya { 6 } else { 4 };
     let mut points = 0i64;
-    let mut honba_paid = false;
-    if let Some((ps, full)) = pao {
-        let base2 = match loser {
-            Some(_) if rules.yakuman.pao_ron_split => full / 2,
-            Some(_) => 0,
-            None => full,
-        };
-        if base2 > 0 {
-            base -= base2;
-            let amt = base2 * mul;
-            d[wi] += amt;
-            d[usize::from(ps)] -= amt;
-            points += amt;
-            if base == 0 && loser.is_none() {
-                let h = i64::from(rules.points.honba_ron) * honba;
-                d[wi] += h;
-                d[usize::from(ps)] -= h;
-                honba_paid = true;
-            }
-        }
-    }
-    if base > 0 {
-        match loser {
-            Some(l) => {
-                let amt = round_up_100(base * mul);
-                let h = i64::from(rules.points.honba_ron) * honba;
-                d[wi] += amt + h;
-                d[usize::from(l)] -= amt + h;
-                points += amt;
-                honba_paid = true;
-            }
-            None => {
-                let payers: Vec<usize> = (0..n).filter(|&s| s != wi).collect();
-                let missing = 4 - n; // 三麻でいない北家の人数
-                let missing_share = round_up_100(base * if oya_w { 2 } else { 1 }) * missing as i64;
-                let extra = match rules.points.tsumo_payment {
-                    TsumoPayment::Split if missing > 0 => round_up_100(
-                        (missing_share + payers.len() as i64 - 1) / payers.len() as i64,
-                    ),
-                    _ => 0,
-                };
-                let he = i64::from(rules.points.honba_tsumo_each) * honba;
-                for &ps in &payers {
-                    let share = round_up_100(
-                        base * if oya_w || ps == usize::from(ctx.oya) {
-                            2
-                        } else {
-                            1
-                        },
-                    ) + extra;
-                    d[ps] -= share + he;
-                    d[wi] += share + he;
-                    points += share;
+    let pay = |d: &mut Vec<i64>, from: usize, amt: i64| {
+        d[from] -= amt;
+        d[wi] += amt;
+    };
+    let payers = n - 1;
+    match loser {
+        Some(l) => {
+            let total = round_up_100(base * mul);
+            let pao_amt = match pao {
+                Some((ps, pb)) if rules.yakuman.pao_ron_split => {
+                    let a = round_up_100(pb * mul) / 2;
+                    pay(&mut d, usize::from(ps), a);
+                    a
                 }
-                honba_paid = true;
+                _ => 0,
+            };
+            pay(&mut d, usize::from(l), total - pao_amt);
+            points += total;
+            let h = i64::from(rules.points.honba_ron) * honba;
+            let honba_payer = match pao {
+                Some((ps, _)) if rules.yakuman.pao_honba == PaoHonba::Pao => ps,
+                _ => l,
+            };
+            pay(&mut d, usize::from(honba_payer), h);
+        }
+        None => {
+            let mut rest = base;
+            if let Some((ps, pb)) = pao {
+                let a: i64 = tsumo_shares(rules, ctx, w, pb)
+                    .iter()
+                    .map(|&(_, x)| x)
+                    .sum();
+                pay(&mut d, usize::from(ps), a);
+                points += a;
+                rest -= pb;
+            }
+            if rest > 0 {
+                for (s, x) in tsumo_shares(rules, ctx, w, rest) {
+                    pay(&mut d, s, x);
+                    points += x;
+                }
+            }
+            match pao {
+                Some((ps, _)) if rules.yakuman.pao_honba == PaoHonba::Pao || rest == 0 => {
+                    let h = match rules.yakuman.pao_tsumo_honba {
+                        PaoTsumoHonba::TsumoTotal => {
+                            i64::from(rules.points.honba_tsumo_each) * honba * payers as i64
+                        }
+                        PaoTsumoHonba::RonAmount => i64::from(rules.points.honba_ron) * honba,
+                    };
+                    pay(&mut d, usize::from(ps), h);
+                }
+                _ => {
+                    let he = i64::from(rules.points.honba_tsumo_each) * honba;
+                    for s in (0..n).filter(|&s| s != wi) {
+                        pay(&mut d, s, he);
+                    }
+                }
             }
         }
-    }
-    if !honba_paid && let Some(l) = loser {
-        let h = i64::from(rules.points.honba_ron) * honba;
-        d[wi] += h;
-        d[usize::from(l)] -= h;
     }
     (d.into_iter().map(|x| x as i32).collect(), points)
+}
+
+/// ふつうのツモの支払い（本場を除く）：支払う人ごとの額。
+fn tsumo_shares(rules: &Rules, ctx: PayCtx, w: u8, base: i64) -> Vec<(usize, i64)> {
+    let n = usize::from(ctx.n);
+    let wi = usize::from(w);
+    let oya_w = w == ctx.oya;
+    let payers: Vec<usize> = (0..n).filter(|&s| s != wi).collect();
+    let missing = 4 - n; // 三麻でいない北家の人数
+    let missing_share = round_up_100(base * if oya_w { 2 } else { 1 }) * missing as i64;
+    let extra = match rules.points.tsumo_payment {
+        TsumoPayment::Split if missing > 0 => {
+            round_up_100((missing_share + payers.len() as i64 - 1) / payers.len() as i64)
+        }
+        _ => 0,
+    };
+    payers
+        .into_iter()
+        .map(|ps| {
+            let m = if oya_w || ps == usize::from(ctx.oya) {
+                2
+            } else {
+                1
+            };
+            (ps, round_up_100(base * m) + extra)
+        })
+        .collect()
 }
 
 /// 荒牌流局の聴牌料：ノーテン者が等分して払い、聴牌者が等分して受け取る（全員聴牌・全員ノーテンなら移動なし）。

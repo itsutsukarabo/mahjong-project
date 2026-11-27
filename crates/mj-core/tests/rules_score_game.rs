@@ -113,9 +113,58 @@ fn pao_ron_split_true_and_false() {
     let r = with("[yakuman]\npao_ron_split = false");
     let (d, _) = hora_deltas(&r, CTX, 1, Some(2), 8000, pao, false);
     assert_eq!(d, vec![0, 32000, -32000], "放銃者が全額");
-    // ツモは包の人が全額
+    // ツモは包の人が全額（ツモ損後の合計：親 16000 ＋ 子 8000。オーナー確認 2026-11-28 回答 E）
     let (d, _) = hora_deltas(&sanma(), CTX, 1, None, 8000, pao, false);
-    assert_eq!(d, vec![-32000, 32000, 0]);
+    assert_eq!(d, vec![-24000, 24000, 0]);
+}
+
+#[test]
+fn pao_tsumo_with_tsumo_payment() {
+    // 包のツモ：包の人が払うのは、ふつうのツモの支払いの合計（回答 E）
+    let pao = Some((2u8, 8000));
+    // 子（席1）の役満ツモ。ツモ損なら 24000、折半なら 北家の分 8000 を2人で等分して上乗せ（32000）
+    let (d, _) = hora_deltas(&sanma(), CTX, 1, None, 8000, pao, false);
+    assert_eq!(d, vec![0, 24000, -24000]);
+    let r = with("[points]\ntsumo_payment = 'split'");
+    let (d, _) = hora_deltas(&r, CTX, 1, None, 8000, pao, false);
+    assert_eq!(d, vec![0, 32000, -32000]);
+    // 親（席0）の役満ツモ：ツモ損なら 16000 × 2 = 32000
+    let (d, _) = hora_deltas(&sanma(), CTX, 0, None, 8000, Some((1, 8000)), false);
+    assert_eq!(d, vec![32000, -32000, 0]);
+}
+
+#[test]
+fn pao_honba_pao_and_normal() {
+    let ctx = PayCtx { honba: 2, ..CTX };
+    let pao = Some((0u8, 8000));
+    // ロン（席2 が放銃、包は席0、2本場 = 2000）
+    let (d, _) = hora_deltas(&sanma(), ctx, 1, Some(2), 8000, pao, true);
+    assert_eq!(d, vec![-18000, 34000, -16000], "積み棒は包の人");
+    let r = with("[yakuman]\npao_honba = 'normal'");
+    let (d, _) = hora_deltas(&r, ctx, 1, Some(2), 8000, pao, true);
+    assert_eq!(d, vec![-16000, 34000, -18000], "積み棒は放銃者");
+    // 複合役満のツモ（包の対象は 8000 だけ、基本点 16000）：pao なら積み棒も包の人、normal なら支払う人それぞれ
+    let r = with("[yakuman]\npao_scope = 'pao_yaku_only'");
+    let (d, _) = hora_deltas(&r, ctx, 1, None, 16000, pao, true);
+    // 包の分 24000 ＋ 残りの役満のツモ（親 16000）＋ 積み棒 500 × 2 × 2人
+    assert_eq!(d, vec![-42000, 50000, -8000]);
+    let r = with("[yakuman]\npao_scope = 'pao_yaku_only'\npao_honba = 'normal'");
+    let (d, _) = hora_deltas(&r, ctx, 1, None, 16000, pao, true);
+    assert_eq!(d, vec![-41000, 50000, -9000]);
+}
+
+#[test]
+fn pao_tsumo_honba_each_value() {
+    // 本場の額がロンとツモの合計で違うルール（ロン 300、ツモ 100 × 2人 = 200）
+    let base = "[points]\nhonba_ron = 300\nhonba_tsumo_each = 100\n[yakuman]\npao_tsumo_honba = ";
+    let ctx = PayCtx { honba: 1, ..CTX };
+    let pao = Some((0u8, 8000));
+    let r = with(&format!("{base}'tsumo_total'"));
+    let (d, _) = hora_deltas(&r, ctx, 1, None, 8000, pao, true);
+    assert_eq!(d, vec![-24200, 24200, 0]);
+    let r = with(&format!("{base}'ron_amount'"));
+    let (d, _) = hora_deltas(&r, ctx, 1, None, 8000, pao, true);
+    assert_eq!(d, vec![-24300, 24300, 0]);
 }
 
 fn result(yaku: &[(Yaku, u8, u8)], kazoe: bool) -> WinResult {
@@ -291,6 +340,32 @@ fn extension_none_and_sudden_death_and_threshold() {
         &outcome(&reach, false)
     ));
     assert!(!progress(&r, &mut state(2, 0, &low), &outcome(&low, false)));
+}
+
+#[test]
+fn extension_continues_while_oya_renchan() {
+    // 延長戦（西1局、親は席0）で子の席1 が 41000 に届いても、親が連荘するなら続ける（オーナー確認 2026-11-28 I-2）
+    let s = [32000, 41000, 32000];
+    let mut st = state(2, 0, &s);
+    assert!(!progress(&sanma(), &mut st, &outcome(&s, true)));
+    assert_eq!((st.bakaze, st.kyoku_num, st.oya, st.honba), (2, 0, 0, 1));
+    // 親流れなら終わる
+    assert!(progress(
+        &sanma(),
+        &mut state(2, 0, &s),
+        &outcome(&s, false)
+    ));
+    // 南3局（規定の最後の局、親は席2）でも同じ：子が届いていても親の連荘で続ける
+    let mut st = state(1, 2, &s);
+    assert!(!progress(&sanma(), &mut st, &outcome(&s, true)));
+    assert_eq!((st.bakaze, st.kyoku_num, st.honba), (1, 2, 1));
+    // 和了止め：親が単独トップで終了点数以上なら終わる
+    let top = [32000, 30000, 43000];
+    assert!(progress(
+        &sanma(),
+        &mut state(2, 2, &top),
+        &outcome(&top, true)
+    ));
 }
 
 #[test]

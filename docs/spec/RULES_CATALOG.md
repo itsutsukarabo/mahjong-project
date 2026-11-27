@@ -8,7 +8,7 @@
 - **既定値**はメインのプリセット（天鳳三麻相当、D-011）の値。プリセットはすべての項目に値を書く（`docs/spec/RULES_PRESETS.md`）
 - テスト対応表：`fixtures/rules/coverage.toml`。下の「値」の行ごとに、その分岐を確かめるテストを対応付ける（数値の項目は1つ以上）
 
-項目数：**85**、テスト対応表の行数（項目 × 値）：**156**
+項目数：**89**、テスト対応表の行数（項目 × 値）：**166**
 
 ## A. 対局の形（`table`）
 
@@ -91,7 +91,7 @@
 | `dora.ura` | 裏ドラ | 真偽値 | `true`：立直して和了したら裏ドラを見る<br>`false`：裏ドラなし | `true` | `dora.kan_ura`<br>`chips.values.ura` |
 | `dora.kan_dora` | カンドラ | 真偽値 | `true`：槓のたびにドラ表示牌を1枚めくる<br>`false`：カンドラなし | `true` | `dora.kan_dora_timing`<br>`wall.dora_indicator_slots` |
 | `dora.kan_ura` | カン裏 | 真偽値 | `true`：カンドラの下の裏ドラも見る<br>`false`：裏ドラは最初の1枚だけ | `true` | `dora.ura`<br>`dora.kan_dora` |
-| `dora.kan_dora_timing` | カンドラをめくる時機 | 列挙 | `ankan_immediate`：暗槓はその場でめくる（即乗り）。大明槓・加槓は嶺上ツモの後の打牌（または次の槓）でめくる（後めくり）<br>`all_immediate`：どの槓もその場でめくる<br>`all_delayed`：どの槓も嶺上ツモの後の打牌（または次の槓）でめくる | `"ankan_immediate"` | `dora.kan_dora` |
+| `dora.kan_dora_timing` | カンドラをめくる時機 | 列挙 | `ankan_immediate`：暗槓はその場でめくる（即乗り）。大明槓・加槓は嶺上ツモの後の打牌（または次の槓）でめくる（後めくり）<br>`all_immediate`：どの槓もその場でめくる<br>`all_delayed`：どの槓も嶺上ツモの後の打牌（または次の槓）でめくる<br>`ankan_immediate_after_pass`：暗槓はその場でめくる（即乗り）。大明槓・加槓は嶺上ツモの後の打牌が通った後（ロンがなかった場合。ロンされたらめくらない）、または次の槓の前にめくる | `"ankan_immediate_after_pass"` | `dora.kan_dora` |
 
 ## D. 北（`kita`）
 
@@ -121,7 +121,7 @@
 | `draws.abortive_renchan` | 途中流局の連荘<br>九種九牌・四槓散了・全員立直・四風連打・全員のロンの流局 | 真偽値 | `true`：途中流局は親の連荘（本場を1つ積む）<br>`false`：途中流局は親流れ（本場は積む） | `true` |  |
 | `draws.nagashi_mangan` | 流し満貫<br>本場・供託は動かない。成立したら聴牌料のやりとりはしない（majiang-core と同じ）。連荘の判定はふつうの荒牌流局と同じ | 真偽値 | `true`：荒牌流局のとき、河が么九牌だけで鳴かれていない人は満貫（ツモ和了と同じ払い方）を受け取る<br>`false`：流し満貫なし | `true` | `points.tsumo_payment` |
 | `draws.renchan` | 連荘の条件 | 列挙 | `agari`：和了連荘。親が和了したときだけ連荘（流局なら聴牌でも親流れ）<br>`tenpai`：聴牌連荘。親が和了または流局時に聴牌なら連荘（ノーテンなら親流れ）<br>`always`：流局なら親が聴牌でもノーテンでも連荘 | `"tenpai"` | `table.oorasu_stop` |
-| `draws.keishiki_tenpai` | 形式聴牌<br>荒牌流局の聴牌の判定 | 真偽値 | `true`：役のない聴牌・手の中の4枚目を待つ聴牌も聴牌とする<br>`false`：役のある聴牌で、待ちの牌が残っている場合だけ聴牌とする | `true` | `points.noten_penalty_total` |
+| `draws.keishiki_tenpai` | 形式聴牌<br>荒牌流局の聴牌の判定（聴牌料・連荘・流局時の手牌の公開に使う）。立直できるかの聴牌の判定には使わない | 列挙 | `any`：役のない聴牌も、自分で4枚使っている牌の単騎待ち（5枚目を待つ形）も聴牌とする<br>`no_pure_karaten`：役のない聴牌は聴牌とする。自分で4枚使っている牌しか待ちがない形（4枚使いの単騎待ち）はノーテン<br>`yaku_required`：役のある聴牌で、自分で4枚使っていない待ちがある場合だけ聴牌とする | `"any"` | `points.noten_penalty_total` |
 | `draws.noten_declaration` | ノーテン宣言 | 真偽値 | `true`：荒牌流局のとき、聴牌の人は「ノーテン」と宣言して手牌を伏せられる（聴牌料・連荘はノーテン扱い）<br>`false`：聴牌なら必ず聴牌扱い | `false` | `points.noten_penalty_total` |
 
 ## G. 役満（`yakuman`）
@@ -130,9 +130,13 @@
 |---|---|---|---|---|---|
 | `yakuman.composite` | 役満の複合 | 真偽値 | `true`：複数の役満を足す（ダブル役満など）<br>`false`：役満は1つだけ数える | `true` | `yakuman.double_special` |
 | `yakuman.double_special` | ダブル役満の役 | 真偽値 | `true`：四暗刻単騎・国士無双十三面待ち・純正九蓮宝燈・大四喜を2倍役満にする<br>`false`：すべてシングル役満 | `false` | `yakuman.composite` |
-| `yakuman.pao` | 包（責任払い）の対象<br>包の人はツモなら全額、ロンなら `yakuman.pao_ron_split` に従って払う | 列挙の集合 | `daisangen`：大三元（三元牌の3つ目の刻子・槓子を鳴かせた人が責任を負う）<br>`daisuushii`：大四喜（風牌の4つ目の刻子・槓子を鳴かせた人が責任を負う）<br>`suukantsu`：四槓子（4つ目の槓子を大明槓させた人が責任を負う） | `["daisangen", "daisuushii"]` | `yakuman.pao_ron_split` |
-| `yakuman.pao_ron_split` | 包のロンの払い | 真偽値 | `true`：放銃者と包の人が半分ずつ払う<br>`false`：放銃者が全額払う | `true` | `yakuman.pao` |
+| `yakuman.pao` | 包（責任払い）の対象<br>包の人はツモなら対象の額をツモの支払いの合計（ツモ損なら北家の分を除いた額）で全額、ロンなら `yakuman.pao_ron_split` に従って払う。対象の額は `yakuman.pao_scope` | 列挙の集合 | `daisangen`：大三元（三元牌の3つ目の刻子・槓子を鳴かせた人が責任を負う）<br>`daisuushii`：大四喜（風牌の4つ目の刻子・槓子を鳴かせた人が責任を負う）<br>`suukantsu`：四槓子（4つ目の槓子を大明槓させた人が責任を負う） | `["daisangen", "daisuushii"]` | `yakuman.pao_ron_split`<br>`yakuman.pao_scope`<br>`yakuman.pao_honba` |
+| `yakuman.pao_ron_split` | 包のロンの払い<br>責任払いの対象の額（`yakuman.pao_scope`）について。対象外の額は放銃者が払う | 真偽値 | `true`：放銃者と包の人が半分ずつ払う<br>`false`：放銃者が全額払う | `true` | `yakuman.pao`<br>`yakuman.pao_scope` |
+| `yakuman.pao_scope` | 複合役満の責任払いの範囲<br>包の役満にほかの役満が複合したとき（例：大三元＋字一色） | 列挙 | `full`：包の役満を含む和了の全額が責任払いの対象（複合役満なら全部）<br>`pao_yaku_only`：包の対象の役満の分だけが責任払い。複合したほかの役満の分は通常の和了として払う（ツモなら包の人も分担する） | `"full"` | `yakuman.pao`<br>`yakuman.pao_ron_split` |
+| `yakuman.pao_honba` | 包のときの積み棒 | 列挙 | `pao`：包があれば、ロンでもツモでも積み棒は包の人が全部払う<br>`normal`：積み棒は通常どおり（ロンは放銃者、ツモは支払う人それぞれ）。ただしツモの全額が包の対象なら包の人が払う | `"pao"` | `yakuman.pao_tsumo_honba`<br>`points.honba_ron` |
+| `yakuman.pao_tsumo_honba` | 包の人が払うツモの積み棒の額<br>包の人がツモの積み棒を払うとき（`yakuman.pao_honba = "pao"`、または `normal` でツモの全額が包の対象のとき）の額。本場の額がロン（`points.honba_ron`）とツモの合計で違うルールでだけ差が出る | 列挙 | `tsumo_total`：包の人が払うツモの積み棒は、支払う人全員の分の合計（`points.honba_tsumo_each` × 本場 × 支払う人数）<br>`ron_amount`：包の人が払うツモの積み棒は、ロンと同じ額（`points.honba_ron` × 本場） | `"tsumo_total"` | `yakuman.pao_honba`<br>`points.honba_ron`<br>`points.honba_tsumo_each` |
 | `yakuman.kokushi_ron_on_ankan` | 暗槓への国士無双のロン | 真偽値 | `true`：他家の暗槓に国士無双でロンできる（槍槓）<br>`false`：暗槓にはロンできない | `false` |  |
+| `yakuman.tenhou_win_tile` | 天和の和了牌<br>天和の符・役（四暗刻単騎・国士無双十三面待ち・純正九蓮宝燈など）を数えるときの和了牌。同じ点数なら第1ツモの牌、次に牌の順で先の牌 | 列挙 | `drawn`：天和の和了牌は親の第1ツモの牌<br>`best`：天和は手牌14枚のうち、和了牌とみなしたときに最も高い点数になる牌を和了牌とする | `"best"` | `yakuman.double_special` |
 
 ## H. 祝儀（`chips`、D-013）
 

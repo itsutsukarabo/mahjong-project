@@ -61,7 +61,7 @@ multi_ron_deposit = "upstream"           # 「積み棒/供託は上家取り」
 
 [riichi]
 min_points = 1000                        # 「リーチ宣言は得点が1000点以上でツモ巡がある場合に可能」
-requires_draw = true
+requires_draw = true                     # オーナー確認（2026-11-28）回答F「ツモ山の残りが3枚以上必要（自分のツモ番が少なくとも1回残る）」
 furiten_riichi = true                    # 「振聴リーチあり」
 ankan_after_riichi = "wait_unchanged"    # 「待ちが変わらない場合のみ。送り槓不可、牌姿や役の増減は不問」
 no_deposit_on_deal_in = true             # 「リーチ宣言牌で放銃した場合は供託料は発生しない」
@@ -71,7 +71,7 @@ ippatsu = true                           # 役一覧【懸賞】一発
 ura = true                               # 役一覧【懸賞】裏ドラ
 kan_dora = true                          # 「カンドラ/カン裏あり」
 kan_ura = true
-kan_dora_timing = "ankan_immediate"      # 「暗槓は即乗り、明槓/加槓は後めくり」
+kan_dora_timing = "ankan_immediate_after_pass" # 「暗槓は即乗り、明槓/加槓は後めくり」＋オーナー確認（2026-11-28）回答C「ロンされたらその槓のカンドラは乗らない」
 
 [kita]
 mode = "nukidora"                        # 3人打ち「北は抜きドラ」
@@ -93,9 +93,9 @@ all_riichi = false                       # オーナー（3人全員の立直で
 same_wind_discards = false               # オーナー（第1打が3人とも同じ風牌でも流局しない）
 all_ron = false                          # オーナー（放銃者以外の2人が同時にロンなら両方和了）
 abortive_renchan = true                  # 「すべて連荘」
-nagashi_mangan = true                    # 「流し満貫あり」
+nagashi_mangan = true                    # 「流し満貫あり」＋オーナー確認（2026-11-28）回答D「聴牌料の清算を満貫の清算に代える。連荘は親の聴牌で決める」
 renchan = "tenpai"                       # 「ノーテン親流れ、聴牌連荘」
-keishiki_tenpai = true                   # 「形式聴牌あり。5枚目を待つ聴牌あり」
+keishiki_tenpai = "any"                  # T4「形式聴牌あり。5枚目を待つ聴牌あり」（オーナー確認（2026-11-28）I-1）
 noten_declaration = false                # オーナー（ノーテン宣言なし）
 
 [yakuman]
@@ -103,7 +103,11 @@ composite = true                         # 役一覧「役満は複合あり」
 double_special = false                   # 「四暗刻単騎・国士無双十三面待ち等はすべてシングル役満」
 pao = ["daisangen", "daisuushii"]        # 「大三元/大四喜のパオあり」「四槓子のパオなし」
 pao_ron_split = true                     # 「ツモ＝全額・ロン＝折半」
+pao_scope = "full"                       # オーナー確認（2026-11-28）I-3「複合役満は全額が責任払い」
+pao_honba = "pao"                        # オーナー確認（2026-11-28）I-3「積み棒はツモでもロンでも包の人が全額」
+pao_tsumo_honba = "tsumo_total"          # 本PJ（天鳳三麻は本場のロン1000＝ツモ500×2で、どちらの値でも同じ額）
 kokushi_ron_on_ankan = false             # 「他家が暗槓した牌では国士無双はあがれない」
+tenhou_win_tile = "best"                 # オーナー確認（2026-11-28）I-4「手牌14枚のうち最も高得点になる牌を和了牌とみなす」
 
 [chips]
 enabled = false                          # 雀荘戦の相違点に「祝儀は一発/赤/裏/役満」→ 段位戦はなし

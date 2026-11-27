@@ -232,6 +232,44 @@ fn kan_dora_events(rules: Rules) -> Vec<&'static str> {
 }
 
 #[test]
+fn kan_dora_timing_after_pass_and_ron() {
+    // 席1 が大明槓（中）の後の打牌 1s を席2 にロンされる
+    let s0 = "E E E 1p 2p 3p 4p 5p 6p 7p 8p C 5s";
+    let s1 = "C C C 9m 1p 4p 8p 2s 6s 9s S W P";
+    let s2 = "2s 3s F F F 5p 6p 7p 7p 8p 9p 9m 9m";
+    let run = |rules: Rules| {
+        let mut k = Scenario::new(rules, &[s0, s1, s2])
+            .draws("E")
+            .rinshan("9s 1s")
+            .kyoku();
+        act(&mut k, 0, "ankan:E");
+        act(&mut k, 0, "dahai:C");
+        act(&mut k, 1, "daiminkan");
+        act(&mut k, 1, "dahai:1s:tsumogiri");
+        act(&mut k, 2, "ron");
+        types(&k)[5..].to_vec()
+    };
+    // 打牌が通らなかったので、大明槓のカンドラはめくらない（オーナー確認 2026-11-28 回答 C）
+    assert_eq!(
+        run(sanma()),
+        vec!["dahai", "daiminkan", "tsumo", "dahai", "hora", "kyoku_end"]
+    );
+    // ankan_immediate：打牌の直後（応答の前）にめくる（majiang-core と同じ）
+    assert_eq!(
+        run(with("[dora]\nkan_dora_timing = 'ankan_immediate'")),
+        vec![
+            "dahai",
+            "daiminkan",
+            "tsumo",
+            "dahai",
+            "dora",
+            "hora",
+            "kyoku_end"
+        ]
+    );
+}
+
+#[test]
 fn dora_kan_dora_true_and_false_and_timing() {
     // 天鳳三麻：暗槓は即乗り、大明槓は後めくり（打牌の後）
     assert_eq!(
@@ -726,19 +764,24 @@ fn renchan_each_value() {
 }
 
 #[test]
-fn keishiki_tenpai_true_and_false() {
-    // 席1：1p を4枚使った単騎（5枚目待ち）。形式聴牌ありなら聴牌
-    let s1 = "1p 1p 1p 1p 5s 6s 7s E E E C C C";
+fn keishiki_tenpai_each_value() {
     let s0 = "9m 9m 2p 4p 8p 2s 6s 9s S W P P F";
-    let run = |rules: Rules| {
+    let run = |s1: &str, v: &str| {
+        let rules = with(&format!("{SHORT}\n[draws]\nkeishiki_tenpai = '{v}'"));
         let mut k = Scenario::new(rules, &[s0, s1, J1]).kyoku();
         auto_to_end(&mut k);
         ryukyoku(&k).tenpai[1]
     };
-    assert!(run(with(SHORT)));
-    assert!(!run(with(&format!(
-        "{SHORT}\n[draws]\nkeishiki_tenpai = false"
-    ))));
+    // 席1：1p を4枚使った単騎（5枚目待ち）だけの形。役（東・中）はある
+    let pure_karaten = "1p 1p 1p 1p 5s 6s 7s E E E C C C";
+    // 席1：役のない聴牌（6s・9s 待ち。東の雀頭は場風なので平和にならない）
+    let no_yaku = "2p 3p 4p 6p 7p 8p 2s 3s 4s 7s 8s E E";
+    assert!(run(pure_karaten, "any"));
+    assert!(!run(pure_karaten, "no_pure_karaten"));
+    assert!(!run(pure_karaten, "yaku_required"));
+    assert!(run(no_yaku, "any"));
+    assert!(run(no_yaku, "no_pure_karaten"));
+    assert!(!run(no_yaku, "yaku_required"));
 }
 
 #[test]
@@ -846,11 +889,63 @@ fn pao_daisangen() {
     let h = last_hora(&k);
     assert!(h.yaku.iter().any(|y| y.yaku == Yaku::Daisangen));
     assert_eq!(h.pao, Some(0));
-    assert_eq!(h.deltas, vec![-32000, 32000, 0], "包の人がツモの全額");
+    // ツモ損の子の役満ツモ（親 16000 ＋ 子 8000）の合計を包の人が払う（オーナー確認 2026-11-28 回答 E）
+    assert_eq!(h.deltas, vec![-24000, 24000, 0], "包の人がツモ損後の合計額");
     let k = daisangen(with("[yakuman]\npao = ['daisuushii']"));
     let h = last_hora(&k);
     assert_eq!(h.pao, None);
     assert_eq!(h.deltas, vec![-16000, 24000, -8000]);
+}
+
+#[test]
+fn pao_scope_full_and_pao_yaku_only() {
+    // 席1 が 白（席0から）・發（席2から）・中（席0から）をポンし、東の暗刻と南の単騎で大三元＋字一色をツモ
+    let s0 = "P C 9m 2p 6p 9p 3s 7s S W 1s 2s 6s";
+    let s1 = "P P F F C C E E E S 9m 9s 5p";
+    let s2 = "F 1m 1p 5p 7p 3s 4s 8s S W 9p 1s N";
+    let run = |rules: Rules| {
+        let mut k = Scenario::new(rules, &[s0, s1, s2])
+            .draws("8s 6p 8p 7p 7s 4s S")
+            .kyoku();
+        act(&mut k, 0, "dahai:P");
+        act(&mut k, 1, "pon:P,P");
+        act(&mut k, 1, "dahai:9m");
+        act(&mut k, 2, "dahai:F");
+        act(&mut k, 1, "pon:F,F");
+        act(&mut k, 1, "dahai:9s");
+        assert!(auto_until_seat(&mut k, 0));
+        act(&mut k, 0, "dahai:C");
+        act(&mut k, 1, "pon:C,C");
+        act(&mut k, 1, "dahai:5p");
+        assert!(auto_until_seat(&mut k, 1));
+        act(&mut k, 1, "tsumo");
+        let h = last_hora(&k);
+        assert_eq!((h.yakuman, h.pao), (2, Some(0)));
+        h.deltas.clone()
+    };
+    // 天鳳：全額（ツモ損のダブル役満ツモ 32000 ＋ 16000）を包の人
+    assert_eq!(run(sanma()), vec![-48000, 48000, 0]);
+    // 雀魂：大三元の分 24000 を包の人、字一色の分はふつうのツモ（親 16000・子 8000）
+    assert_eq!(
+        run(with("[yakuman]\npao_scope = 'pao_yaku_only'")),
+        vec![-40000, 48000, -8000]
+    );
+}
+
+#[test]
+fn tenhou_win_tile_drawn_and_best() {
+    // 親（席0）の天和：四暗刻。1p をツモって 1p の刻子が完成（シャンポン形）、W は雀頭
+    let s0 = "1p 1p 2s 2s 2s 9s 9s 9s E E E W W";
+    let run = |rules: Rules| {
+        let mut k = Scenario::new(rules, &[s0, J1, J2]).draws("1p").kyoku();
+        act(&mut k, 0, "tsumo");
+        let h = last_hora(&k);
+        (h.pai.to_string(), h.yakuman)
+    };
+    let dbl = "[yakuman]\ndouble_special = true\ntenhou_win_tile = ";
+    // best：W を和了牌とみなすと四暗刻単騎（2倍）＋天和
+    assert_eq!(run(with(&format!("{dbl}'best'"))), ("W".into(), 3));
+    assert_eq!(run(with(&format!("{dbl}'drawn'"))), ("1p".into(), 2));
 }
 
 #[test]

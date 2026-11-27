@@ -252,6 +252,7 @@ rule_enum! {
         AnkanImmediate = "ankan_immediate" => "暗槓はその場でめくる（即乗り）。大明槓・加槓は嶺上ツモの後の打牌（または次の槓）でめくる（後めくり）",
         AllImmediate = "all_immediate" => "どの槓もその場でめくる",
         AllDelayed = "all_delayed" => "どの槓も嶺上ツモの後の打牌（または次の槓）でめくる",
+        AnkanImmediateAfterPass = "ankan_immediate_after_pass" => "暗槓はその場でめくる（即乗り）。大明槓・加槓は嶺上ツモの後の打牌が通った後（ロンがなかった場合。ロンされたらめくらない）、または次の槓の前にめくる",
     }
 }
 
@@ -305,8 +306,16 @@ pub struct DrawRules {
     pub abortive_renchan: bool,
     pub nagashi_mangan: bool,
     pub renchan: Renchan,
-    pub keishiki_tenpai: bool,
+    pub keishiki_tenpai: KeishikiTenpai,
     pub noten_declaration: bool,
+}
+
+rule_enum! {
+    KeishikiTenpai {
+        Any = "any" => "役のない聴牌も、自分で4枚使っている牌の単騎待ち（5枚目を待つ形）も聴牌とする",
+        NoPureKaraten = "no_pure_karaten" => "役のない聴牌は聴牌とする。自分で4枚使っている牌しか待ちがない形（4枚使いの単騎待ち）はノーテン",
+        YakuRequired = "yaku_required" => "役のある聴牌で、自分で4枚使っていない待ちがある場合だけ聴牌とする",
+    }
 }
 
 rule_enum! {
@@ -324,7 +333,39 @@ pub struct YakumanRules {
     pub double_special: bool,
     pub pao: Vec<PaoYaku>,
     pub pao_ron_split: bool,
+    pub pao_scope: PaoScope,
+    pub pao_honba: PaoHonba,
+    pub pao_tsumo_honba: PaoTsumoHonba,
     pub kokushi_ron_on_ankan: bool,
+    pub tenhou_win_tile: TenhouWinTile,
+}
+
+rule_enum! {
+    PaoScope {
+        Full = "full" => "包の役満を含む和了の全額が責任払いの対象（複合役満なら全部）",
+        PaoYakuOnly = "pao_yaku_only" => "包の対象の役満の分だけが責任払い。複合したほかの役満の分は通常の和了として払う（ツモなら包の人も分担する）",
+    }
+}
+
+rule_enum! {
+    PaoHonba {
+        Pao = "pao" => "包があれば、ロンでもツモでも積み棒は包の人が全部払う",
+        Normal = "normal" => "積み棒は通常どおり（ロンは放銃者、ツモは支払う人それぞれ）。ただしツモの全額が包の対象なら包の人が払う",
+    }
+}
+
+rule_enum! {
+    PaoTsumoHonba {
+        TsumoTotal = "tsumo_total" => "包の人が払うツモの積み棒は、支払う人全員の分の合計（`points.honba_tsumo_each` × 本場 × 支払う人数）",
+        RonAmount = "ron_amount" => "包の人が払うツモの積み棒は、ロンと同じ額（`points.honba_ron` × 本場）",
+    }
+}
+
+rule_enum! {
+    TenhouWinTile {
+        Drawn = "drawn" => "天和の和了牌は親の第1ツモの牌",
+        Best = "best" => "天和は手牌14枚のうち、和了牌とみなしたときに最も高い点数になる牌を和了牌とする",
+    }
 }
 
 rule_enum! {

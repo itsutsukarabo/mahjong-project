@@ -711,6 +711,34 @@ impl Kyoku {
         Some(r)
     }
 
+    /// ツモ和了の和了牌。天和で `yakuman.tenhou_win_tile = "best"` なら、手牌14枚のうち
+    /// 点数（基本点）が最も高くなる牌（同じならツモった牌、次に牌の順で先の牌）。
+    fn tsumo_win_tile(&self, seat: u8, rinshan: bool) -> Tile {
+        let drawn = self.drawn.expect("drawn");
+        if self.rules.yakuman.tenhou_win_tile != TenhouWinTile::Best {
+            return drawn;
+        }
+        let p = &self.players[usize::from(seat)];
+        let eval = |t: Tile| self.evaluate_win(seat, &p.c, t, true, rinshan, false, false);
+        let Some(first) = eval(drawn) else {
+            return drawn;
+        };
+        if !first.yaku.iter().any(|i| i.yaku == Yaku::Tenhou) {
+            return drawn;
+        }
+        let mut best = (first.base, drawn);
+        let mut tiles = p.tiles();
+        tiles.dedup();
+        for t in tiles {
+            if let Some(r) = eval(t)
+                && r.base > best.0
+            {
+                best = (r.base, t);
+            }
+        }
+        best.1
+    }
+
     /// 後付けなし：13枚の形のすべての待ちで、手の形・場風・自風だけで役が付くか
     fn all_waits_have_yaku(&self, seat: u8, hand: &KindCounts, win: Tile) -> bool {
         let p = &self.players[usize::from(seat)];
@@ -1140,7 +1168,7 @@ impl Kyoku {
     fn apply_turn(&mut self, actor: u8, a: Action, rinshan: bool) {
         match a {
             Action::Tsumo => {
-                let t = self.drawn.expect("drawn");
+                let t = self.tsumo_win_tile(actor, rinshan);
                 self.hora(&[actor], None, t, rinshan, false, false);
             }
             Action::Kyushu => self.abortive("kyushu_kyuhai", Some(actor)),
@@ -1193,7 +1221,10 @@ impl Kyoku {
             pai: tile,
             tsumogiri,
         });
-        self.flush_pending_dora();
+        // 後めくりのカンドラ：打牌の直後（ankan_immediate_after_pass なら打牌が通った後。resolve_respond）
+        if self.rules.dora.kan_dora_timing != KanDoraTiming::AnkanImmediateAfterPass {
+            self.flush_pending_dora();
+        }
         self.phase = Phase::Respond {
             kind: RespondKind::Discard,
             actor,
@@ -1209,7 +1240,9 @@ impl Kyoku {
         let immediate = match self.rules.dora.kan_dora_timing {
             KanDoraTiming::AllImmediate => true,
             KanDoraTiming::AllDelayed => false,
-            KanDoraTiming::AnkanImmediate => kind == MeldKind::Ankan,
+            KanDoraTiming::AnkanImmediate | KanDoraTiming::AnkanImmediateAfterPass => {
+                kind == MeldKind::Ankan
+            }
         };
         if immediate {
             self.reveal_dora();
@@ -1383,6 +1416,8 @@ impl Kyoku {
                 if riichi_pending {
                     self.accept_riichi(actor);
                 }
+                // 打牌が通ったので、残っている後めくりのカンドラをめくる（ankan_immediate_after_pass）
+                self.flush_pending_dora();
                 // 途中流局
                 if self.rules.draws.all_riichi && self.players.iter().all(|p| p.riichi_accepted) {
                     self.abortive("all_riichi", None);
@@ -1648,7 +1683,11 @@ impl Kyoku {
                 PaoYaku::Suukantsu => Yaku::Suukantsu,
             };
             if let Some(item) = r.yaku.iter().find(|i| i.yaku == yk) {
-                return Some((seat, 8000 * i64::from(item.yakuman.min(r.yakuman))));
+                let base = match self.rules.yakuman.pao_scope {
+                    PaoScope::Full => r.base,
+                    PaoScope::PaoYakuOnly => 8000 * i64::from(item.yakuman.min(r.yakuman)),
+                };
+                return Some((seat, base));
             }
         }
         None
@@ -1690,8 +1729,11 @@ impl Kyoku {
         if !agari::is_tenpai(&p.c, closed) {
             return false;
         }
-        if self.rules.draws.keishiki_tenpai {
-            return true;
+        match self.rules.draws.keishiki_tenpai {
+            KeishikiTenpai::Any => return true,
+            // 4枚使いの単騎待ちだけの形を除く（p.waits は手の中に4枚ある種類を含まない）
+            KeishikiTenpai::NoPureKaraten => return p.waits != 0,
+            KeishikiTenpai::YakuRequired => {}
         }
         // 役のある聴牌で、待ちの牌が残っている（自分で4枚使っていない）
         agari::mask_kinds(p.waits).any(|w| {

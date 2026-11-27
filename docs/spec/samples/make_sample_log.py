@@ -23,7 +23,7 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 GAME_ID = "g-20261122-000001"
-FORMAT_VERSION = "0.3"
+FORMAT_VERSION = "0.4"
 HIDDEN = "?"
 
 KINDS = ([f"{n}m" for n in range(1, 10)] + [f"{n}p" for n in range(1, 10)]

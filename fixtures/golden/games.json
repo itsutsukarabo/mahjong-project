@@ -1,5 +1,5 @@
 {
-  "format_version": "0.3",
+  "format_version": "0.4",
   "games": [
     {
       "name": "sanma-hanchan-1",
@@ -8,8 +8,8 @@
       "steps": 530,
       "hora": 7,
       "ryukyoku": 4,
-      "bytes": 133123,
-      "sha256": "e4a1963a45810470ab8de5066304d02059aab62ce2d555f0a3c40bf8d15a298d"
+      "bytes": 133229,
+      "sha256": "d1568276ba8bb81c4d0a7cfc781c69ae11184b257dbbc48a9a210a566688c32b"
     },
     {
       "name": "sanma-hanchan-2",
@@ -18,8 +18,8 @@
       "steps": 448,
       "hora": 6,
       "ryukyoku": 3,
-      "bytes": 114174,
-      "sha256": "0ead83ed187b7e3bdc7a21c67a688e4673cb7ebc4cadb586d318a16d31166c51"
+      "bytes": 114280,
+      "sha256": "ca7558d59414bd9335690b8619ccbadac0f777e36b2cf4aa2911f039a61316c9"
     },
     {
       "name": "sanma-tonpuu-3",
@@ -28,8 +28,8 @@
       "steps": 103,
       "hora": 3,
       "ryukyoku": 0,
-      "bytes": 29947,
-      "sha256": "fe4f55b07ee256136a1694df7ac61ab5bfa17c17fa3e3daeba5ec320cff79fed"
+      "bytes": 30053,
+      "sha256": "5b114e28412ea39f52befeb47208ba3e9d6ba47ecd767b13fec2a3086a095166"
     },
     {
       "name": "sanma-single-4",
@@ -38,8 +38,8 @@
       "steps": 31,
       "hora": 1,
       "ryukyoku": 0,
-      "bytes": 9965,
-      "sha256": "2a69e6c1173e05cdf439c0e859f880b5326b20827dd100b6391b8b2822289f8e"
+      "bytes": 10071,
+      "sha256": "9051aa253a2464b82e1e6cb3bb3b75e55145ba5340db03493bfe0884d5390444"
     },
     {
       "name": "yonma-hanchan-1",
@@ -48,8 +48,8 @@
       "steps": 960,
       "hora": 8,
       "ryukyoku": 5,
-      "bytes": 206865,
-      "sha256": "6411aef31ebae222f39a774865101b0eb3e55619ca6231fac9fcb6773f8147d4"
+      "bytes": 206973,
+      "sha256": "9f6f0fe86abd3809fb68c6bb64afa3a9afb271ed955514d63b4bb4de3ac5433c"
     }
   ]
 }

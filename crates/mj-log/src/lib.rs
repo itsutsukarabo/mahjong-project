@@ -1,4 +1,4 @@
-//! 牌譜（`docs/spec/LOG_FORMAT.md` v0.3）の読み書き・検証・情報の秘匿（redact）。
+//! 牌譜（`docs/spec/LOG_FORMAT.md` v0.4）の読み書き・検証・情報の秘匿（redact）。
 //!
 //! 検証と変換は `serde_json::Value` の上で行う。エンジン（`mj-core`）の型付きのイベントから
 //! 牌譜を作るのは [`write`]。
@@ -14,7 +14,7 @@ use std::fmt;
 pub mod replay;
 pub mod write;
 
-pub const FORMAT_VERSION: &str = "0.3";
+pub const FORMAT_VERSION: &str = "0.4";
 pub const HIDDEN: &str = "?";
 
 #[derive(Debug, Clone, PartialEq, Eq)]

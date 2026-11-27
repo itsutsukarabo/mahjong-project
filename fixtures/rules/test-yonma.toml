@@ -92,7 +92,7 @@ all_ron = true
 abortive_renchan = true
 nagashi_mangan = true
 renchan = "tenpai"
-keishiki_tenpai = true
+keishiki_tenpai = "any"
 noten_declaration = false
 
 [yakuman]
@@ -100,7 +100,11 @@ composite = true
 double_special = true
 pao = ["daisangen", "daisuushii", "suukantsu"]
 pao_ron_split = true
+pao_scope = "pao_yaku_only"              # majiang-core（包の役満の分だけ。lib/hule.js の base2）
+pao_honba = "normal"                     # majiang-core（ロンは放銃者、包の役満だけのツモは包の人）
+pao_tsumo_honba = "tsumo_total"          # 四麻はロン300＝ツモ100×3で同じ額
 kokushi_ron_on_ankan = false
+tenhou_win_tile = "drawn"                # majiang-core（和了牌はツモった牌）
 
 [chips]
 enabled = false
