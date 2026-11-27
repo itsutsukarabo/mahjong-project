@@ -20,6 +20,7 @@ extension = "sudden_death"               # 4人打ち「東南戦の西入あり
 extension_threshold = 40000              # オーナー（2026-11-26 訂正：三人打ちは40000点以上の人が出たら終了）
 extension_threshold_counts_kyotaku = false  # オーナー（供託は判定に含めない）
 extension_last_wind = "west"             # 「最大局数=…三南:西3局」
+extension_renchan = "continue"  # オーナー確認（2026-11-28）I-2「延長戦中も親が連荘するときは続ける」
 oorasu_stop = "auto"                     # 「ラス親トップの自動和了り止め、自動聴牌止めあり」
 tobi = "below_zero"                      # 「点数がマイナスで飛び終了…0点は続行」
 tobi_single_kyoku = "none"               # 本PJ D-012

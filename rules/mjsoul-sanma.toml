@@ -25,6 +25,7 @@ extension = "sudden_death"               # M4「以降サドンデスルール�
 extension_threshold = 40000              # M4 三人麻雀「一位必要点数：40000」
 extension_threshold_counts_kyotaku = false # M4「一位必要点数(供託未収)以上になった時点で終了」
 extension_last_wind = "west"             # M4「半荘戦では西場まで（北入なし）」（東風戦なら south）
+extension_renchan = "continue"  # M4「ダブロンで親の連荘がある場合は連荘を優先」＋オーナー確認（2026-11-28）I-2
 oorasu_stop = "auto"                     # M4「ラス親トップかつ一位必要点数以上所持の場合の自動和了り止め、自動聴牌止めあり」
 tobi = "below_zero"                      # M4「点数がマイナスで飛び終了…0点は続行」
 tobi_single_kyoku = "none"               # 本PJ D-012

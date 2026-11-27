@@ -6,8 +6,9 @@
 //! - 規定の最後の局が親流れで終わったとき：`table.extension = none` なら終了。`sudden_death` なら、
 //!   終了点数（`table.extension_threshold`、`extension_threshold_counts_kyotaku` ならトップに供託を足して判定）
 //!   以上の人がいれば終了、いなければ次の場（延長戦）へ
-//! - 延長戦では、親流れの局の終わりに終了点数以上の人がいれば終了（親が連荘するときは続ける。オーナー確認 2026-11-28 I-2）。`table.extension_last_wind` の最後の局が親流れで終われば終了
-//! - 和了止め・聴牌止め（`table.oorasu_stop = auto`）：規定の最後の局か延長戦の局で親が連荘したとき、
+//! - 延長戦では、親流れの局の終わりに終了点数以上の人がいれば終了。親が連荘するときは `table.extension_renchan`
+//!   （`continue` なら続ける。オーナー確認 2026-11-28 I-2）。`table.extension_last_wind` の最後の局が親流れで終われば終了
+//! - 和了止め・聴牌止め（`table.oorasu_stop = auto`）：規定の最後の局か延長戦の局で親が和了・聴牌で連荘したとき（途中流局の連荘は除く）、
 //!   親が単独トップ（同点は起家に近い席が上）で、延長戦ありなら親が終了点数以上なら終了
 //!
 //! 精算（[`settle`]）：残った供託（`table.leftover_kyotaku`）→ 順位（同点は起家に近い席が上）→
@@ -131,7 +132,10 @@ pub fn progress(rules: &Rules, st: &mut TableState, o: &KyokuOutcome) -> bool {
     let regular_last = st.bakaze == regular_last_wind && st.kyoku_num + 1 == n;
     let extension_on = t.extension == Extension::SuddenDeath;
     if o.renchan {
-        if (regular_last || in_extension) && t.oorasu_stop == OorasuStop::Auto {
+        // 和了止め・聴牌止め：親の和了・聴牌の連荘だけ（途中流局の連荘では止めない）
+        let by_hora_or_tenpai = o.hora || o.oya_tenpai;
+        if (regular_last || in_extension) && t.oorasu_stop == OorasuStop::Auto && by_hora_or_tenpai
+        {
             let oya = usize::from(st.oya);
             let sole_top = top_seat(&st.scores) == oya;
             let reached = !extension_on || {
@@ -146,8 +150,15 @@ pub fn progress(rules: &Rules, st: &mut TableState, o: &KyokuOutcome) -> bool {
                 return true;
             }
         }
-        // 親が連荘するときは、延長戦の局で誰かが終了点数に届いていても続ける（オーナー確認 2026-11-28 I-2。
-        // 延長戦でない最終局と同じ扱い）。終わるのは和了止め・聴牌止め（上）と飛びだけ
+        // 親が連荘するときは、延長戦の局で誰かが終了点数に届いていても続ける（`continue`。オーナー確認 2026-11-28 I-2。
+        // 延長戦でない最終局と同じ扱い）。`end_if_reached` なら届いた人がいれば終わる
+        if in_extension
+            && extension_on
+            && t.extension_renchan == ExtensionRenchan::EndIfReached
+            && someone_reached(rules, st)
+        {
+            return true;
+        }
         st.honba = o.honba_next;
         return false;
     }

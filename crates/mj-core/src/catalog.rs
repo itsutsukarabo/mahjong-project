@@ -196,10 +196,22 @@ pub const CATALOG: &[Item] = &[
         related: &["table.extension"],
     },
     Item {
+        key: "table.extension_renchan",
+        title: "延長戦の局での親の連荘",
+        kind: Kind::Enum(ExtensionRenchan::VALUES),
+        desc: "延長戦（`table.extension = \"sudden_death\"`）の局で、親が連荘する（和了・聴牌・途中流局）とき。規定の最後の局（南3局など）では、どちらの値でも親の連荘で続ける",
+        default: "\"continue\"",
+        related: &[
+            "table.extension",
+            "table.extension_threshold",
+            "table.oorasu_stop",
+        ],
+    },
+    Item {
         key: "table.oorasu_stop",
         title: "和了止め・聴牌止め",
         kind: Kind::Enum(OorasuStop::VALUES),
-        desc: "最終局（延長戦の局を含む）で親が和了・聴牌したときに終わるかどうか。「終了の条件」は、延長戦ありなら親が終了点数以上であること",
+        desc: "最終局（延長戦の局を含む）で親が和了・聴牌したときに終わるかどうか。「終了の条件」は、延長戦ありなら親が終了点数以上であること。途中流局の連荘では止めない",
         default: "\"auto\"",
         related: &["table.extension_threshold", "draws.renchan"],
     },

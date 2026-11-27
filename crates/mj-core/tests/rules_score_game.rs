@@ -343,7 +343,7 @@ fn extension_none_and_sudden_death_and_threshold() {
 }
 
 #[test]
-fn extension_continues_while_oya_renchan() {
+fn extension_renchan_continue_and_end_if_reached() {
     // 延長戦（西1局、親は席0）で子の席1 が 41000 に届いても、親が連荘するなら続ける（オーナー確認 2026-11-28 I-2）
     let s = [32000, 41000, 32000];
     let mut st = state(2, 0, &s);
@@ -355,6 +355,14 @@ fn extension_continues_while_oya_renchan() {
         &mut state(2, 0, &s),
         &outcome(&s, false)
     ));
+    // end_if_reached（majiang-core の「延長戦方式 = 1」）：届いた人がいれば親の連荘でも終わる
+    let r = with(
+        "[table]
+extension_renchan = 'end_if_reached'",
+    );
+    assert!(progress(&r, &mut state(2, 0, &s), &outcome(&s, true)));
+    // 規定の最後の局（南3局）では end_if_reached でも親の連荘で続ける
+    assert!(!progress(&r, &mut state(1, 2, &s), &outcome(&s, true)));
     // 南3局（規定の最後の局、親は席2）でも同じ：子が届いていても親の連荘で続ける
     let mut st = state(1, 2, &s);
     assert!(!progress(&sanma(), &mut st, &outcome(&s, true)));
@@ -427,6 +435,14 @@ fn oorasu_stop_none_and_auto() {
     let mut st = state(1, 2, &s);
     assert!(!progress(&r, &mut st, &outcome(&s, true)));
     assert_eq!((st.oya, st.honba), (2, 1));
+    // 途中流局（九種九牌など）の連荘では止めない（和了止め・聴牌止めだけ）
+    let mut abortive = outcome(&s, true);
+    abortive.hora = false;
+    abortive.oya_tenpai = false;
+    assert!(!progress(&sanma(), &mut state(1, 2, &s), &abortive));
+    // 流局で親が聴牌なら聴牌止め
+    abortive.oya_tenpai = true;
+    assert!(progress(&sanma(), &mut state(1, 2, &s), &abortive));
     // 親がトップでなければ続く
     let s2 = [45000, 30000, 30000];
     assert!(!progress(

@@ -8,7 +8,7 @@
 - **既定値**はメインのプリセット（天鳳三麻相当、D-011）の値。プリセットはすべての項目に値を書く（`docs/spec/RULES_PRESETS.md`）
 - テスト対応表：`fixtures/rules/coverage.toml`。下の「値」の行ごとに、その分岐を確かめるテストを対応付ける（数値の項目は1つ以上）
 
-項目数：**89**、テスト対応表の行数（項目 × 値）：**166**
+項目数：**90**、テスト対応表の行数（項目 × 値）：**168**
 
 ## A. 対局の形（`table`）
 
@@ -20,7 +20,8 @@
 | `table.extension_threshold` | 終了点数（延長戦に入る・抜ける点数）<br>規定の局数が終わったとき、この点数以上の人がいなければ延長戦に入る。延長戦ではこの点数以上の人が出た局の終わりで終了。和了止め・聴牌止めの「終了の条件」にも使う | 整数 | 0〜1000000（点） | `40000` | `table.extension`<br>`table.extension_threshold_counts_kyotaku`<br>`table.oorasu_stop` |
 | `table.extension_threshold_counts_kyotaku` | 終了点数の判定に供託を含める<br>終了点数（`table.extension_threshold`）に届いたかの判定のしかた | 真偽値 | `true`：場に残っている供託をトップが受け取るものとして持ち点に足してから判定する<br>`false`：持ち点だけで判定する（供託は含めない） | `false` | `table.extension_threshold`<br>`table.leftover_kyotaku` |
 | `table.extension_last_wind` | 延長戦の最後の場<br>延長戦でも、この場の最後の局（三麻は3局、四麻は4局）が終わったら必ず終了する | 列挙 | `east`：東<br>`south`：南<br>`west`：西<br>`north`：北 | `"west"` | `table.extension` |
-| `table.oorasu_stop` | 和了止め・聴牌止め<br>最終局（延長戦の局を含む）で親が和了・聴牌したときに終わるかどうか。「終了の条件」は、延長戦ありなら親が終了点数以上であること | 列挙 | `none`：和了止め・聴牌止めなし（最終局で親が和了・聴牌すれば続行）<br>`auto`：最終局で親が和了または聴牌で終えたとき、親が単独トップで終了の条件を満たしていれば自動で終了する | `"auto"` | `table.extension_threshold`<br>`draws.renchan` |
+| `table.extension_renchan` | 延長戦の局での親の連荘<br>延長戦（`table.extension = "sudden_death"`）の局で、親が連荘する（和了・聴牌・途中流局）とき。規定の最後の局（南3局など）では、どちらの値でも親の連荘で続ける | 列挙 | `continue`：延長戦の局で誰かが終了点数に届いていても、親が連荘するときは続ける（和了止め・聴牌止めと飛びを除く。連荘優先）<br>`end_if_reached`：延長戦の局の終わりに終了点数以上の人がいれば、親が連荘しても終わる | `"continue"` | `table.extension`<br>`table.extension_threshold`<br>`table.oorasu_stop` |
+| `table.oorasu_stop` | 和了止め・聴牌止め<br>最終局（延長戦の局を含む）で親が和了・聴牌したときに終わるかどうか。「終了の条件」は、延長戦ありなら親が終了点数以上であること。途中流局の連荘では止めない | 列挙 | `none`：和了止め・聴牌止めなし（最終局で親が和了・聴牌すれば続行）<br>`auto`：最終局で親が和了または聴牌で終えたとき、親が単独トップで終了の条件を満たしていれば自動で終了する | `"auto"` | `table.extension_threshold`<br>`draws.renchan` |
 | `table.tobi` | 飛び<br>局の終わりに持ち点がこの条件になった人がいたら対局を終える（東風戦・東南戦） | 列挙 | `none`：飛びなし（持ち点がマイナスでも続ける）<br>`below_zero`：誰かの持ち点が0点未満になったら終了（ちょうど0点は続行）<br>`zero_or_below`：誰かの持ち点が0点以下になったら終了 | `"below_zero"` | `table.tobi_single_kyoku` |
 | `table.tobi_single_kyoku` | 1局戦での飛び<br>1局戦（`table.length = "single"`）での飛び。本PJでは飛びなし（D-012）。1局戦は1局で終わるので、飛びは終了の判定ではなく「飛んだ」記録だけに使う | 列挙 | `none`：飛びなし（持ち点がマイナスでも続ける）<br>`below_zero`：誰かの持ち点が0点未満になったら終了（ちょうど0点は続行）<br>`zero_or_below`：誰かの持ち点が0点以下になったら終了 | `"none"` | `table.length`<br>`table.tobi` |
 | `table.tie_break` | 同点のときの順位<br>終了時の持ち点が同じ人の順位とウマ・オカの分け方 | 列挙 | `seat_order`：同点なら起家に近い席（東1局の風順）が上位<br>`split`：同点の人どうしでウマ・オカを等分する（順位は起家に近い方を上として表示） | `"seat_order"` | `points.uma`<br>`points.returning` |

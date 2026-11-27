@@ -17,6 +17,7 @@ extension = "sudden_death"
 extension_threshold = 30000
 extension_threshold_counts_kyotaku = false
 extension_last_wind = "west"
+extension_renchan = "continue"
 oorasu_stop = "auto"
 tobi = "below_zero"
 tobi_single_kyoku = "none"

@@ -63,11 +63,19 @@ pub struct TableRules {
     pub extension_threshold: i32,
     pub extension_threshold_counts_kyotaku: bool,
     pub extension_last_wind: Wind,
+    pub extension_renchan: ExtensionRenchan,
     pub oorasu_stop: OorasuStop,
     pub tobi: Tobi,
     pub tobi_single_kyoku: Tobi,
     pub tie_break: TieBreak,
     pub leftover_kyotaku: LeftoverKyotaku,
+}
+
+rule_enum! {
+    ExtensionRenchan {
+        Continue = "continue" => "延長戦の局で誰かが終了点数に届いていても、親が連荘するときは続ける（和了止め・聴牌止めと飛びを除く。連荘優先）",
+        EndIfReached = "end_if_reached" => "延長戦の局の終わりに終了点数以上の人がいれば、親が連荘しても終わる",
+    }
 }
 
 rule_enum! {

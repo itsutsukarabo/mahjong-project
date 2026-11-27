@@ -836,3 +836,13 @@ tests = ["mj-core::tenhou_win_tile_drawn_and_best"]
 key = "yakuman.tenhou_win_tile"
 value = "best"
 tests = ["mj-core::tenhou_win_tile_drawn_and_best"]
+
+[[case]]
+key = "table.extension_renchan"
+value = "continue"
+tests = ["mj-core::extension_renchan_continue_and_end_if_reached"]
+
+[[case]]
+key = "table.extension_renchan"
+value = "end_if_reached"
+tests = ["mj-core::extension_renchan_continue_and_end_if_reached"]
