@@ -21,7 +21,8 @@
 | `docs/spec/DECISION_POINTS.md` | 判断ポイント（注釈・RL の行動選択の単位）の仕様 |
 | `docs/spec/RULES_CATALOG.md` | ルールの全項目（Rust の定義から生成。キー・値・意味・既定値） |
 | `docs/spec/RULES_PRESETS.md` | ルールプリセット（天鳳三麻・雀魂三麻相当）の値と出典 |
-| `docs/spec/RULES_QUESTIONS_MJSOUL.md` | 雀魂三麻の仮の値を確かめる質問票（オーナーの回答待ち） |
+| `docs/spec/RULES_QUESTIONS_MJSOUL.md` | 雀魂三麻の仮の値を確かめる質問票（残り1問） |
+| `docs/spec/IMPLICIT_RULES_AUDIT.md` | キーのない挙動・確認なしに決めていた挙動の点検 |
 | `docs/spec/SANMA_RULES_DRAFT.md` | 三麻ルールの論点と選択肢 |
 | `docs/spec/REWARD_CONFIG.md` | RL の報酬設定（順位点・係数・正規化・抽選）と段位分布 |
 | `docs/spec/REPO_LAYOUT.md` | リポジトリ構成 |
