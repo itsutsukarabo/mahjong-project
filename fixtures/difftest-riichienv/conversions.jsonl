@@ -1,0 +1,14 @@
+{"rule":"count_aware_13: ours 0 / riichienv 1（4枚使いの単騎待ちだけの聴牌）","tiles":["2p","2p","2p","5p","5p","5p","7p","7p","7p","F","F","F","F"],"ours":{"shanten":0,"waits":[]},"riichienv":{"shanten":1,"waits":[]}}
+{"rule":"count_aware_13: ours 0 / riichienv 1（4枚使いの単騎待ちだけの聴牌）","tiles":["5p","5p","5p","5sr","6s","7s","7s","8s","9s","P","P","P","P"],"ours":{"shanten":0,"waits":[]},"riichienv":{"shanten":1,"waits":[]}}
+{"rule":"count_aware_13: ours 0 / riichienv 1（4枚使いの単騎待ちだけの聴牌）","tiles":["8p","8p","8p","2s","3s","4s","7s","8s","9s","C","C","C","C"],"ours":{"shanten":0,"waits":[]},"riichienv":{"shanten":1,"waits":[]}}
+{"rule":"count_aware_13: ours 0 / riichienv 1（4枚使いの単騎待ちだけの聴牌）","tiles":["6p","7p","8p","1s","1s","1s","1s","4s","4s","4s","4s","5sr","6s"],"ours":{"shanten":0,"waits":[]},"riichienv":{"shanten":1,"waits":[]}}
+{"rule":"count_aware_13: ours n / riichienv n+1 以上（手の中の4枚目を数えない）","tiles":["9m","9m","9m","9m","1p","2p","2p","2p","3p","F","F","F","F"],"ours":{"shanten":1,"waits":[]},"riichienv":{"shanten":2,"waits":[]}}
+{"rule":"count_aware_13: ours n / riichienv n+1 以上（手の中の4枚目を数えない）","tiles":["8p","8p","7s","7s","7s","E","E","E","E","C","C","C","C"],"ours":{"shanten":1,"waits":[]},"riichienv":{"shanten":2,"waits":[]}}
+{"rule":"count_aware_13: ours 0 / riichienv 1（4枚使いの単騎待ちだけの聴牌）","tiles":["1p","1p","1p","1p","6p","6p","6p","6p","7p","8p","P","P","P"],"ours":{"shanten":0,"waits":[]},"riichienv":{"shanten":1,"waits":[]}}
+{"rule":"count_aware_14: 14枚形（1枚切った13枚形の最小）で同じ定義の違い","tiles":["1s","1s","1s","N","N","N","N","P","P","P","C","C","C","C"],"ours":{"shanten":0,"waits":null},"riichienv":{"shanten":1,"waits":null}}
+{"rule":"count_aware_13: ours n / riichienv n+1 以上（手の中の4枚目を数えない）","tiles":["9m","9m","9m","9m","7p","8p","9p","7s","7s","E","E","E","E"],"ours":{"shanten":1,"waits":[]},"riichienv":{"shanten":2,"waits":[]}}
+{"rule":"count_aware_13: ours n / riichienv n+1 以上（手の中の4枚目を数えない）","tiles":["2p","2p","7s","8s","9s","W","W","W","W","F","F","F","F"],"ours":{"shanten":1,"waits":[]},"riichienv":{"shanten":2,"waits":[]}}
+{"rule":"count_aware_13: ours n / riichienv n+1 以上（手の中の4枚目を数えない）","tiles":["9m","9m","9m","9m","1s","2s","3s","6s","6s","S","S","S","S"],"ours":{"shanten":1,"waits":[]},"riichienv":{"shanten":2,"waits":[]}}
+{"rule":"count_aware_14: 14枚形（1枚切った13枚形の最小）で同じ定義の違い","tiles":["4s","4s","4s","6s","6s","6s","N","N","N","N","F","F","F","F"],"ours":{"shanten":0,"waits":null},"riichienv":{"shanten":1,"waits":null}}
+{"rule":"count_aware_14: 14枚形（1枚切った13枚形の最小）で同じ定義の違い","tiles":["1m","1m","1m","7p","7p","7p","7p","5sr","6s","7s","S","S","S","S"],"ours":{"shanten":0,"waits":null},"riichienv":{"shanten":1,"waits":null}}
+{"rule":"count_aware_14: 14枚形（1枚切った13枚形の最小）で同じ定義の違い","tiles":["1s","2s","3s","4s","5sr","6s","E","E","E","E","P","P","P","P"],"ours":{"shanten":0,"waits":null},"riichienv":{"shanten":1,"waits":null}}

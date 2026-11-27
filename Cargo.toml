@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/mj-core", "crates/mj-log", "crates/mj-bots", "tools/difftest-majiang", "tools/rules-catalog"]
+members = ["crates/mj-core", "crates/mj-log", "crates/mj-bots", "tools/difftest-majiang", "tools/difftest-riichienv", "tools/rules-catalog"]
 
 [workspace.package]
 edition = "2024"

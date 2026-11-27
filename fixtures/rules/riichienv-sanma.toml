@@ -1,0 +1,17 @@
+# 三麻の差分テスト（tools/difftest-riichienv）で使うルール。rules/tenhou-sanma.toml に、RiichiEnv 0.4.11
+# （smly/RiichiEnv 0ee1236、riichienv-core の state_3p・score.rs）の三麻の固定値と違う項目を、RiichiEnv に合わせる
+# 上書きだけを書く（プリセットではない）。違う項目の一覧と根拠は docs/research/ENGINE_SURVEY.md §6.2。
+# 天鳳三麻プリセットの値での仕様テストは crates/mj-core/tests/（テスト対応表 fixtures/rules/coverage.toml）。
+
+[table]
+# 差分テストは RiichiEnv の game_mode = "3p-red-single"（1局戦）で回す
+length = "single"
+
+[points]
+# score.rs の calculate_score：本場はロン 100 × (人数 − 1)、ツモは1人 100
+honba_ron = 200
+honba_tsumo_each = 100
+
+[dora]
+# 後めくりのカンドラは打牌の直後（応答の前）にめくる（state_3p の pending_kan_dora_count）
+kan_dora_timing = "ankan_immediate"

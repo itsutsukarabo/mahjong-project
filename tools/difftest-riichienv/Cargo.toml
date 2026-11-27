@@ -1,0 +1,18 @@
+[package]
+name = "difftest-riichienv"
+version = "0.1.0"
+description = "mj-core と RiichiEnv 0.4.11 の三麻の差分テスト（シャンテン数・待ち、和了・点数、北抜きを含む局進行）。RiichiEnv は隔離した venv の Python で動かす（D-010）"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+mj-core.workspace = true
+mj-bots.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rand_chacha.workspace = true
+rand_core.workspace = true
+
+[lints]
+workspace = true
