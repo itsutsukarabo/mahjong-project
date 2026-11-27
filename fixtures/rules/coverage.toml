@@ -846,3 +846,13 @@ tests = ["mj-core::extension_renchan_continue_and_end_if_reached"]
 key = "table.extension_renchan"
 value = "end_if_reached"
 tests = ["mj-core::extension_renchan_continue_and_end_if_reached"]
+
+[[case]]
+key = "dora.kan_dora_on_kita"
+value = "true"
+tests = ["mj-core::kan_dora_on_kita_true_and_false"]
+
+[[case]]
+key = "dora.kan_dora_on_kita"
+value = "false"
+tests = ["mj-core::kan_dora_on_kita_true_and_false"]

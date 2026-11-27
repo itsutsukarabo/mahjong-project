@@ -269,6 +269,69 @@ fn kan_dora_timing_after_pass_and_ron() {
     );
 }
 
+/// 席1 が中を大明槓 → 嶺上牌で北 → 北抜き → 補充の嶺上牌 2s でツモ和了（嶺上開花）。
+/// 夜間 CI（run 46048806189）の RiichiEnv との食い違いを最小にした形（元は加槓。fixtures/difftest-riichienv/regression_games.txt）
+fn kita_after_kan(rules: Rules) -> (Vec<&'static str>, Kyoku) {
+    let s0 = "C 1m 9m 2p 6p 9p 3s 7s S W F F P";
+    let s1 = "C C C 1p 2p 3p 4p 5p 6p 7p 8p 9p 2s";
+    let s2 = "1m 1m 9m 3p 4p 8p 3s 7s S W F F E";
+    let mut k = Scenario::new(rules, &[s0, s1, s2])
+        .draws("E")
+        .rinshan("N 2s")
+        .kyoku();
+    act(&mut k, 0, "dahai:C");
+    act(&mut k, 1, "daiminkan");
+    act(&mut k, 1, "kita");
+    act(&mut k, 1, "tsumo");
+    let t = types(&k);
+    let i = t.iter().position(|x| *x == "daiminkan").unwrap();
+    (t[i..].to_vec(), k)
+}
+
+#[test]
+fn kan_dora_on_kita_true_and_false() {
+    // true（天鳳三麻・雀魂三麻、オーナー確認 2026-11-28）：北抜きの補充の嶺上ツモの直前にめくる
+    let (t, k) = kita_after_kan(sanma());
+    assert_eq!(
+        t,
+        vec![
+            "daiminkan",
+            "tsumo",
+            "kita",
+            "dora",
+            "tsumo",
+            "hora",
+            "kyoku_end"
+        ]
+    );
+    let with_dora = last_hora(&k).points;
+    // false：北抜きではめくらない（和了で局が終わるので、その槓のカンドラはめくられない）
+    let (t, k) = kita_after_kan(with("[dora]\nkan_dora_on_kita = false"));
+    assert_eq!(
+        t,
+        vec!["daiminkan", "tsumo", "kita", "tsumo", "hora", "kyoku_end"]
+    );
+    let without = last_hora(&k).points;
+    assert!(with_dora >= without);
+}
+
+#[test]
+fn kan_dora_not_revealed_on_rinshan_kaihou() {
+    // 大明槓の直後の嶺上ツモで和了：その槓のカンドラはめくらない（オーナー確認 2026-11-28）
+    let s0 = "C 1m 9m 2p 6p 9p 3s 7s S W F F P";
+    let s1 = "C C C 1p 2p 3p 4p 5p 6p 7p 8p 9p 2s";
+    let s2 = "1m 1m 9m 3p 4p 8p 3s 7s S W F F E";
+    let mut k = Scenario::new(sanma(), &[s0, s1, s2])
+        .draws("E")
+        .rinshan("2s")
+        .kyoku();
+    act(&mut k, 0, "dahai:C");
+    act(&mut k, 1, "daiminkan");
+    act(&mut k, 1, "tsumo");
+    assert!(!types(&k).contains(&"dora"));
+    assert!(last_hora(&k).yaku.iter().any(|y| y.yaku == Yaku::Rinshan));
+}
+
 #[test]
 fn dora_kan_dora_true_and_false_and_timing() {
     // 天鳳三麻：暗槓は即乗り、大明槓は後めくり（打牌の後）

@@ -123,6 +123,10 @@ fn main() {
     let mut cases: usize = 20_000;
     let mut hora_n: Option<usize> = None;
     let mut game_n: Option<usize> = None;
+    // 1局だけ回す（失敗した局の再現用。summary の game_seed を渡す）
+    let mut only_game: Option<u64> = None;
+    // 回帰用の局（fixtures/difftest-riichienv/regression_games.txt）を足す
+    let mut seeds_file: Option<PathBuf> = None;
     let mut seed: u64 = 20_261_128;
     let mut random_seed = false;
     let mut out_dir: Option<PathBuf> = None;
@@ -136,6 +140,8 @@ fn main() {
             "--cases" => cases = val().parse().unwrap(),
             "--hora-cases" => hora_n = Some(val().parse().unwrap()),
             "--game-cases" => game_n = Some(val().parse().unwrap()),
+            "--game-seed" => only_game = Some(val().parse().unwrap()),
+            "--game-seeds-file" => seeds_file = Some(PathBuf::from(val())),
             "--seed" => seed = val().parse().unwrap(),
             "--random-seed" => random_seed = true,
             "--out" => out_dir = Some(PathBuf::from(val())),
@@ -343,8 +349,24 @@ tenhou_win_tile = 'drawn'",
     let mut game_excluded: BTreeMap<String, u64> = BTreeMap::new();
     let mut game_items: BTreeMap<String, u64> = BTreeMap::new();
     let mut game_failures: Vec<Value> = Vec::new();
-    for gi in 0..game_n {
-        let gseed = (seed ^ 0x67616d65).wrapping_add(gi as u64) % (1 << 62);
+    let mut game_seeds: Vec<u64> = match only_game {
+        Some(g) => vec![g],
+        None => (0..game_n)
+            .map(|gi| (seed ^ 0x67616d65).wrapping_add(gi as u64) % (1 << 62))
+            .collect(),
+    };
+    let mut regression = 0u64;
+    if let Some(f) = &seeds_file {
+        let text = std::fs::read_to_string(f).unwrap_or_else(|e| panic!("{}: {e}", f.display()));
+        for line in text.lines() {
+            let v = line.split('#').next().unwrap_or("").trim();
+            if !v.is_empty() {
+                game_seeds.push(v.parse().unwrap_or_else(|e| panic!("{v}: {e}")));
+                regression += 1;
+            }
+        }
+    }
+    for (gi, &gseed) in game_seeds.iter().enumerate() {
         let o = game::run(&mut h, &rules, gseed, &format!("g{gi}"));
         game_decisions += o.decisions;
         if let Some(r) = &o.excluded {
@@ -385,6 +407,7 @@ tenhou_win_tile = 'drawn'",
         "hora_yaku": hora_yaku,
         "games": games,
         "game_decisions_compared": game_decisions,
+        "game_regression_seeds": regression,
         "game_excluded": game_excluded,
         "game_ends": game_ends,
         "game_mismatch_items": game_items,

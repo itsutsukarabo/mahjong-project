@@ -1465,7 +1465,14 @@ impl Kyoku {
                 let next = self.next_seat(actor);
                 self.draw(next, false);
             }
-            RespondKind::Kakan | RespondKind::Kita | RespondKind::Ankan => {
+            RespondKind::Kakan | RespondKind::Ankan => {
+                self.draw(actor, true);
+            }
+            RespondKind::Kita => {
+                // 北抜きが通ったら、補充の嶺上牌をツモる直前に後めくりのカンドラをめくる（オーナー確認 2026-11-28）
+                if self.rules.dora.kan_dora_on_kita {
+                    self.flush_pending_dora();
+                }
                 self.draw(actor, true);
             }
         }

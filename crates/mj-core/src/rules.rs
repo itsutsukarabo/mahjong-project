@@ -253,6 +253,7 @@ pub struct DoraRules {
     pub kan_dora: bool,
     pub kan_ura: bool,
     pub kan_dora_timing: KanDoraTiming,
+    pub kan_dora_on_kita: bool,
 }
 
 rule_enum! {

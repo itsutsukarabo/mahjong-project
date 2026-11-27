@@ -8,7 +8,7 @@
 - **既定値**はメインのプリセット（天鳳三麻相当、D-011）の値。プリセットはすべての項目に値を書く（`docs/spec/RULES_PRESETS.md`）
 - テスト対応表：`fixtures/rules/coverage.toml`。下の「値」の行ごとに、その分岐を確かめるテストを対応付ける（数値の項目は1つ以上）
 
-項目数：**90**、テスト対応表の行数（項目 × 値）：**168**
+項目数：**91**、テスト対応表の行数（項目 × 値）：**170**
 
 ## A. 対局の形（`table`）
 
@@ -92,7 +92,8 @@
 | `dora.ura` | 裏ドラ | 真偽値 | `true`：立直して和了したら裏ドラを見る<br>`false`：裏ドラなし | `true` | `dora.kan_ura`<br>`chips.values.ura` |
 | `dora.kan_dora` | カンドラ | 真偽値 | `true`：槓のたびにドラ表示牌を1枚めくる<br>`false`：カンドラなし | `true` | `dora.kan_dora_timing`<br>`wall.dora_indicator_slots` |
 | `dora.kan_ura` | カン裏 | 真偽値 | `true`：カンドラの下の裏ドラも見る<br>`false`：裏ドラは最初の1枚だけ | `true` | `dora.ura`<br>`dora.kan_dora` |
-| `dora.kan_dora_timing` | カンドラをめくる時機 | 列挙 | `ankan_immediate`：暗槓はその場でめくる（即乗り）。大明槓・加槓は嶺上ツモの後の打牌（または次の槓）でめくる（後めくり）<br>`all_immediate`：どの槓もその場でめくる<br>`all_delayed`：どの槓も嶺上ツモの後の打牌（または次の槓）でめくる<br>`ankan_immediate_after_pass`：暗槓はその場でめくる（即乗り）。大明槓・加槓は嶺上ツモの後の打牌が通った後（ロンがなかった場合。ロンされたらめくらない）、または次の槓の前にめくる | `"ankan_immediate_after_pass"` | `dora.kan_dora` |
+| `dora.kan_dora_timing` | カンドラをめくる時機 | 列挙 | `ankan_immediate`：暗槓はその場でめくる（即乗り）。大明槓・加槓は嶺上ツモの後の打牌（または次の槓）でめくる（後めくり）<br>`all_immediate`：どの槓もその場でめくる<br>`all_delayed`：どの槓も嶺上ツモの後の打牌（または次の槓）でめくる<br>`ankan_immediate_after_pass`：暗槓はその場でめくる（即乗り）。大明槓・加槓は嶺上ツモの後の打牌が通った後（ロンがなかった場合。ロンされたらめくらない）、または次の槓の前にめくる | `"ankan_immediate_after_pass"` | `dora.kan_dora`<br>`dora.kan_dora_on_kita` |
+| `dora.kan_dora_on_kita` | 北抜きと後めくりのカンドラ<br>北抜きへのロンの判定の後（ロンされたらめくらない）。嶺上開花（槓の直後の嶺上ツモで和了）では、どちらの値でもその槓のカンドラはめくらない | 真偽値 | `true`：大明槓・加槓の後、打牌の前に北抜きをしたら、北抜きの補充の嶺上牌をツモる直前に、残っている後めくりのカンドラをめくる<br>`false`：北抜きではめくらない（打牌が通った後か、次の槓の前まで待つ） | `true` | `dora.kan_dora_timing`<br>`kita.mode` |
 
 ## D. 北（`kita`）
 

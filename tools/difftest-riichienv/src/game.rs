@@ -430,7 +430,8 @@ pub fn run(h: &mut Harness, rules: &Rules, seed: u64, gid: &str) -> GameOutcome 
         if doras(&our_flow(k.events())) != doras(&their_flow(&their_events)) {
             out.mismatch = Some(
                 json!({"item": "kan_dora", "ours": doras(&our_flow(k.events())),
-                                       "riichienv": doras(&their_flow(&their_events))}),
+                                       "riichienv": doras(&their_flow(&their_events)),
+                                       "ours_flow": our_flow(k.events()), "riichienv_flow": their_flow(&their_events)}),
             );
         } else if a != b {
             let i = a

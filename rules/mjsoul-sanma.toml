@@ -78,6 +78,7 @@ ura = true                               # M4「槓ドラ/槓裏あり」（裏�
 kan_dora = true                          # M4「槓ドラ/槓裏あり」
 kan_ura = true                           # M4「槓ドラ/槓裏あり」
 kan_dora_timing = "ankan_immediate_after_pass" # M4「暗槓は即乗り、明槓/加槓は後めくり（打牌後または続く槓の直前）」＋オーナー確認（2026-11-28）回答C（ロンされたら乗らない）
+kan_dora_on_kita = true                  # オーナー確認（2026-11-28）（天鳳三麻と同じ）
 
 [kita]
 mode = "nukidora"                        # M2（抜き北を前提とした説明）

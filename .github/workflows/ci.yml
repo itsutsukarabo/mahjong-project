@@ -95,7 +95,7 @@ jobs:
       - name: difftest vs RiichiEnv (sanma, small, fixed seed)
         shell: bash
         run: |
-          cargo run --release --locked -p difftest-riichienv --             --cases "$DIFFTEST_CASES" --game-cases 200 --seed "$DIFFTEST_SEED"             --python "$RIICHIENV_PYTHON" --out difftest-riichienv-out
+          cargo run --release --locked -p difftest-riichienv --             --cases "$DIFFTEST_CASES" --game-cases 200 --seed "$DIFFTEST_SEED" --game-seeds-file fixtures/difftest-riichienv/regression_games.txt --python "$RIICHIENV_PYTHON" --out difftest-riichienv-out
           {
             echo "### difftest RiichiEnv (${{ matrix.os }})"
             echo '```json'

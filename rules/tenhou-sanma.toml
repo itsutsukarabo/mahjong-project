@@ -73,6 +73,7 @@ ura = true                               # 役一覧【懸賞】裏ドラ
 kan_dora = true                          # 「カンドラ/カン裏あり」
 kan_ura = true
 kan_dora_timing = "ankan_immediate_after_pass" # 「暗槓は即乗り、明槓/加槓は後めくり」＋オーナー確認（2026-11-28）回答C「ロンされたらその槓のカンドラは乗らない」
+kan_dora_on_kita = true                  # オーナー確認（2026-11-28）「北抜きを宣言し、その補充のための嶺上牌をツモる直前にめくる」
 
 [kita]
 mode = "nukidora"                        # 3人打ち「北は抜きドラ」

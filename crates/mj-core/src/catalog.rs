@@ -573,7 +573,18 @@ pub const CATALOG: &[Item] = &[
         kind: Kind::Enum(KanDoraTiming::VALUES),
         desc: "",
         default: "\"ankan_immediate_after_pass\"",
-        related: &["dora.kan_dora"],
+        related: &["dora.kan_dora", "dora.kan_dora_on_kita"],
+    },
+    Item {
+        key: "dora.kan_dora_on_kita",
+        title: "北抜きと後めくりのカンドラ",
+        kind: b(
+            "大明槓・加槓の後、打牌の前に北抜きをしたら、北抜きの補充の嶺上牌をツモる直前に、残っている後めくりのカンドラをめくる",
+            "北抜きではめくらない（打牌が通った後か、次の槓の前まで待つ）",
+        ),
+        desc: "北抜きへのロンの判定の後（ロンされたらめくらない）。嶺上開花（槓の直後の嶺上ツモで和了）では、どちらの値でもその槓のカンドラはめくらない",
+        default: "true",
+        related: &["dora.kan_dora_timing", "kita.mode"],
     },
     // ---- D. kita
     Item {

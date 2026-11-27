@@ -70,6 +70,7 @@ ura = true
 kan_dora = true
 kan_ura = true
 kan_dora_timing = "ankan_immediate"
+kan_dora_on_kita = true
 
 [kita]
 mode = "none"
