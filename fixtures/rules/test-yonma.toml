@@ -56,6 +56,7 @@ kuikae = "forbidden"
 haitei_call = false
 max_ron = 2
 multi_ron_deposit = "upstream"
+furiten_on_yakuless_pass = true
 
 [riichi]
 min_points = 1000

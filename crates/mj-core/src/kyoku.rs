@@ -1393,13 +1393,17 @@ impl Kyoku {
                 rons.push(s);
             }
         }
-        // ロンできたのに見送った席は振聴
-        for &(s, a) in answers {
+        // ロンできたのに見送った席は振聴。`calls.furiten_on_yakuless_pass` なら、和了の形になる牌を見送った席も
+        // （役がなくてロンの選択肢がなかった席を含む。暗槓は除く）
+        for s in (0..n).filter(|&s| s != actor && !rons.contains(&s)) {
             let could = self
                 .options
                 .iter()
                 .any(|(t, c)| *t == s && c.contains(&Action::Ron));
-            if could && a != Action::Ron {
+            let shape = self.rules.calls.furiten_on_yakuless_pass
+                && kind != RespondKind::Ankan
+                && self.players[usize::from(s)].waits & (1 << tile.kind().index()) != 0;
+            if could || shape {
                 let p = &mut self.players[usize::from(s)];
                 if p.riichi.is_some() {
                     p.furiten_riichi = true;
@@ -1407,6 +1411,8 @@ impl Kyoku {
                     p.furiten_temp = true;
                 }
             }
+        }
+        for &(s, a) in answers {
             if a == Action::PassNoten || a == Action::DeclareNoten {
                 self.players[usize::from(s)].declared_noten = true;
             }

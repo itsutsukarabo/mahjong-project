@@ -62,6 +62,7 @@ kuikae = "forbidden"                     # オーナー確認（2026-11-28）質
 haitei_call = false                      # オーナー確認（2026-11-28）質問票 Q13
 max_ron = 2                              # M4 三人麻雀「ダブロンあり」
 multi_ron_deposit = "upstream"           # M4「積み棒/供託は上家取り」
+furiten_on_yakuless_pass = true          # オーナー確認（2026-11-28）（天鳳三麻と同じ）
 
 [riichi]
 min_points = 1000                        # M4「持ち点が1000点以上でツモ番がある場合に可能」

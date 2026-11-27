@@ -62,6 +62,8 @@ pub struct Item {
     /// 既定値（TOML の表記）
     pub default: &'static str,
     pub related: &'static [&'static str],
+    /// 打ち方に効くか（観測のルール設定に入れるか。D-042）。全項目に必須
+    pub play: bool,
 }
 
 pub struct Section {
@@ -143,6 +145,7 @@ pub const CATALOG: &[Item] = &[
             "points.tsumo_payment",
             "points.uma",
         ],
+        play: true,
     },
     Item {
         key: "table.length",
@@ -151,6 +154,7 @@ pub const CATALOG: &[Item] = &[
         desc: "規定の局数。1局戦の飛びは `table.tobi_single_kyoku` で決める（D-012）",
         default: "\"hanchan\"",
         related: &["table.extension", "table.tobi_single_kyoku"],
+        play: true,
     },
     Item {
         key: "table.extension",
@@ -163,6 +167,7 @@ pub const CATALOG: &[Item] = &[
             "table.extension_threshold_counts_kyotaku",
             "table.extension_last_wind",
         ],
+        play: true,
     },
     Item {
         key: "table.extension_threshold",
@@ -175,6 +180,7 @@ pub const CATALOG: &[Item] = &[
             "table.extension_threshold_counts_kyotaku",
             "table.oorasu_stop",
         ],
+        play: true,
     },
     Item {
         key: "table.extension_threshold_counts_kyotaku",
@@ -186,6 +192,7 @@ pub const CATALOG: &[Item] = &[
         desc: "終了点数（`table.extension_threshold`）に届いたかの判定のしかた",
         default: "false",
         related: &["table.extension_threshold", "table.leftover_kyotaku"],
+        play: true,
     },
     Item {
         key: "table.extension_last_wind",
@@ -194,6 +201,7 @@ pub const CATALOG: &[Item] = &[
         desc: "延長戦でも、この場の最後の局（三麻は3局、四麻は4局）が終わったら必ず終了する",
         default: "\"west\"",
         related: &["table.extension"],
+        play: true,
     },
     Item {
         key: "table.extension_renchan",
@@ -206,6 +214,7 @@ pub const CATALOG: &[Item] = &[
             "table.extension_threshold",
             "table.oorasu_stop",
         ],
+        play: true,
     },
     Item {
         key: "table.oorasu_stop",
@@ -214,6 +223,7 @@ pub const CATALOG: &[Item] = &[
         desc: "最終局（延長戦の局を含む）で親が和了・聴牌したときに終わるかどうか。「終了の条件」は、延長戦ありなら親が終了点数以上であること。途中流局の連荘では止めない",
         default: "\"auto\"",
         related: &["table.extension_threshold", "draws.renchan"],
+        play: true,
     },
     Item {
         key: "table.tobi",
@@ -222,6 +232,7 @@ pub const CATALOG: &[Item] = &[
         desc: "局の終わりに持ち点がこの条件になった人がいたら対局を終える（東風戦・東南戦）",
         default: "\"below_zero\"",
         related: &["table.tobi_single_kyoku"],
+        play: true,
     },
     Item {
         key: "table.tobi_single_kyoku",
@@ -230,6 +241,7 @@ pub const CATALOG: &[Item] = &[
         desc: "1局戦（`table.length = \"single\"`）での飛び。本PJでは飛びなし（D-012）。1局戦は1局で終わるので、飛びは終了の判定ではなく「飛んだ」記録だけに使う",
         default: "\"none\"",
         related: &["table.length", "table.tobi"],
+        play: false,
     },
     Item {
         key: "table.tie_break",
@@ -238,6 +250,7 @@ pub const CATALOG: &[Item] = &[
         desc: "終了時の持ち点が同じ人の順位とウマ・オカの分け方",
         default: "\"seat_order\"",
         related: &["points.uma", "points.returning"],
+        play: true,
     },
     Item {
         key: "table.leftover_kyotaku",
@@ -246,6 +259,7 @@ pub const CATALOG: &[Item] = &[
         desc: "対局の終了時に場に残っている立直棒の行き先",
         default: "\"top\"",
         related: &["points.riichi_deposit"],
+        play: true,
     },
     // ---- B. points
     Item {
@@ -255,6 +269,7 @@ pub const CATALOG: &[Item] = &[
         desc: "開始時の持ち点。1局戦も同じ（D-012）",
         default: "35000",
         related: &["points.returning"],
+        play: true,
     },
     Item {
         key: "points.returning",
@@ -263,6 +278,7 @@ pub const CATALOG: &[Item] = &[
         desc: "精算の基準点。（返し点 − 配給原点）× 人数をトップがオカとして受け取る",
         default: "40000",
         related: &["points.starting", "points.uma"],
+        play: true,
     },
     Item {
         key: "points.uma",
@@ -275,6 +291,7 @@ pub const CATALOG: &[Item] = &[
         desc: "精算で順位ごとに足す点数（1位から順、合計0）。RL の報酬の順位点とは別物（D-019）",
         default: "[20000, 0, -20000]",
         related: &["table.tie_break", "points.returning"],
+        play: true,
     },
     Item {
         key: "points.tsumo_payment",
@@ -283,6 +300,7 @@ pub const CATALOG: &[Item] = &[
         desc: "三麻でのツモ和了の払い方。四麻は `standard` だけ",
         default: "\"loss\"",
         related: &["table.num_players", "points.honba_tsumo_each"],
+        play: true,
     },
     Item {
         key: "points.honba_ron",
@@ -291,6 +309,7 @@ pub const CATALOG: &[Item] = &[
         desc: "1本場あたり、ロン和了で放銃者が和了者に払う点数",
         default: "1000",
         related: &["points.honba_tsumo_each", "calls.multi_ron_deposit"],
+        play: true,
     },
     Item {
         key: "points.honba_tsumo_each",
@@ -299,6 +318,7 @@ pub const CATALOG: &[Item] = &[
         desc: "1本場あたり、ツモ和了で支払う人1人が払う点数",
         default: "500",
         related: &["points.honba_ron"],
+        play: true,
     },
     Item {
         key: "points.noten_penalty_total",
@@ -307,6 +327,7 @@ pub const CATALOG: &[Item] = &[
         desc: "荒牌流局のとき場に出る合計。ノーテン者が等分して払い、聴牌者が等分して受け取る（全員聴牌・全員ノーテンなら移動なし）",
         default: "2000",
         related: &["draws.keishiki_tenpai", "draws.noten_declaration"],
+        play: true,
     },
     Item {
         key: "points.riichi_deposit",
@@ -319,6 +340,7 @@ pub const CATALOG: &[Item] = &[
             "riichi.no_deposit_on_deal_in",
             "table.leftover_kyotaku",
         ],
+        play: true,
     },
     Item {
         key: "points.kiriage_mangan",
@@ -330,6 +352,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &[],
+        play: true,
     },
     Item {
         key: "points.kazoe_yakuman",
@@ -338,6 +361,7 @@ pub const CATALOG: &[Item] = &[
         desc: "ドラを含めた翻数で判定する",
         default: "true",
         related: &["chips.values.kazoe_yakuman_counts"],
+        play: true,
     },
     Item {
         key: "points.min_han",
@@ -346,6 +370,7 @@ pub const CATALOG: &[Item] = &[
         desc: "和了に必要な翻数（ドラ・抜きドラは数えない）",
         default: "1",
         related: &[],
+        play: true,
     },
     Item {
         key: "points.double_wind_pair_fu",
@@ -354,6 +379,7 @@ pub const CATALOG: &[Item] = &[
         desc: "場風と自風が同じ牌の雀頭の符",
         default: "4",
         related: &[],
+        play: true,
     },
     Item {
         key: "points.rinshan_tsumo_fu",
@@ -365,6 +391,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &[],
+        play: true,
     },
     // ---- C. tiles
     Item {
@@ -374,6 +401,7 @@ pub const CATALOG: &[Item] = &[
         desc: "四麻は `all` だけ",
         default: "\"terminals_only\"",
         related: &["table.num_players", "tiles.red_fives.m"],
+        play: true,
     },
     Item {
         key: "tiles.red_fives.m",
@@ -382,6 +410,7 @@ pub const CATALOG: &[Item] = &[
         desc: "萬子が `terminals_only` なら0",
         default: "0",
         related: &["tiles.manzu", "chips.values.aka"],
+        play: true,
     },
     Item {
         key: "tiles.red_fives.p",
@@ -390,6 +419,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "1",
         related: &["chips.values.aka"],
+        play: true,
     },
     Item {
         key: "tiles.red_fives.s",
@@ -398,6 +428,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "1",
         related: &["chips.values.aka"],
+        play: true,
     },
     // ---- wall
     Item {
@@ -407,6 +438,7 @@ pub const CATALOG: &[Item] = &[
         desc: "表ドラ1枚＋カンドラの最大数。裏ドラの枠も同じ枚数",
         default: "5",
         related: &["wall.dead_wall", "dora.kan_dora"],
+        play: true,
     },
     Item {
         key: "wall.dead_wall",
@@ -415,6 +447,7 @@ pub const CATALOG: &[Item] = &[
         desc: "王牌は常にこの枚数を保つ。牌譜の形では表示牌の枠（`2 × dora_indicator_slots` 枚）＋ `pile` の末尾（残りの枚数。ハイテイの位置）。嶺上ツモ（槓・北抜き）は `pile` の末尾から取るので、そのたびにハイテイが1枚手前にずれる（D-017）",
         default: "14",
         related: &["wall.dora_indicator_slots", "wall.rinshan_max"],
+        play: true,
     },
     Item {
         key: "wall.rinshan_max",
@@ -423,6 +456,7 @@ pub const CATALOG: &[Item] = &[
         desc: "槓と北抜きの補充の合計の上限。上限に達したら槓・北抜きはできない",
         default: "8",
         related: &["wall.dead_wall", "draws.suukaikan"],
+        play: true,
     },
     // ---- E. calls
     Item {
@@ -432,6 +466,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["calls.kuikae"],
+        play: true,
     },
     Item {
         key: "calls.kuitan",
@@ -440,6 +475,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &[],
+        play: true,
     },
     Item {
         key: "calls.atozuke",
@@ -451,6 +487,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["points.min_han"],
+        play: true,
     },
     Item {
         key: "calls.kuikae",
@@ -459,6 +496,7 @@ pub const CATALOG: &[Item] = &[
         desc: "ポン・チーの直後の打牌の制限",
         default: "\"forbidden\"",
         related: &["calls.chi"],
+        play: true,
     },
     Item {
         key: "calls.haitei_call",
@@ -470,6 +508,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &[],
+        play: true,
     },
     Item {
         key: "calls.max_ron",
@@ -478,6 +517,7 @@ pub const CATALOG: &[Item] = &[
         desc: "1つの打牌に対して和了できる最大人数。1 は頭ハネ（放銃者から見て下家から順に優先）。これを超えた人は和了できない",
         default: "2",
         related: &["draws.all_ron", "calls.multi_ron_deposit"],
+        play: true,
     },
     Item {
         key: "calls.multi_ron_deposit",
@@ -486,6 +526,19 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "\"upstream\"",
         related: &["calls.max_ron", "points.honba_ron"],
+        play: true,
+    },
+    Item {
+        key: "calls.furiten_on_yakuless_pass",
+        title: "役のない和了牌の見逃し",
+        kind: b(
+            "和了の形になる牌（打牌・加槓・北抜き）を和了しなかったら、役がなくてロンできなかったときも見逃しとして同巡フリテン（立直中なら以後フリテン）",
+            "見逃しになるのは、ロンできた（役があった）のに和了しなかったときだけ",
+        ),
+        desc: "暗槓（国士無双の槍槓を除き、ルール上ロンできない）では見逃しにしない",
+        default: "true",
+        related: &["riichi.furiten_riichi"],
+        play: true,
     },
     // ---- riichi
     Item {
@@ -495,6 +548,7 @@ pub const CATALOG: &[Item] = &[
         desc: "この点数以上あれば立直できる",
         default: "1000",
         related: &["points.riichi_deposit"],
+        play: true,
     },
     Item {
         key: "riichi.requires_draw",
@@ -506,6 +560,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &[],
+        play: true,
     },
     Item {
         key: "riichi.furiten_riichi",
@@ -514,6 +569,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &[],
+        play: true,
     },
     Item {
         key: "riichi.ankan_after_riichi",
@@ -522,6 +578,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "\"wait_unchanged\"",
         related: &[],
+        play: true,
     },
     Item {
         key: "riichi.no_deposit_on_deal_in",
@@ -533,6 +590,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["points.riichi_deposit"],
+        play: true,
     },
     Item {
         key: "riichi.pure_karaten_riichi",
@@ -544,6 +602,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["draws.keishiki_tenpai"],
+        play: true,
     },
     // ---- dora
     Item {
@@ -553,6 +612,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["kita.breaks_ippatsu", "chips.values.ippatsu"],
+        play: true,
     },
     Item {
         key: "dora.ura",
@@ -561,6 +621,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["dora.kan_ura", "chips.values.ura"],
+        play: true,
     },
     Item {
         key: "dora.kan_dora",
@@ -569,6 +630,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["dora.kan_dora_timing", "wall.dora_indicator_slots"],
+        play: true,
     },
     Item {
         key: "dora.kan_ura",
@@ -577,6 +639,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["dora.ura", "dora.kan_dora"],
+        play: true,
     },
     Item {
         key: "dora.kan_dora_timing",
@@ -585,6 +648,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "\"ankan_immediate_after_pass\"",
         related: &["dora.kan_dora", "dora.kan_dora_on_kita"],
+        play: true,
     },
     Item {
         key: "dora.kan_dora_on_kita",
@@ -596,6 +660,7 @@ pub const CATALOG: &[Item] = &[
         desc: "北抜きへのロンの判定の後（ロンされたらめくらない）。嶺上開花（槓の直後の嶺上ツモで和了）では、どちらの値でもその槓のカンドラはめくらない",
         default: "true",
         related: &["dora.kan_dora_timing", "kita.mode"],
+        play: true,
     },
     // ---- D. kita
     Item {
@@ -605,6 +670,7 @@ pub const CATALOG: &[Item] = &[
         desc: "四麻は `none` だけ",
         default: "\"nukidora\"",
         related: &["table.num_players"],
+        play: true,
     },
     Item {
         key: "kita.mandatory",
@@ -616,6 +682,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["kita.north_as_meld"],
+        play: true,
     },
     Item {
         key: "kita.after_pon",
@@ -624,6 +691,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &[],
+        play: true,
     },
     Item {
         key: "kita.after_riichi",
@@ -632,6 +700,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "\"drawn_only\"",
         related: &["kita.mandatory"],
+        play: true,
     },
     Item {
         key: "kita.ron_on_kita",
@@ -643,6 +712,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["kita.ron_on_discard", "kita.ron_counts_as_chankan"],
+        play: true,
     },
     Item {
         key: "kita.ron_on_discard",
@@ -654,6 +724,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["kita.ron_on_kita"],
+        play: true,
     },
     Item {
         key: "kita.ron_counts_as_chankan",
@@ -662,6 +733,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["kita.ron_on_kita"],
+        play: true,
     },
     Item {
         key: "kita.breaks_ippatsu",
@@ -673,6 +745,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["dora.ippatsu"],
+        play: true,
     },
     Item {
         key: "kita.breaks_first_turn",
@@ -684,6 +757,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["draws.kyushu_kyuhai"],
+        play: true,
     },
     Item {
         key: "kita.north_as_meld",
@@ -692,6 +766,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "\"otakaze\"",
         related: &["kita.mandatory"],
+        play: true,
     },
     Item {
         key: "kita.dora_per_kita",
@@ -700,6 +775,7 @@ pub const CATALOG: &[Item] = &[
         desc: "抜いた北1枚あたりのドラの数（北がドラ表示でドラになっていれば、さらにその分を足す）",
         default: "1",
         related: &["kita.mode"],
+        play: true,
     },
     Item {
         key: "kita.furiten",
@@ -711,6 +787,7 @@ pub const CATALOG: &[Item] = &[
         desc: "流し満貫の条件にはどちらの値でも関わらない（北は么九牌なので、捨て牌とみなしても条件は変わらない）",
         default: "false",
         related: &["draws.nagashi_mangan"],
+        play: true,
     },
     Item {
         key: "kita.pon_north",
@@ -719,6 +796,7 @@ pub const CATALOG: &[Item] = &[
         desc: "北抜きあり（`kita.mode = \"nukidora\"`）のときだけ使う",
         default: "true",
         related: &["kita.mode", "kita.daiminkan_north", "kita.ankan_north"],
+        play: true,
     },
     Item {
         key: "kita.daiminkan_north",
@@ -727,6 +805,7 @@ pub const CATALOG: &[Item] = &[
         desc: "北抜きあり（`kita.mode = \"nukidora\"`）のときだけ使う",
         default: "true",
         related: &["kita.pon_north"],
+        play: true,
     },
     Item {
         key: "kita.ankan_north",
@@ -735,6 +814,7 @@ pub const CATALOG: &[Item] = &[
         desc: "北抜きあり（`kita.mode = \"nukidora\"`）のときだけ使う",
         default: "true",
         related: &["kita.pon_north", "kita.mandatory"],
+        play: true,
     },
     // ---- F. draws
     Item {
@@ -747,6 +827,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["draws.abortive_renchan", "kita.breaks_first_turn"],
+        play: true,
     },
     Item {
         key: "draws.suukaikan",
@@ -758,6 +839,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["wall.rinshan_max"],
+        play: true,
     },
     Item {
         key: "draws.all_riichi",
@@ -769,6 +851,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["draws.abortive_renchan"],
+        play: true,
     },
     Item {
         key: "draws.same_wind_discards",
@@ -780,6 +863,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["draws.abortive_renchan"],
+        play: true,
     },
     Item {
         key: "draws.all_ron",
@@ -791,6 +875,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["calls.max_ron"],
+        play: true,
     },
     Item {
         key: "draws.abortive_renchan",
@@ -802,6 +887,7 @@ pub const CATALOG: &[Item] = &[
         desc: "九種九牌・四槓散了・全員立直・四風連打・全員のロンの流局",
         default: "true",
         related: &[],
+        play: true,
     },
     Item {
         key: "draws.nagashi_mangan",
@@ -813,6 +899,7 @@ pub const CATALOG: &[Item] = &[
         desc: "本場・供託は動かない。成立したら聴牌料のやりとりはしない（majiang-core と同じ）。連荘の判定はふつうの荒牌流局と同じ",
         default: "true",
         related: &["points.tsumo_payment"],
+        play: true,
     },
     Item {
         key: "draws.nagashi_payment",
@@ -821,6 +908,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "\"as_tsumo\"",
         related: &["draws.nagashi_mangan", "points.tsumo_payment"],
+        play: true,
     },
     Item {
         key: "draws.nagashi_pays_honba",
@@ -832,6 +920,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["draws.nagashi_mangan"],
+        play: true,
     },
     Item {
         key: "draws.nagashi_takes_kyotaku",
@@ -843,6 +932,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["draws.nagashi_mangan"],
+        play: true,
     },
     Item {
         key: "draws.nagashi_with_own_calls",
@@ -854,6 +944,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["draws.nagashi_mangan"],
+        play: true,
     },
     Item {
         key: "draws.renchan",
@@ -862,6 +953,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "\"tenpai\"",
         related: &["table.oorasu_stop"],
+        play: true,
     },
     Item {
         key: "draws.keishiki_tenpai",
@@ -870,6 +962,7 @@ pub const CATALOG: &[Item] = &[
         desc: "荒牌流局の聴牌の判定（聴牌料・連荘・流局時の手牌の公開に使う）。立直できるかの聴牌の判定には使わない",
         default: "\"any\"",
         related: &["points.noten_penalty_total"],
+        play: true,
     },
     Item {
         key: "draws.noten_declaration",
@@ -881,6 +974,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["points.noten_penalty_total"],
+        play: true,
     },
     // ---- G. yakuman
     Item {
@@ -890,6 +984,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["yakuman.double_special"],
+        play: true,
     },
     Item {
         key: "yakuman.double_special",
@@ -901,6 +996,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["yakuman.composite"],
+        play: true,
     },
     Item {
         key: "yakuman.pao",
@@ -913,6 +1009,7 @@ pub const CATALOG: &[Item] = &[
             "yakuman.pao_scope",
             "yakuman.pao_honba",
         ],
+        play: true,
     },
     Item {
         key: "yakuman.pao_ron_split",
@@ -921,6 +1018,7 @@ pub const CATALOG: &[Item] = &[
         desc: "責任払いの対象の額（`yakuman.pao_scope`）について。対象外の額は放銃者が払う",
         default: "true",
         related: &["yakuman.pao", "yakuman.pao_scope"],
+        play: true,
     },
     Item {
         key: "yakuman.pao_scope",
@@ -929,6 +1027,7 @@ pub const CATALOG: &[Item] = &[
         desc: "包の役満にほかの役満が複合したとき（例：大三元＋字一色）",
         default: "\"full\"",
         related: &["yakuman.pao", "yakuman.pao_ron_split"],
+        play: true,
     },
     Item {
         key: "yakuman.pao_honba",
@@ -937,6 +1036,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "\"pao\"",
         related: &["yakuman.pao_tsumo_honba", "points.honba_ron"],
+        play: true,
     },
     Item {
         key: "yakuman.pao_tsumo_honba",
@@ -949,6 +1049,7 @@ pub const CATALOG: &[Item] = &[
             "points.honba_ron",
             "points.honba_tsumo_each",
         ],
+        play: true,
     },
     Item {
         key: "yakuman.kokushi_ron_on_ankan",
@@ -960,6 +1061,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &[],
+        play: true,
     },
     Item {
         key: "yakuman.tenhou_win_tile",
@@ -968,6 +1070,7 @@ pub const CATALOG: &[Item] = &[
         desc: "天和の符・役（四暗刻単騎・国士無双十三面待ち・純正九蓮宝燈など）を数えるときの和了牌。同じ点数なら第1ツモの牌、次に牌の順で先の牌",
         default: "\"best\"",
         related: &["yakuman.double_special"],
+        play: false,
     },
     // ---- H. chips
     Item {
@@ -980,6 +1083,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["chips.values.point_value"],
+        play: false,
     },
     Item {
         key: "chips.values.ippatsu",
@@ -988,6 +1092,7 @@ pub const CATALOG: &[Item] = &[
         desc: "一発で和了したとき、支払う人1人あたり",
         default: "1",
         related: &["chips.enabled"],
+        play: false,
     },
     Item {
         key: "chips.values.aka",
@@ -996,6 +1101,7 @@ pub const CATALOG: &[Item] = &[
         desc: "和了した手の赤牌1枚あたり、支払う人1人あたり",
         default: "1",
         related: &["chips.values.aka_when_open"],
+        play: false,
     },
     Item {
         key: "chips.values.ura",
@@ -1004,6 +1110,7 @@ pub const CATALOG: &[Item] = &[
         desc: "裏ドラ1つあたり、支払う人1人あたり",
         default: "1",
         related: &["chips.enabled"],
+        play: false,
     },
     Item {
         key: "chips.values.aka_when_open",
@@ -1012,6 +1119,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "true",
         related: &["chips.values.aka"],
+        play: false,
     },
     Item {
         key: "chips.values.yakuman_ron",
@@ -1020,6 +1128,7 @@ pub const CATALOG: &[Item] = &[
         desc: "役満をロンしたとき、放銃者が払う枚数",
         default: "10",
         related: &["chips.values.kazoe_yakuman_counts"],
+        play: false,
     },
     Item {
         key: "chips.values.yakuman_tsumo_each",
@@ -1028,6 +1137,7 @@ pub const CATALOG: &[Item] = &[
         desc: "役満をツモしたとき、支払う人1人あたり",
         default: "5",
         related: &["chips.values.kazoe_yakuman_counts"],
+        play: false,
     },
     Item {
         key: "chips.values.kazoe_yakuman_counts",
@@ -1039,6 +1149,7 @@ pub const CATALOG: &[Item] = &[
         desc: "",
         default: "false",
         related: &["points.kazoe_yakuman"],
+        play: false,
     },
     Item {
         key: "chips.values.point_value",
@@ -1047,6 +1158,7 @@ pub const CATALOG: &[Item] = &[
         desc: "表示用。牌譜の `scores` には混ぜない（LOG_FORMAT §4.5）",
         default: "5000",
         related: &["chips.enabled"],
+        play: false,
     },
     // ---- I. log_visibility
     Item {
@@ -1056,6 +1168,7 @@ pub const CATALOG: &[Item] = &[
         desc: "本PJの牌譜の設定で、サービスのルールではない（LOG_FORMAT §5）",
         default: "\"open\"",
         related: &[],
+        play: false,
     },
     Item {
         key: "log_visibility.ryukyoku_reveal",
@@ -1064,6 +1177,7 @@ pub const CATALOG: &[Item] = &[
         desc: "本PJの牌譜の設定で、サービスのルールではない（LOG_FORMAT §4.4）",
         default: "\"tenpai_only\"",
         related: &[],
+        play: false,
     },
 ];
 
@@ -1119,7 +1233,8 @@ pub fn render_markdown() -> String {
     s.push_str("状態：D-025 に基づくルールの体系。**正は Rust の定義**（`crates/mj-core/src/rules.rs` の `Rules` と列挙型、`crates/mj-core/src/catalog.rs`）。\n\n");
     s.push_str("- キーは `rules/*.toml` と牌譜の `game_start.rules` で同じ\n");
     s.push_str("- **既定値**はメインのプリセット（天鳳三麻相当、D-011）の値。プリセットはすべての項目に値を書く（`docs/spec/RULES_PRESETS.md`）\n");
-    s.push_str("- テスト対応表：`fixtures/rules/coverage.toml`。下の「値」の行ごとに、その分岐を確かめるテストを対応付ける（数値の項目は1つ以上）\n\n");
+    s.push_str("- テスト対応表：`fixtures/rules/coverage.toml`。下の「値」の行ごとに、その分岐を確かめるテストを対応付ける（数値の項目は1つ以上）\n");
+    s.push_str("- 「打ち方」：打ち方に効く項目（RL の観測のルール設定に入れる。D-042）。全項目に必須の印（`Item::play`）で、付け忘れはコンパイルエラーになる\n\n");
     let total_values: usize = CATALOG.iter().map(|i| i.kind.coverage_values().len()).sum();
     s.push_str(&format!(
         "項目数：**{}**、テスト対応表の行数（項目 × 値）：**{}**\n\n",
@@ -1128,7 +1243,7 @@ pub fn render_markdown() -> String {
     ));
     for sec in SECTIONS {
         s.push_str(&format!("## {}\n\n", sec.title));
-        s.push_str("| キー | 名前 | 型 | 取りうる値と意味 | 既定値 | 関連項目 |\n|---|---|---|---|---|---|\n");
+        s.push_str("| キー | 名前 | 型 | 取りうる値と意味 | 既定値 | 打ち方 | 関連項目 |\n|---|---|---|---|---|---|---|\n");
         for it in CATALOG
             .iter()
             .filter(|i| i.key.split('.').next() == Some(sec.prefix))
@@ -1157,13 +1272,14 @@ pub fn render_markdown() -> String {
                 .collect::<Vec<_>>()
                 .join("<br>");
             s.push_str(&format!(
-                "| `{}` | {}{} | {} | {} | `{}` | {} |\n",
+                "| `{}` | {}{} | {} | {} | `{}` | {} | {} |\n",
                 it.key,
                 it.title,
                 desc,
                 it.kind.type_name(),
                 values.replace('|', "\\|"),
                 it.default,
+                if it.play { "効く" } else { "—" },
                 related
             ));
         }

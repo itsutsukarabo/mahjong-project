@@ -1,3 +1,4 @@
 # RiichiEnv との局進行の差分テストで食い違いが見つかった局の game_seed（1行1つ。# から行末はコメント）。
 # CI の小規模版で毎回回す（tools/difftest-riichienv の --game-seeds-file）。
 1795804190943985465  # 夜間 CI run 46048806189：加槓 → 嶺上で北 → 北抜き → 嶺上ツモ和了。北抜きで後めくりのカンドラをめくるか（dora.kan_dora_on_kita、オーナー確認 2026-11-28）
+1716804600  # 2026-11-29 の RiichiEnv の差分テスト（seed 20261129）：役のない和了牌の見逃しで同巡フリテンになるか（calls.furiten_on_yakuless_pass、オーナー確認 2026-11-28）

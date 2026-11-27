@@ -210,6 +210,7 @@ pub struct CallRules {
     pub haitei_call: bool,
     pub max_ron: u8,
     pub multi_ron_deposit: MultiRonDeposit,
+    pub furiten_on_yakuless_pass: bool,
 }
 
 rule_enum! {

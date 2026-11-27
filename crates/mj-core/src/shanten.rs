@@ -200,6 +200,11 @@ impl ShantenCalc {
                     *slot = c[k];
                 }
             }
+            // 覚える鍵は5進数の符号なので、5枚以上の種類がある（ありえない手）ときは覚えない（鍵が重なるため）
+            if suit.iter().any(|&x| x > 4) {
+                groups.push(suit_partitions(&mut suit));
+                continue;
+            }
             let code = suit.iter().fold(0u32, |a, &x| a * 5 + u32::from(x));
             let cached = self.cache.borrow().get(&code).cloned();
             let parts = match cached {

@@ -8,8 +8,8 @@
       "steps": 530,
       "hora": 7,
       "ryukyoku": 4,
-      "bytes": 133502,
-      "sha256": "e2ea35fd7ba1e65638e234236e9a443d0c1d53789b27b6bda9ea76aaf13b2e41"
+      "bytes": 133534,
+      "sha256": "b2fd04aed060032fbea02e0f93bb2464317f9054a4e2d2b82316290e714911d9"
     },
     {
       "name": "sanma-hanchan-2",
@@ -18,8 +18,8 @@
       "steps": 448,
       "hora": 6,
       "ryukyoku": 3,
-      "bytes": 114553,
-      "sha256": "94f084e35c106fc252c6c7123a1049b9126541d073a7f0c32b5347122f031c6e"
+      "bytes": 114585,
+      "sha256": "9cf39a3069214adec7b29e75d6df27ebd6514847436de4c13f256edf85dcde97"
     },
     {
       "name": "sanma-tonpuu-3",
@@ -28,8 +28,8 @@
       "steps": 103,
       "hora": 3,
       "ryukyoku": 0,
-      "bytes": 30326,
-      "sha256": "6e7d74d66f7157b482027ed909bf562040af6012a9b8ce4e9480da87a4cd0a1d"
+      "bytes": 30358,
+      "sha256": "8d023b38411bf33967f01c363e6e41c5c9e7dadcfb26795cc9430695c990d19f"
     },
     {
       "name": "sanma-single-4",
@@ -38,8 +38,8 @@
       "steps": 31,
       "hora": 1,
       "ryukyoku": 0,
-      "bytes": 10344,
-      "sha256": "02fd3c33cfa21be5388d8d93335d5c410b45715ebd0549a7e6796db2dcdfcf0e"
+      "bytes": 10376,
+      "sha256": "18347a7fc0f30b4fc9426b3f0a48be874e98bab8b548d4ffcaa449ce507a51d0"
     },
     {
       "name": "yonma-hanchan-1",
@@ -48,8 +48,8 @@
       "steps": 960,
       "hora": 8,
       "ryukyoku": 5,
-      "bytes": 207246,
-      "sha256": "750d5125096ecf299e90a373dfbd2b4c9568d04fadf292a8cd834eaf0b99dd10"
+      "bytes": 207278,
+      "sha256": "b68fb8a49c62b5d0f0d5dbc7332071a0069648d579ce0e93ff1ef9f3a4525426"
     }
   ]
 }

@@ -1029,6 +1029,29 @@ fn nagashi_with_own_calls_true_and_false() {
 }
 
 #[test]
+fn furiten_on_yakuless_pass_true_and_false() {
+    // 席1：9m と白（P）のシャンポン待ち。9m では役がなく、白なら役牌。
+    // 席2 が 9m を切り（席1 はロンできない）、同じ巡のうちに席0 が白を切る。白にロンできるか
+    // （RiichiEnv との差分テストで見つけた形を小さくしたもの。fixtures/difftest-riichienv/regression_games.txt）
+    let s0 = "P 1m 1m 2p 6p 9p 3s 7s S W F F C";
+    let s1 = "1p 2p 3p 4s 5s 6s 7s 8s 9s 9m 9m P P";
+    let s2 = "9m 1m 5p 7p 8p 2s 3s 8s E S W N C";
+    let run = |rules: Rules| {
+        let mut k = Scenario::new(rules, &[s0, s1, s2])
+            .draws("F 4p 7p 1s")
+            .kyoku();
+        act(&mut k, 0, "dahai:F:tsumogiri");
+        act(&mut k, 1, "dahai:4p:tsumogiri");
+        act(&mut k, 2, "dahai:9m");
+        act(&mut k, 1, "pass");
+        act(&mut k, 0, "dahai:P");
+        has(&k, 1, "ron")
+    };
+    assert!(!run(sanma()), "役のない 9m の見送りも見逃し：同巡フリテン");
+    assert!(run(with("[calls]\nfuriten_on_yakuless_pass = false")));
+}
+
+#[test]
 fn riichi_pure_karaten_riichi_true_and_false() {
     // 親（席0）：1p を4枚使い、W を切ると 1p の5枚目待ちだけの形（4枚使いの単騎待ち）
     let s0 = "1p 1p 1p 1p 5s 6s 7s E E E C C C";

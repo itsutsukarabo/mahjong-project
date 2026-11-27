@@ -59,6 +59,7 @@ kuikae = "forbidden"                     # 「喰い替えなし」
 haitei_call = false                      # 「海底牌は鳴けない」
 max_ron = 2                              # 「ダブロンあり」、オーナー（放銃者以外の2人が同時にロンなら両方和了）
 multi_ron_deposit = "upstream"           # 「積み棒/供託は上家取り」
+furiten_on_yakuless_pass = true          # オーナー確認（2026-11-28）「役なしでも見逃しになる」
 
 [riichi]
 min_points = 1000                        # 「リーチ宣言は得点が1000点以上でツモ巡がある場合に可能」

@@ -946,3 +946,13 @@ tests = ["mj-core::kita_ankan_north_true_and_false"]
 key = "kita.ankan_north"
 value = "false"
 tests = ["mj-core::kita_ankan_north_true_and_false"]
+
+[[case]]
+key = "calls.furiten_on_yakuless_pass"
+value = "true"
+tests = ["mj-core::furiten_on_yakuless_pass_true_and_false"]
+
+[[case]]
+key = "calls.furiten_on_yakuless_pass"
+value = "false"
+tests = ["mj-core::furiten_on_yakuless_pass_true_and_false"]
