@@ -445,11 +445,10 @@ mod tests {
             .collect()
     }
 
-    fn run(
-        seed: u64,
-        threads: usize,
-        steps: usize,
-    ) -> (Vec<f32>, Vec<(i64, Vec<f32>, Vec<&'static str>)>) {
+    /// （観測の一部, 終わった対局の（game_id, 報酬, プリセット））
+    type RunResult = (Vec<f32>, Vec<(i64, Vec<f32>, Vec<&'static str>)>);
+
+    fn run(seed: u64, threads: usize, steps: usize) -> RunResult {
         let mut env = VecEnv::new(cfg(seed, threads));
         let mut b = env.observe();
         let mut fin = Vec::new();
