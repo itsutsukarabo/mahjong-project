@@ -261,7 +261,7 @@ fn pingju(r: &Ryukyoku, oya: usize, last_dahai_actor: u8) -> Value {
 }
 
 /// ボット同士の1半荘。（majiang-core の Dev.Game に渡す台本, こちらの結果）
-pub fn play(rules: &Rules, seed: u64) -> (Value, Value) {
+pub fn play(rules: &Rules, seed: u64) -> (Value, Value, Vec<&'static str>) {
     let bot = RuleBot::new(rules);
     let mut g = Game::new(rules.clone(), WallSource::Seed(seed));
     while !g.is_over() {
@@ -274,6 +274,7 @@ pub fn play(rules: &Rules, seed: u64) -> (Value, Value) {
         g.step(&acts).expect("legal");
     }
     let logs: Vec<Vec<Value>> = g.kyokus().map(kyoku_log).collect();
+    let rare: Vec<&'static str> = g.kyokus().flat_map(mj_bots::stats::rare_events).collect();
     let end = g.end().expect("game over");
     let script = json!({
         "title": format!("mj-core seed {seed}"),
@@ -288,7 +289,7 @@ pub fn play(rules: &Rules, seed: u64) -> (Value, Value) {
         // majiang-core の point は千点単位・小数1桁の文字列（順位点 '20.0' など小数の表記のとき）
         "point": end.settlement.iter().map(|x| format!("{:.1}", f64::from(*x) / 1000.0)).collect::<Vec<_>>(),
     });
-    (script, ours)
+    (script, ours, rare)
 }
 
 /// 1局分の比較用の形：進行（kaigang を除く）、カンドラの並び、結果

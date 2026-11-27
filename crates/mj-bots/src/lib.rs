@@ -16,6 +16,8 @@
 //! 6. 九種九牌：シャンテン数が3以上なら流局にする
 //! 7. ノーテン宣言はしない（聴牌のまま）
 
+pub mod stats;
+
 use mj_core::action::Action;
 use mj_core::agari;
 use mj_core::event::Event;

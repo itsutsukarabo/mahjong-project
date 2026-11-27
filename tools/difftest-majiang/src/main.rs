@@ -641,16 +641,20 @@ fn main() {
     let mut game_ends: BTreeMap<String, u64> = BTreeMap::new();
     // 延長戦（西入以降）の局の数（組み合わせごと）。延長戦の親の連荘の分岐が試されたかの目安
     let mut game_extension: BTreeMap<&str, u64> = BTreeMap::new();
+    let mut game_rare: BTreeMap<&str, u64> = mj_bots::stats::RARE.iter().map(|k| (*k, 0)).collect();
     let mut game_failures: Vec<serde_json::Value> = Vec::new();
     for i in 0..game_n {
         let (vname, rules, mrule) = &variants[i % variants.len()];
         let gseed = (seed ^ 0x67616d65).wrapping_add(i as u64);
         let case_id = format!("game-{i}");
-        let (script, ours) = game::play(rules, gseed);
+        let (script, ours, rare) = game::play(rules, gseed);
         let theirs = harness.ask_game(&case_id, &script, mrule);
         let v = game::judge(&ours, &theirs);
         games.compared += 1;
         *game_by_variant.entry(vname).or_default() += 1;
+        for r in rare {
+            *game_rare.entry(r).or_default() += 1;
+        }
         game_kyokus.compared += v.kyokus_matched as u64;
         for k in ours["log"].as_array().unwrap() {
             for e in k.as_array().unwrap() {
@@ -712,6 +716,7 @@ fn main() {
         "game_by_variant": game_by_variant,
         "game_kyoku_ends": game_ends,
         "game_extension_kyokus": game_extension,
+        "game_rare_events": game_rare,
         "game_note": "games：半荘ごと（compared＝比べた半荘、mismatched＝どこかで食い違った半荘）。game_kyokus：最初の食い違いまでに一致した局（compared）と、食い違った局（mismatched）。ルールは fixtures/rules/majiang-yonma-game.toml、打ち手は mj-bots の RuleBot",
         "failures": failures.len(),
         "hora_failures": hora_failures.len(),

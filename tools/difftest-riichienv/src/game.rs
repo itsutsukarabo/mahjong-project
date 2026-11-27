@@ -263,6 +263,8 @@ pub struct GameOutcome {
     pub ended_by: Option<String>,
     /// 牌山を組み直して回した回数（1 なら最初の写し方で合った）
     pub wall_tries: u32,
+    /// 比べた局に出た珍しい局面（`mj_bots::stats::rare_events`）
+    pub rare: Vec<&'static str>,
 }
 
 fn run(
@@ -354,7 +356,11 @@ fn run(
             fail(
                 &mut out,
                 json!({"item": "kyoku_end", "ours_done": false, "riichienv_done": true,
-                                  "ours_tail": tail_of(&our_flow(k.events())), "riichienv_tail": tail_of(&their_flow(&their_events))}),
+                                  "ours_tail": tail_of(&our_flow(k.events())), "riichienv_tail": tail_of(&their_flow(&their_events)),
+                                  "ours_flow": our_flow(k.events()), "riichienv_flow": their_flow(&their_events),
+                                  "ours_live": k.live_remaining(), "rk": [rk.0, rk.1],
+                                  "ours_decisions": k.decisions().iter().map(|d| json!([d.seat, d.choices.iter().map(|c| c.to_string()).collect::<Vec<_>>()])).collect::<Vec<_>>(),
+                                  "hands": (0..rules.table.num_players).map(|s| k.concealed(s).iter().map(|t| t.to_string()).collect::<Vec<_>>()).collect::<Vec<_>>()}),
             );
             break;
         }
@@ -535,6 +541,7 @@ fn run(
                 Some(json!({"item": "scores", "ours": k.scores(), "riichienv": state["scores"]}));
         }
     }
+    out.rare = mj_bots::stats::rare_events(k.events());
     out.ended_by = k.events().iter().rev().find_map(|e| match e {
         Event::Hora(_) => Some("hora".to_string()),
         Event::Ryukyoku(r) => Some(r.reason.to_string()),

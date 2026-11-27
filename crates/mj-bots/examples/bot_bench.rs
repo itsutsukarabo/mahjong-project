@@ -29,6 +29,7 @@ struct Stats {
     riichi: u64,
     called: u64,
     ends: BTreeMap<String, u64>,
+    rare: BTreeMap<&'static str, u64>,
 }
 
 impl Stats {
@@ -46,6 +47,9 @@ impl Stats {
         self.called += o.called;
         for (k, v) in &o.ends {
             *self.ends.entry(k.clone()).or_default() += v;
+        }
+        for (k, v) in &o.rare {
+            *self.rare.entry(k).or_default() += v;
         }
     }
 }
@@ -97,6 +101,9 @@ fn run(rules: &Rules, seeds: impl Iterator<Item = u64>) -> Stats {
                 *st.ends.entry("hora".into()).or_default() += 1;
             }
             st.called += called.iter().filter(|&&c| c).count() as u64;
+            for r in mj_bots::stats::rare_events(events) {
+                *st.rare.entry(r).or_default() += 1;
+            }
         }
     }
     st
@@ -175,4 +182,9 @@ fn main() {
         .map(|(k, v)| format!("{k}={v} ({:.2}%)", pct(*v, st.kyokus as f64)))
         .collect();
     println!("kyoku ends: {}", ends.join(" "));
+    let rare: Vec<String> = mj_bots::stats::RARE
+        .iter()
+        .map(|k| format!("{k}={}", st.rare.get(k).copied().unwrap_or(0)))
+        .collect();
+    println!("rare: {}", rare.join(" "));
 }

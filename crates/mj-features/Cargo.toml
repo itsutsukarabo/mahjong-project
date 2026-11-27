@@ -8,6 +8,7 @@ publish.workspace = true
 
 [dependencies]
 mj-core.workspace = true
+toml.workspace = true
 
 [dev-dependencies]
 mj-bots.workspace = true

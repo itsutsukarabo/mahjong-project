@@ -169,6 +169,7 @@ dependencies = [
  "mj-core",
  "rand_chacha",
  "rand_core",
+ "toml",
 ]
 
 [[package]]

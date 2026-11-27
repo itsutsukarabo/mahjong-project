@@ -351,6 +351,7 @@ tenhou_win_tile = 'drawn'",
     let mut game_failures: Vec<Value> = Vec::new();
     // 牌山を組み直した回数ごとの局数（1 = 最初の写し方で合った）
     let mut game_wall_tries: BTreeMap<u32, u64> = BTreeMap::new();
+    let mut game_rare: BTreeMap<&str, u64> = mj_bots::stats::RARE.iter().map(|k| (*k, 0)).collect();
     let mut game_seeds: Vec<u64> = match only_game {
         Some(g) => vec![g],
         None => (0..game_n)
@@ -380,6 +381,9 @@ tenhou_win_tile = 'drawn'",
             continue;
         }
         games.compared += 1;
+        for r in &o.rare {
+            *game_rare.entry(r).or_default() += 1;
+        }
         if let Some(e) = &o.ended_by {
             *game_ends.entry(e.clone()).or_default() += 1;
         }
@@ -412,6 +416,7 @@ tenhou_win_tile = 'drawn'",
         "game_decisions_compared": game_decisions,
         "game_regression_seeds": regression,
         "game_wall_tries": game_wall_tries,
+        "game_rare_events": game_rare,
         "game_excluded": game_excluded,
         "game_ends": game_ends,
         "game_mismatch_items": game_items,

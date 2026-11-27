@@ -1,10 +1,12 @@
 //! RL のための変換（mj-core の外。CLAUDE.md 原則5）。
 //!
-//! いまは行動の番号表（`docs/spec/ACTION_SPACE.md`）だけ：選択肢の表記（mj-core の [`Action`]）と、
-//! RL の方策の出力の番号（[`ActionId`]、0〜324）の相互変換と、合法手マスク。
+//! 行動の番号表（`docs/spec/ACTION_SPACE.md`）だけ：選択肢の表記（mj-core の [`Action`]）と、
+//! RL の方策の出力の番号（[`ActionId`]、0〜324）の相互変換と、合法手マスク。観測は [`obs`]（D-042・D-043）。
 //!
 //! 番号は一度付けたら変えない背番号（D-038）。行動を足すときは末尾に足す。
 //! 初版の 325 個の対応は `fixtures/features/action_ids.txt` に固定し、テストで確かめる。
+
+pub mod obs;
 
 use mj_core::action::Action;
 use mj_core::tile::{Tile, TileKind};
