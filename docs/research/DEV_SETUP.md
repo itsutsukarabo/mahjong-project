@@ -128,3 +128,20 @@ cargo run --release -p mj-core --example selfplay_bench -- --seconds 10 --mode s
 | `C:\rbench` | RiichiEnv のベンチ用 venv、ビルド成果物、依存の vendor | 消してよい（ベンチのソースは `docs/research/bench/` に保存済み） |
 | WSL の `~/rbench` | RiichiEnv のコピーとベンチ | 消してよい |
 | `%USERPROFILE%\.cargo`, `%USERPROFILE%\.rustup` | rustup と Rust | 開発に使うので残す |
+
+---
+
+## 6. push 前の検査（pre-push フック）
+main に失敗する状態を push しないため、push の前に CI と同じ検査を手元で回す（2026-11-28 から）。
+
+```bash
+# 1回だけ（リポジトリごと）。.githooks/pre-push を使うようにする
+git config core.hooksPath .githooks
+
+# 手で回すとき
+bash tools/check.sh
+```
+- `tools/check.sh`：fmt → clippy（`-D warnings`）→ `cargo test --workspace` → ルールカタログが最新か → テスト対応表（`--strict`）→ 質問票の生成部分が最新か（`questions-check`）→ 牌譜サンプルが最新か。1つでも失敗したら止まり、push もされない
+- CI にだけあるもの：Windows と Ubuntu の両方で回すこと、majiang-core・RiichiEnv との差分テスト（Node・Python の環境が要るため。手元で回す手順は §4）
+- 時間の目安：変更がなければ数十秒、全体の再ビルドが要るときは数分［実測：2026-11-28、Windows ネイティブ］
+- フックを飛ばす `git push --no-verify` は使わない（CLAUDE.md「運用のルール」）

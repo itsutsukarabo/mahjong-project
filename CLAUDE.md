@@ -31,6 +31,7 @@
 - PR は使わず、**main に直接 push する**（個人プロジェクトでレビュワーがいないため）
 - **コミットは作業の区切りごとに小さく分ける**
 - CI（GitHub Actions）は main への push ごとに動く。**CI が失敗したら、次の作業に進む前に直す**
+- push の前に `tools/check.sh`（CI と同じ検査）を通す。`git config core.hooksPath .githooks` で pre-push フックとして自動で回る（`docs/research/DEV_SETUP.md` §6）。**失敗する状態を main に push しない**。`--no-verify` は使わない
 
 ## 報告のルール
 

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# main へ push する前に CI と同じ検査を回す（docs/research/DEV_SETUP.md §6）。
+# 有効化：git config core.hooksPath .githooks
+exec bash "$(git rev-parse --show-toplevel)/tools/check.sh"

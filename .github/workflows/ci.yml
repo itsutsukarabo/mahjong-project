@@ -62,6 +62,9 @@ jobs:
           cargo run --locked -q -p rules-catalog -- coverage --strict --summary rules-coverage.md
           cat rules-coverage.md >> "$GITHUB_STEP_SUMMARY"
 
+      - name: rules questionnaire is up to date (docs/spec/RULES_QUESTIONS_MJSOUL.md)
+        run: cargo run --locked -q -p rules-catalog -- questions-check rules/mjsoul-sanma.toml docs/spec/RULES_QUESTIONS_MJSOUL.md
+
       - name: log samples (python generator is up to date)
         run: python -I docs/spec/samples/make_sample_log.py --check
 

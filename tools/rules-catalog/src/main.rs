@@ -9,6 +9,10 @@
 //! cargo run -p rules-catalog -- add-missing         # 対応表にない「項目 × 値」を pending で末尾に足す
 //! cargo run -p rules-catalog -- questions rules/mjsoul-sanma.toml
 //!     # プリセットの仮の値（meta.provisional）を確かめる質問票の下書き（Markdown）を標準出力へ
+//! cargo run -p rules-catalog -- questions-check rules/mjsoul-sanma.toml docs/spec/RULES_QUESTIONS_MJSOUL.md
+//!     # 質問票の生成部分（QUESTIONS_BEGIN〜QUESTIONS_END の間）が上の生成結果と同じか（CI）。
+//!     # 手で足した注記（`> ` で始まる行）と空行の数は比べない。生成部分の外（前書き・回答済みの記録・
+//!     # カタログで表せないルールの節）は検査しない
 //! ```
 //!
 //! テストの実在は `cargo test -p <package> -- --list --format terse` の出力で確かめる。
@@ -62,8 +66,12 @@ fn main() -> ExitCode {
         }
         Some("add-missing") => add_missing(),
         Some("questions") => questions(args.get(1).map(String::as_str).unwrap_or("")),
+        Some("questions-check") => questions_check(
+            args.get(1).map(String::as_str).unwrap_or(""),
+            args.get(2).map(String::as_str).unwrap_or(""),
+        ),
         _ => Err(
-            "usage: rules-catalog gen | check | coverage [--strict] [--summary FILE] | add-missing"
+            "usage: rules-catalog gen | check | coverage [--strict] [--summary FILE] | add-missing | questions PRESET | questions-check PRESET DOC"
                 .into(),
         ),
     };
@@ -118,8 +126,56 @@ fn list_tests(package: &str) -> Result<BTreeSet<String>, String> {
         .collect())
 }
 
-/// 仮の値の項目ごとに、選択肢と回答欄のある質問を作る。
+const QUESTIONS_BEGIN: &str =
+    "<!-- QUESTIONS_BEGIN（rules-catalog questions の生成部分。CI で検査） -->";
+const QUESTIONS_END: &str = "<!-- QUESTIONS_END -->";
+
 fn questions(preset_path: &str) -> Result<(), String> {
+    let (out, n) = render_questions(preset_path)?;
+    print!("{out}");
+    eprintln!("{n} questions");
+    Ok(())
+}
+
+/// 比べる形：`> ` で始まる行（手で足した注記）を除き、空行を詰める。
+fn normalize_questions(s: &str) -> Vec<String> {
+    s.lines()
+        .map(str::trim_end)
+        .filter(|l| !l.is_empty() && !l.starts_with("> "))
+        .map(String::from)
+        .collect()
+}
+
+fn questions_check(preset_path: &str, doc_path: &str) -> Result<(), String> {
+    let (want, n) = render_questions(preset_path)?;
+    let doc =
+        std::fs::read_to_string(root().join(doc_path)).map_err(|e| format!("{doc_path}: {e}"))?;
+    let (Some(b), Some(e)) = (doc.find(QUESTIONS_BEGIN), doc.find(QUESTIONS_END)) else {
+        return Err(format!(
+            "{doc_path}: markers {QUESTIONS_BEGIN} / {QUESTIONS_END} not found"
+        ));
+    };
+    let have = &doc[b + QUESTIONS_BEGIN.len()..e];
+    let (h, w) = (normalize_questions(have), normalize_questions(&want));
+    if h != w {
+        let i = h
+            .iter()
+            .zip(&w)
+            .position(|(a, b)| a != b)
+            .unwrap_or(h.len().min(w.len()));
+        return Err(format!(
+            "{doc_path}: generated part differs from `rules-catalog questions {preset_path}` at line {}:\n  doc:       {}\n  generated: {}\n(answers written in the doc must be applied to the preset first)",
+            i + 1,
+            h.get(i).map_or("<end>", String::as_str),
+            w.get(i).map_or("<end>", String::as_str)
+        ));
+    }
+    println!("{doc_path}: generated part is up to date ({n} questions)");
+    Ok(())
+}
+
+/// 仮の値の項目ごとに、選択肢と回答欄のある質問を作る。
+fn render_questions(preset_path: &str) -> Result<(String, usize), String> {
     use mj_core::catalog::{Kind, SECTIONS, item};
     use mj_core::rules::{PresetFile, lookup};
     let text = std::fs::read_to_string(root().join(preset_path)).map_err(|e| e.to_string())?;
@@ -191,9 +247,7 @@ fn questions(preset_path: &str) -> Result<(), String> {
             out.push_str("- [ ] その他（　　　　　　　　　　）\n- [ ] 分からない／ゲーム内の説明では確認できない\n\n");
         }
     }
-    print!("{out}");
-    eprintln!("{n} questions");
-    Ok(())
+    Ok((out, n))
 }
 
 fn add_missing() -> Result<(), String> {
