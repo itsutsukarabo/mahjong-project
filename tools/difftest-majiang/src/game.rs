@@ -372,6 +372,12 @@ pub fn judge(ours: &Value, theirs: &Value) -> GameVerdict {
         }
         v.kyokus_matched += 1;
     }
+    if theirs["wanted_more_kyoku"] == json!(true) {
+        v.first_mismatch = Some(json!({"item": "kyoku_count", "ours": a.len(),
+                                       "majiang": "対局を続ける（次の局を始めようとした）",
+                                       "last_qipai_majiang": b.last().and_then(|k| k.get(0))}));
+        return v;
+    }
     if a.len() != b.len() {
         v.first_mismatch =
             Some(json!({"item": "kyoku_count", "ours": a.len(), "majiang": b.len()}));

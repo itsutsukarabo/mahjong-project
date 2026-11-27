@@ -44,9 +44,21 @@ function hule(c) {
 
 function game(c) {
   const g = new MajiangDev.Dev.Game(c.script, Majiang.rule(c.rule || {}));
+  // こちらの牌譜が終わったのに majiang-core が次の局を始めようとすると、Dev.Game は台本を読めずに例外を出す。
+  // それは「majiang-core では対局が続く」という食い違いなので、例外ではなく結果として返す
+  const qipai = g.qipai.bind(g);
+  let wanted_more = false;
+  g.qipai = () => {
+    if (!c.script.log.length) {
+      wanted_more = true;
+      g._status = "jieju";
+      return;
+    }
+    qipai();
+  };
   g.do_sync();
   const p = g._paipu;
-  return { log: p.log, defen: p.defen, rank: p.rank, point: p.point };
+  return { log: p.log, defen: p.defen, rank: p.rank, point: p.point, wanted_more_kyoku: wanted_more };
 }
 
 const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });

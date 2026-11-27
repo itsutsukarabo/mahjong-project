@@ -50,7 +50,7 @@ pub struct KyokuOutcome {
     pub kyotaku_next: u32,
     pub scores: Vec<i32>,
     pub chip_deltas: Vec<i32>,
-    /// 荒牌流局・途中流局のときの親の聴牌（和了なら false）
+    /// 荒牌流局（流し満貫を含む）のときの親の聴牌。和了・途中流局なら false（聴牌止めの判定に使う）
     pub oya_tenpai: bool,
 }
 
@@ -1834,13 +1834,8 @@ impl Kyoku {
             scores: self.scores.clone(),
         })));
         let renchan = self.rules.draws.abortive_renchan;
-        self.finish(
-            "ryukyoku",
-            renchan,
-            self.honba + 1,
-            false,
-            tenpai[usize::from(self.oya)],
-        );
+        // 途中流局は聴牌止めの対象にしない（親が聴牌でも false。和了止め・聴牌止めは親の和了・荒牌流局の聴牌だけ）
+        self.finish("ryukyoku", renchan, self.honba + 1, false, false);
     }
 
     fn finish(

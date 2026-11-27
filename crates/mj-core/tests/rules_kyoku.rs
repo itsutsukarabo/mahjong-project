@@ -564,6 +564,9 @@ fn all_riichi_true_and_false() {
     assert!(!k.is_done(), "天鳳三麻：流局しない");
     let k = run(with("[draws]\nall_riichi = true"));
     assert_eq!(ryukyoku(&k).reason, "all_riichi");
+    // 途中流局は親が聴牌でも聴牌止めの対象にしない（四麻の局単位の差分テストで見つけた。IMPLICIT_RULES_AUDIT B17）
+    let o = k.outcome().unwrap();
+    assert!(o.renchan && !o.hora && !o.oya_tenpai);
 }
 
 #[test]
