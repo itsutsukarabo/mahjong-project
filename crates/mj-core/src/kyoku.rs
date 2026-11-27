@@ -867,6 +867,13 @@ impl Kyoku {
         // 暗槓
         if kan_ok {
             for k in TileKind::all().filter(|k| p.c[k.index()] == 4) {
+                // 北抜きありで北の暗槓（`kita.ankan_north`）
+                if k.index() == NORTH
+                    && rules.kita.mode == KitaMode::Nukidora
+                    && !rules.kita.ankan_north
+                {
+                    continue;
+                }
                 if riichi && !self.riichi_ankan_ok(actor, k, drawn) {
                     continue;
                 }
@@ -1022,19 +1029,14 @@ impl Kyoku {
                 && (self.live() > 0 || rules.calls.haitei_call)
             {
                 let n = p.c[ki];
-                // 北抜きありで捨てられた北を鳴けないルール（`kita.pon_north = false`）
-                let n = if ki == NORTH
-                    && rules.kita.mode == KitaMode::Nukidora
-                    && !rules.kita.pon_north
-                {
-                    0
-                } else {
-                    n
-                };
-                if n >= 3 && self.kan_total() < 4 && self.can_rinshan() {
+                // 北抜きありで捨てられた北のポン・大明槓（`kita.pon_north`・`kita.daiminkan_north`）
+                let nuki_north = ki == NORTH && rules.kita.mode == KitaMode::Nukidora;
+                let can_pon = !nuki_north || rules.kita.pon_north;
+                let can_daiminkan = !nuki_north || rules.kita.daiminkan_north;
+                if can_daiminkan && n >= 3 && self.kan_total() < 4 && self.can_rinshan() {
                     opts.push(Action::Daiminkan);
                 }
-                if n >= 2 {
+                if can_pon && n >= 2 {
                     for (a, b) in self.pon_pairs(p, k) {
                         // 喰い替えで切る牌がなくなるポンはできない
                         let mut rest = p.clone();

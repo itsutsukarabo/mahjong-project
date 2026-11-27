@@ -92,7 +92,9 @@ breaks_first_turn = true                 # M4（同上）
 north_as_meld = "otakaze"                # M4「北を面子で使用した場合はオタ風」
 dora_per_kita = 1                        # オーナー確認（2026-11-28）質問票 Q19
 furiten = false                          # オーナー確認（2026-11-28）D-033 B5（今の動作のまま）
-pon_north = true                         # オーナー確認（2026-11-28）D-033 B6（今の動作のまま）
+pon_north = true                         # オーナー確認（2026-11-28）D-033 B6・D-041
+daiminkan_north = true                   # オーナー確認（2026-11-28）D-041
+ankan_north = true                       # オーナー確認（2026-11-28）D-041
 
 [draws]
 kyushu_kyuhai = true                     # M4「途中流局は九種九牌・四槓散了のみ」

@@ -283,6 +283,8 @@ pub struct KitaRules {
     pub dora_per_kita: u8,
     pub furiten: bool,
     pub pon_north: bool,
+    pub daiminkan_north: bool,
+    pub ankan_north: bool,
 }
 
 rule_enum! {

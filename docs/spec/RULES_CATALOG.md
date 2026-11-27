@@ -8,7 +8,7 @@
 - **既定値**はメインのプリセット（天鳳三麻相当、D-011）の値。プリセットはすべての項目に値を書く（`docs/spec/RULES_PRESETS.md`）
 - テスト対応表：`fixtures/rules/coverage.toml`。下の「値」の行ごとに、その分岐を確かめるテストを対応付ける（数値の項目は1つ以上）
 
-項目数：**98**、テスト対応表の行数（項目 × 値）：**184**
+項目数：**100**、テスト対応表の行数（項目 × 値）：**188**
 
 ## A. 対局の形（`table`）
 
@@ -112,7 +112,9 @@
 | `kita.north_as_meld` | 北を面子に使ったとき | 列挙 | `otakaze`：北を刻子・雀頭に使ったら、自風・場風でなければ役も符もない字牌（オタ風）<br>`yakuhai`：北の刻子は常に役牌（1翻） | `"otakaze"` | `kita.mandatory` |
 | `kita.dora_per_kita` | 抜いた北1枚のドラ<br>抜いた北1枚あたりのドラの数（北がドラ表示でドラになっていれば、さらにその分を足す） | 整数 | 0〜4（翻） | `1` | `kita.mode` |
 | `kita.furiten` | 抜いた北とフリテン<br>流し満貫の条件にはどちらの値でも関わらない（北は么九牌なので、捨て牌とみなしても条件は変わらない） | 真偽値 | `true`：抜いた北を自分の捨て牌とみなす（北待ちならフリテン）<br>`false`：抜いた北は捨て牌ではない（フリテンに関わらない） | `false` | `draws.nagashi_mangan` |
-| `kita.pon_north` | 捨てられた北の鳴き<br>北抜きあり（`kita.mode = "nukidora"`）のときだけ使う | 真偽値 | `true`：捨てられた北をポン・大明槓できる<br>`false`：捨てられた北は鳴けない（ロンだけ） | `true` | `kita.mode`<br>`kita.ron_on_discard` |
+| `kita.pon_north` | 捨てられた北のポン<br>北抜きあり（`kita.mode = "nukidora"`）のときだけ使う | 真偽値 | `true`：捨てられた北をポンできる<br>`false`：捨てられた北はポンできない | `true` | `kita.mode`<br>`kita.daiminkan_north`<br>`kita.ankan_north` |
+| `kita.daiminkan_north` | 捨てられた北の大明槓<br>北抜きあり（`kita.mode = "nukidora"`）のときだけ使う | 真偽値 | `true`：捨てられた北を大明槓できる<br>`false`：捨てられた北は大明槓できない | `true` | `kita.pon_north` |
+| `kita.ankan_north` | 北の暗槓<br>北抜きあり（`kita.mode = "nukidora"`）のときだけ使う | 真偽値 | `true`：北を4枚持てば暗槓できる<br>`false`：北は暗槓できない（北抜きだけ） | `true` | `kita.pon_north`<br>`kita.mandatory` |
 
 ## F. 流局（`draws`）
 

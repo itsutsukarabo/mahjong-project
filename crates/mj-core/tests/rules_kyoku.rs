@@ -1067,17 +1067,48 @@ fn kita_furiten_true_and_false() {
 }
 
 #[test]
-fn kita_pon_north_true_and_false() {
-    // 席0 が北を切る。席1 は北を2枚持つ
+fn kita_pon_north_and_daiminkan_north() {
+    // 席0 が北を切る。席1 は北を3枚持つ（ポンも大明槓もできる形）
     let s0 = "N 1m 9m 2p 6p 9p 3s 7s S W F F C";
-    let s1 = "1p 2p 3p 4p 5p 6p 7p 8p 9p 2s 3s N N";
+    let s1 = "1p 2p 3p 4p 5p 6p 7p 8p 9p 2s N N N";
     let run = |rules: Rules| {
         let mut k = Scenario::new(rules, &[s0, s1, J2]).draws("E").kyoku();
         act(&mut k, 0, "dahai:N");
-        has(&k, 1, "pon:N,N")
+        (has(&k, 1, "pon:N,N"), has(&k, 1, "daiminkan"))
     };
-    assert!(run(sanma()));
-    assert!(!run(with("[kita]\npon_north = false")));
+    assert_eq!(run(sanma()), (true, true));
+    assert_eq!(
+        run(with(
+            "[kita]
+pon_north = false"
+        )),
+        (false, true)
+    );
+    assert_eq!(
+        run(with(
+            "[kita]
+daiminkan_north = false"
+        )),
+        (true, false)
+    );
+}
+
+#[test]
+fn kita_ankan_north_true_and_false() {
+    // 親（席0）が北を3枚持ち、4枚目をツモる
+    let s0 = "N N N 1m 9m 2p 6p 9p 3s 7s S W F";
+    let run = |rules: Rules| {
+        let k = Scenario::new(rules, &[s0, J1, J2]).draws("N").kyoku();
+        (has(&k, 0, "ankan:N"), has(&k, 0, "kita"))
+    };
+    assert_eq!(run(sanma()), (true, true));
+    assert_eq!(
+        run(with(
+            "[kita]
+ankan_north = false"
+        )),
+        (false, true)
+    );
 }
 
 // ------------------------------------------------------------------ 役満の包・槍槓

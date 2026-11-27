@@ -880,12 +880,12 @@ tests = ["mj-core::kita_furiten_true_and_false"]
 [[case]]
 key = "kita.pon_north"
 value = "true"
-tests = ["mj-core::kita_pon_north_true_and_false"]
+tests = ["mj-core::kita_pon_north_and_daiminkan_north"]
 
 [[case]]
 key = "kita.pon_north"
 value = "false"
-tests = ["mj-core::kita_pon_north_true_and_false"]
+tests = ["mj-core::kita_pon_north_and_daiminkan_north"]
 
 [[case]]
 key = "draws.nagashi_payment"
@@ -926,3 +926,23 @@ tests = ["mj-core::nagashi_with_own_calls_true_and_false"]
 key = "draws.nagashi_with_own_calls"
 value = "false"
 tests = ["mj-core::nagashi_with_own_calls_true_and_false"]
+
+[[case]]
+key = "kita.daiminkan_north"
+value = "true"
+tests = ["mj-core::kita_pon_north_and_daiminkan_north"]
+
+[[case]]
+key = "kita.daiminkan_north"
+value = "false"
+tests = ["mj-core::kita_pon_north_and_daiminkan_north"]
+
+[[case]]
+key = "kita.ankan_north"
+value = "true"
+tests = ["mj-core::kita_ankan_north_true_and_false"]
+
+[[case]]
+key = "kita.ankan_north"
+value = "false"
+tests = ["mj-core::kita_ankan_north_true_and_false"]

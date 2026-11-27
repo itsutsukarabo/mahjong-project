@@ -87,6 +87,8 @@ north_as_meld = "otakaze"
 dora_per_kita = 1
 furiten = false
 pon_north = true
+daiminkan_north = true
+ankan_north = true
 
 [draws]
 kyushu_kyuhai = true

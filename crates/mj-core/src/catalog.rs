@@ -714,14 +714,27 @@ pub const CATALOG: &[Item] = &[
     },
     Item {
         key: "kita.pon_north",
-        title: "捨てられた北の鳴き",
-        kind: b(
-            "捨てられた北をポン・大明槓できる",
-            "捨てられた北は鳴けない（ロンだけ）",
-        ),
+        title: "捨てられた北のポン",
+        kind: b("捨てられた北をポンできる", "捨てられた北はポンできない"),
         desc: "北抜きあり（`kita.mode = \"nukidora\"`）のときだけ使う",
         default: "true",
-        related: &["kita.mode", "kita.ron_on_discard"],
+        related: &["kita.mode", "kita.daiminkan_north", "kita.ankan_north"],
+    },
+    Item {
+        key: "kita.daiminkan_north",
+        title: "捨てられた北の大明槓",
+        kind: b("捨てられた北を大明槓できる", "捨てられた北は大明槓できない"),
+        desc: "北抜きあり（`kita.mode = \"nukidora\"`）のときだけ使う",
+        default: "true",
+        related: &["kita.pon_north"],
+    },
+    Item {
+        key: "kita.ankan_north",
+        title: "北の暗槓",
+        kind: b("北を4枚持てば暗槓できる", "北は暗槓できない（北抜きだけ）"),
+        desc: "北抜きあり（`kita.mode = \"nukidora\"`）のときだけ使う",
+        default: "true",
+        related: &["kita.pon_north", "kita.mandatory"],
     },
     // ---- F. draws
     Item {
