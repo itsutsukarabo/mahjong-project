@@ -8,9 +8,9 @@
 //!    立直の後に RiichiEnv が出す打牌の選択肢と、mj-core の `reach:<牌>` の牌の集合も比べる
 //! 5. 局の終わりに、イベントの流れ（ツモ・打牌・鳴き・北抜き・ドラ・立直）と、和了・流局の点数の移動、最終の持ち点を比べる
 //!
-//! 除外：RiichiEnv の牌山の作り（5つ目以降の嶺上牌と、4つ目・5つ目のドラ表示牌が通常のツモの位置と重なる。
-//! `state_3p/wall.rs`）は mj-core（王牌は常に別の 14 枚）と写せないので、嶺上ツモが5回以上か、
-//! カンドラ（局の最初の表示牌を除く）が3枚以上めくられた局は比べない。
+//! 牌山の写し方（[`our_wall`]）は、局の中の嶺上ツモの回数 R とめくったカンドラの枚数 K で決まる。
+//! 最初は R = K = 0 として回し、RiichiEnv で実際に起きた R・K が違えば、その R・K で牌山を組み直して
+//! 同じ seed でやり直す（[`run_until_stable`]）。除外はしない。
 
 use crate::harness::Harness;
 use mj_bots::RuleBot;
@@ -29,23 +29,102 @@ fn tile_of_id(id: u64) -> Tile {
     Tile::new(TileKind::new((id / 4) as u8).expect("kind"), red).expect("tile")
 }
 
-/// RiichiEnv の牌山（`env.wall` ＋ 親の第1ツモ ＝ 配牌後の 69 枚、`T[0]` が嶺上側）→ mj-core の牌山
+/// RiichiEnv の牌山（`env.wall` ＋ 親の第1ツモ ＝ 配牌後の 69 枚 `T[0..69]`）→ mj-core の正規化した牌山（LOG_FORMAT §4.2）
 ///
-/// - 通常のツモ：RiichiEnv は末尾から取る → `pile[i] = T[68 − i]`（55 枚）
-/// - 嶺上ツモ：RiichiEnv は先頭から取る → `pile[58 − j] = T[j]`（4 枚まで）
-/// - ドラ表示牌：RiichiEnv の D1〜D3 は `T[8], T[10], T[12]`（裏は `T[9], T[11], T[13]`）。
-///   D4・D5 は RiichiEnv では通常のツモの位置（`T[14..18]`）と重なるので、mj-core には残りの `T[4..8]` を入れる（比べない）
-pub fn our_wall(t: &[Tile], hands: Vec<Vec<Tile>>) -> Wall {
+/// RiichiEnv の 69 枚の並び（`state_3p/wall.rs`）：`T[0..8]` 嶺上牌（先頭から取る）、`T[8..18]` ドラ表示牌の山
+/// （D_i の表 `T[8+2i]`・裏 `T[9+2i]`）、通常のツモは末尾 `T[68]` から取る。通常のツモの回数は 55 − R
+/// （嶺上ツモのたびに1つ減る。mj-core の「王牌は常に 14 枚」と同じ）。
+///
+/// - 通常のツモ：`pile[i] = T[68 − i]`（i < 55 − R。`T[68]..T[14+R]`）
+/// - 嶺上ツモ：`pile[58 − j] = T[j]`（j < R）
+/// - めくるドラ表示牌：`dora[i] = T[8+2i]`、`ura[i] = T[9+2i]`（i ≤ K）
+/// - 残りの位置（引かれない `pile` の 4 枚と、めくらない表示牌の枠）には、使われない残りの牌を順に入れる
+///
+/// R ≥ K なので、使う牌（`T[14+R..69]`・`T[0..R]`・`T[8..10+2K]`）は重ならない。
+pub fn our_wall(t: &[Tile], hands: Vec<Vec<Tile>>, r: usize, k: usize) -> Wall {
     assert_eq!(t.len(), 69, "wall after the deal");
-    let mut pile: Vec<Tile> = (0..55).map(|i| t[68 - i]).collect();
-    for j in (0..4).rev() {
-        pile.push(t[j]);
+    assert!(r <= 8 && k <= 4, "rinshan {r} / kan dora {k}");
+    let mut used = [false; 69];
+    let mut pile: Vec<Option<Tile>> = vec![None; 59];
+    for i in 0..55 - r {
+        pile[i] = Some(t[68 - i]);
+        used[68 - i] = true;
     }
+    for j in 0..r {
+        pile[58 - j] = Some(t[j]);
+        used[j] = true;
+    }
+    let mut dora: Vec<Option<Tile>> = vec![None; 5];
+    let mut ura: Vec<Option<Tile>> = vec![None; 5];
+    for i in 0..=k {
+        assert!(
+            !used[8 + 2 * i] && !used[9 + 2 * i],
+            "indicator overlaps a draw"
+        );
+        dora[i] = Some(t[8 + 2 * i]);
+        ura[i] = Some(t[9 + 2 * i]);
+        used[8 + 2 * i] = true;
+        used[9 + 2 * i] = true;
+    }
+    let mut rest = (0..69).filter(|&i| !used[i]).map(|i| t[i]);
+    let mut fill = |v: &mut Vec<Option<Tile>>| {
+        for x in v.iter_mut() {
+            if x.is_none() {
+                *x = Some(rest.next().expect("enough tiles"));
+            }
+        }
+    };
+    fill(&mut pile);
+    fill(&mut dora);
+    fill(&mut ura);
+    assert!(rest.next().is_none(), "all tiles placed");
+    let un = |v: Vec<Option<Tile>>| v.into_iter().map(|x| x.expect("placed")).collect();
     Wall {
         haipai: hands,
-        pile,
-        dora_indicators: vec![t[8], t[10], t[12], t[4], t[6]],
-        ura_indicators: vec![t[9], t[11], t[13], t[5], t[7]],
+        pile: un(pile),
+        dora_indicators: un(dora),
+        ura_indicators: un(ura),
+    }
+}
+
+/// RiichiEnv の流れから、嶺上ツモの回数（槓・北抜きの直後のツモ）とめくったカンドラの枚数
+fn rinshan_and_kan_dora(flow: &[Value]) -> (usize, usize) {
+    let mut r = 0;
+    let mut after_kan = false;
+    for v in flow {
+        match v[0].as_str().unwrap_or("") {
+            "ankan" | "daiminkan" | "kakan" | "kita" => after_kan = true,
+            "tsumo" => {
+                if after_kan {
+                    r += 1;
+                }
+                after_kan = false;
+            }
+            "dora" => {}
+            _ => after_kan = false,
+        }
+    }
+    (r, flow.iter().filter(|v| v[0] == "dora").count())
+}
+
+/// R・K を合わせながら回す。写し方が違うと (R+1) 回目の嶺上ツモで食い違って止まるので、R・K は1回に1つずつ
+/// 増えていく（R ≤ 8、K ≤ 4 なので最大 10 回）。合わなければ食い違いとして返す
+pub fn run_until_stable(h: &mut Harness, rules: &Rules, seed: u64, gid: &str) -> GameOutcome {
+    let mut guess = (0, 0);
+    let mut tried = Vec::new();
+    for _ in 0..10 {
+        let (o, actual) = run(h, rules, seed, gid, guess);
+        if actual == guess {
+            let mut o = o;
+            o.wall_tries = tried.len() as u32 + 1;
+            return o;
+        }
+        tried.push(json!([guess.0, guess.1]));
+        guess = actual;
+    }
+    GameOutcome {
+        mismatch: Some(json!({"item": "wall_unstable", "tried_rk": tried})),
+        ..Default::default()
     }
 }
 
@@ -182,9 +261,17 @@ pub struct GameOutcome {
     /// 比べた判断ポイント（席ごと）
     pub decisions: u64,
     pub ended_by: Option<String>,
+    /// 牌山を組み直して回した回数（1 なら最初の写し方で合った）
+    pub wall_tries: u32,
 }
 
-pub fn run(h: &mut Harness, rules: &Rules, seed: u64, gid: &str) -> GameOutcome {
+fn run(
+    h: &mut Harness,
+    rules: &Rules,
+    seed: u64,
+    gid: &str,
+    rk: (usize, usize),
+) -> (GameOutcome, (usize, usize)) {
     let bot = RuleBot::new(rules);
     let mut out = GameOutcome::default();
     let st = h.ask(json!({"op": "game_new", "game": gid, "seed": seed}));
@@ -229,7 +316,7 @@ pub fn run(h: &mut Harness, rules: &Rules, seed: u64, gid: &str) -> GameOutcome 
         kyotaku: 0,
         oya,
         scores: vec![rules.points.starting; 3],
-        wall: our_wall(&wall, hands),
+        wall: our_wall(&wall, hands, rk.0, rk.1),
     };
     let mut k = Kyoku::new(Arc::new(rules.clone()), setup);
     let mut their_events: Vec<Value> = st["events"].as_array().cloned().unwrap_or_default();
@@ -400,23 +487,10 @@ pub fn run(h: &mut Harness, rules: &Rules, seed: u64, gid: &str) -> GameOutcome 
         }
     }
     h.ask(json!({"op": "game_end", "game": gid}));
-    // 除外：牌山の作りの違い（上の説明）
-    let rinshan = k
-        .events()
-        .iter()
-        .filter(|e| matches!(e, Event::Tsumo { rinshan: true, .. }))
-        .count();
-    let kan_dora = k
-        .events()
-        .iter()
-        .filter(|e| matches!(e, Event::Dora { .. }))
-        .count();
-    if rinshan >= 5 || kan_dora >= 3 {
-        out.excluded = Some(format!(
-            "wall_model (rinshan {rinshan}, kan_dora {kan_dora})"
-        ));
-        out.mismatch = None;
-        return out;
+    let actual = rinshan_and_kan_dora(&their_flow(&their_events));
+    if actual != rk {
+        // 牌山の写し方が違った：組み直してやり直す（呼び出し側）
+        return (out, actual);
     }
     if out.mismatch.is_none() {
         let mut a = flow_no_dora(&our_flow(k.events()));
@@ -464,5 +538,5 @@ pub fn run(h: &mut Harness, rules: &Rules, seed: u64, gid: &str) -> GameOutcome 
         Event::Ryukyoku(r) => Some(r.reason.to_string()),
         _ => None,
     });
-    out
+    (out, actual)
 }

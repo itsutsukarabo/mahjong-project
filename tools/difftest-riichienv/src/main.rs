@@ -349,6 +349,8 @@ tenhou_win_tile = 'drawn'",
     let mut game_excluded: BTreeMap<String, u64> = BTreeMap::new();
     let mut game_items: BTreeMap<String, u64> = BTreeMap::new();
     let mut game_failures: Vec<Value> = Vec::new();
+    // 牌山を組み直した回数ごとの局数（1 = 最初の写し方で合った）
+    let mut game_wall_tries: BTreeMap<u32, u64> = BTreeMap::new();
     let mut game_seeds: Vec<u64> = match only_game {
         Some(g) => vec![g],
         None => (0..game_n)
@@ -367,7 +369,8 @@ tenhou_win_tile = 'drawn'",
         }
     }
     for (gi, &gseed) in game_seeds.iter().enumerate() {
-        let o = game::run(&mut h, &rules, gseed, &format!("g{gi}"));
+        let o = game::run_until_stable(&mut h, &rules, gseed, &format!("g{gi}"));
+        *game_wall_tries.entry(o.wall_tries).or_default() += 1;
         game_decisions += o.decisions;
         if let Some(r) = &o.excluded {
             games.excluded += 1;
@@ -408,6 +411,7 @@ tenhou_win_tile = 'drawn'",
         "games": games,
         "game_decisions_compared": game_decisions,
         "game_regression_seeds": regression,
+        "game_wall_tries": game_wall_tries,
         "game_excluded": game_excluded,
         "game_ends": game_ends,
         "game_mismatch_items": game_items,
