@@ -57,6 +57,9 @@ importers:
       '@mj/log-types':
         specifier: workspace:*
         version: link:../log-types
+      '@mj/table-model':
+        specifier: workspace:*
+        version: link:../table-model
     devDependencies:
       typescript:
         specifier: 5.9.3
