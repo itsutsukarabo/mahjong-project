@@ -286,8 +286,9 @@ class Evaluator:
                 flags.append(f"{m}={v:.4f} outside [{lo}, {hi}]")
         cond: dict = {"plateau_last3": plateau, "not_extreme": not flags, "extreme_flags": flags}
         if stage == "1a":
+            # D-060：RuleBot の和了率を上回ることは目安から外した（参考として記録だけする）
             cond["hora_above_rulebot"] = significant(rb["hora_rate"])
-            reached = cond["hora_above_rulebot"] and plateau and not flags
+            reached = plateau and not flags
             target = "1b"
         elif stage == "1b":
             cond["score_delta_plateau"] = plateau

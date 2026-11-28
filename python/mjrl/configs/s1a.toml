@@ -48,4 +48,4 @@ games = 2
 
 [eval]
 every = 25
-walls = 500
+walls = 1000  # D-062
