@@ -56,8 +56,6 @@ function horaEl(view: TableView, h: Hora, tiles: TileRenderer): HTMLElement {
   box.append(value);
   // 和了形：手牌＋和了牌＋副露
   const hand = el("div", "result-hand");
-  hand.style.setProperty("--tw", "28px");
-  hand.style.setProperty("--th", "38px");
   hand.append(tilesRow(h.hand.tehai, tiles), tilesRow([h.pai], tiles, "result-win"));
   const melds = el("span", "melds");
   for (const m of h.hand.melds) melds.append(meldEl(m, h.actor, view.seats.length, tiles));

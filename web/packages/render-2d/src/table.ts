@@ -58,13 +58,14 @@ function sized(e: HTMLElement, w: number): HTMLElement {
   return e;
 }
 
-/** 抜いた北：重ねて置き、枚数を出す */
+/** 抜いた北：1枚だけ置き、枚数を添える（重ねると字の欠けた牌に見えるため）。アニメーションの行き先は最後の1枚のキー */
 function kitaEl(s: SeatView, tiles: TileRenderer): HTMLElement | null {
   if (s.kita.length === 0) return null;
   const box = el("span", "kita");
   box.dataset.part = "kita";
   box.dataset.count = String(s.kita.length);
-  s.kita.forEach((t, i) => box.append(tiles.render(t, { key: placeKey({ kind: "kita", seat: s.seat, index: i }) })));
+  const last = s.kita.length - 1;
+  box.append(tiles.render(s.kita[last]!, { key: placeKey({ kind: "kita", seat: s.seat, index: last }) }));
   box.append(el("span", "kita-count", `×${s.kita.length}`));
   return box;
 }
@@ -88,13 +89,13 @@ function handGroup(s: SeatView, n: number, show: boolean, tiles: TileRenderer): 
   return row;
 }
 
-function riverEl(s: SeatView, tiles: TileRenderer): HTMLElement {
+function riverEl(s: SeatView, tiles: TileRenderer, perRow = 6): HTMLElement {
   const river = el("div", "river");
   river.dataset.part = "river";
   river.dataset.seat = String(s.seat);
   let row = el("div", "river-row");
   s.river.forEach((r, i) => {
-    if (i > 0 && i % 6 === 0) {
+    if (i > 0 && i % perRow === 0) {
       river.append(row);
       row = el("div", "river-row");
     }
@@ -130,9 +131,9 @@ function turnSeat(view: TableView): number | null {
 }
 
 function centerEl(view: TableView, m: Metrics, viewSeat: number, turn: number | null): HTMLElement {
-  const c = place(el("div", "center"), m.cx, m.cy, m.center, m.center);
+  const c = place(el("div", "center"), m.cx, m.cy, m.centerW, m.centerH);
   c.dataset.part = "center";
-  c.style.setProperty("--c", `${m.center}px`);
+  c.style.setProperty("--c", `${Math.min(m.centerW, m.centerH)}px`);
   const mid = el("div", "center-mid");
   mid.append(
     el("div", "center-kyoku", `${WIND_JA[view.bakaze] ?? view.bakaze}${view.kyoku}局`),
@@ -143,14 +144,15 @@ function centerEl(view: TableView, m: Metrics, viewSeat: number, turn: number | 
   sticks.title = `${view.honba}本場・供託 ${view.kyotaku}`;
   mid.append(sticks);
   c.append(mid);
-  const eh = Math.max(16, Math.round(m.center * 0.17));
-  const ew = Math.round(m.center * 0.8);
-  const half = m.center / 2;
+  const eh = Math.max(16, Math.round(Math.min(m.centerW, m.centerH) * 0.17));
   for (const s of view.seats) {
     const p = relPos(s.seat, viewSeat, view.seats.length);
     const [dx, dy] = DIR[p];
-    const d = half - eh / 2 - 1;
-    const edge = place(el("div", "edge"), half + dx * d, half + dy * d, ew, eh, ROT[p]);
+    // 上下の辺は幅 centerW、左右の辺は高さ centerH。角で隣の辺と重ならない長さにする
+    const side = dx === 0 ? m.centerW : m.centerH;
+    const ew = Math.round(Math.min(side * 0.8, side - 2 * eh - 4));
+    const d = (dx === 0 ? m.centerH : m.centerW) / 2 - eh / 2 - 1;
+    const edge = place(el("div", "edge"), m.centerW / 2 + dx * d, m.centerH / 2 + dy * d, ew, eh, ROT[p]);
     edge.dataset.seat = String(s.seat);
     edge.style.fontSize = `${Math.round(eh * 0.62)}px`;
     if (turn === s.seat) edge.classList.add("edge-turn");
@@ -190,9 +192,11 @@ function boardEl(view: TableView, opts: RenderOptions, tiles: TileRenderer, turn
   for (const s of view.seats) {
     const p = relPos(s.seat, opts.viewSeat, n);
     const [dx, dy] = DIR[p];
-    const rd = m.center / 2 + m.gap + m.riverH / 2;
-    const river = sized(place(el("div", "river-box"), m.cx + dx * rd, m.cy + dy * rd, m.riverW, m.riverH, ROT[p]), m.rw);
-    river.append(riverEl(s, tiles));
+    const vertical = dx === 0;
+    const rd = vertical ? m.centerH / 2 + m.gap + m.riverH / 2 : m.centerW / 2 + m.gap + m.sideDepth / 2;
+    const [rw, rh] = vertical ? [m.riverW, m.riverH] : [m.centerH, m.sideDepth];
+    const river = sized(place(el("div", "river-box"), m.cx + dx * rd, m.cy + dy * rd, rw, rh, ROT[p]), m.rw);
+    river.append(riverEl(s, tiles, vertical ? 6 : m.sidePer));
     board.append(river);
     const anchor = place(el("div", "shout-anchor"), m.cx + dx * rd, m.cy + dy * rd, 0, 0);
     anchor.dataset.shout = String(s.seat);
@@ -217,7 +221,10 @@ function boardEl(view: TableView, opts: RenderOptions, tiles: TileRenderer, turn
     }
   }
   if (m.layout === "portrait") {
-    const d = place(doraEl(view, m.rw, tiles), cornerX(-1), cornerY(-1), cornerSize - 4, cornerH(-1) + 4);
+    // ドラ表示牌：盤の左上（四麻は左上の隅、三麻は詰めた上の腕）
+    const d = doraEl(view, m.doraW, tiles);
+    d.style.left = "2px";
+    d.style.top = "2px";
     board.append(d);
   }
   return board;

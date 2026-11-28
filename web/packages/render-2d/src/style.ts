@@ -34,7 +34,6 @@ export const css = `
 .meld { display: inline-flex; align-items: flex-end; }
 .kakan-stack { display: inline-flex; flex-direction: column; }
 .kita { display: inline-flex; align-items: flex-end; position: relative; padding-right: 2px; }
-.kita .tile + .tile { margin-left: calc(var(--tw) * -0.6); }
 .kita-count {
   align-self: flex-start; margin-left: 3px; font-size: 11px; font-weight: 700; line-height: 1.3;
   background: rgba(0, 0, 0, 0.55); color: #fff; padding: 0 4px; border-radius: 3px;
@@ -169,7 +168,11 @@ export const css = `
 .result-limit { font-size: 22px; font-weight: 800; color: #b3261e; }
 .result-points { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .result-pao { font-size: 12px; color: #8a2b2b; }
-.result-hand { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
+/* 和了形：14 枚＋副露が窓の幅に1段で入る大きさ（28px まで） */
+.result-hand {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end;
+  --tw: min(28px, calc((min(560px, 100vw - 16px) - 40px) / 16)); --th: calc(var(--tw) * 1.36);
+}
 .result-tiles { display: inline-flex; gap: 1px; }
 .result-win { display: inline-flex; outline: 2px solid #d3192b; outline-offset: 1px; border-radius: 4px; }
 .result-yaku { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; font-size: 13px; }

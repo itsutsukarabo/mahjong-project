@@ -26,11 +26,18 @@ export interface Metrics {
   bandH: number;
   /** 帯の下の、区画に結び付かない選択肢の一覧の高さ */
   listH: number;
-  /** 中央の情報パネルの一辺 */
+  /** 中央の情報パネルの一辺（横画面は正方形。縦画面は centerW × centerH の縦長） */
   center: number;
-  /** 河の枠（局所座標：幅 = 6 枚＋横向き1枚分、高さ = 4 段） */
+  centerW: number;
+  centerH: number;
+  /** 上下の席の河の枠（局所座標：幅 = 6 枚＋横向き1枚分、高さ = 4 段） */
   riverW: number;
   riverH: number;
+  /** 左右の席の河：1段の枚数と枠の奥行き（横画面は上下と同じ 6 枚 × 4 段。縦画面は幅を詰めるため 8 枚 × 3 段） */
+  sidePer: number;
+  sideDepth: number;
+  /** ドラ表示牌の牌の幅 */
+  doraW: number;
   /** 中央パネルと河の間 */
   gap: number;
   /** 河・中央パネルの十字の一辺 */
@@ -65,7 +72,7 @@ function base(width: number, height: number, n: number, layout: LayoutKind, rw: 
   const gap = Math.max(3, Math.round(rw * 0.15));
   const center = riverW;
   const cross = center + 2 * (gap + riverH);
-  return { width, height, n, layout, rw, rh, riverW, riverH, gap, center, cross };
+  return { width, height, n, layout, rw, rh, riverW, riverH, gap, center, centerW: center, centerH: center, sidePer: 6, sideDepth: riverH, doraW: rw, cross };
 }
 
 /**
@@ -102,7 +109,10 @@ function landscape(width: number, height: number, n: number): Metrics {
 }
 
 /**
- * 縦画面：上に他家の段（1席1段、横向きにしない）、真ん中に河と中央パネルの十字、下に自分の副露の段・手牌・帯・一覧
+ * 縦画面：上に他家の段（1席1段、横向きにしない）、真ん中に河と中央パネルの十字、下に自分の副露の段・手牌・帯・一覧。
+ * 幅を決めるのは左右の河の奥行きなので、左右の河は 8 枚 × 3 段にして浅くし、中央パネルを縦長にする（REPLAY_UI §3.2）。
+ * 三麻は上の席がないので、上の腕はドラ表示牌の高さだけにする。河の牌を大きい方から試し、入る最大のものを使い、
+ * 余った高さは帯に回す（72px まで）
  */
 function portrait(width: number, height: number, n: number): Metrics {
   const ow = Math.max(12, Math.min(24, Math.floor((width - 8) / 20)));
@@ -116,22 +126,35 @@ function portrait(width: number, height: number, n: number): Metrics {
   const band0 = Math.max(48, Math.round(hh * 1.3));
   const listH = 34;
   const self0 = 2 * mw + 4 + hh + band0 + listH + 10;
-  const fit = (rw: number) => {
+  const fit = (rw: number, sidePer: 6 | 8) => {
     const b = base(width, height, n, "portrait", rw);
-    const boardH = b.cross + 4;
+    const sideDepth = sidePer === 8 ? 3 * b.rh + 2 * 2 : b.riverH;
+    const centerW = b.riverW;
+    const centerH = Math.max(centerW, sidePer * rw + (b.rh - rw) + 6);
+    const boardW = centerW + 2 * (b.gap + sideDepth);
+    const corner = b.gap + sideDepth;
+    // ドラ表示牌：四麻は左上の隅（5 枚が1段に入る幅）、三麻は詰めた上の腕
+    const doraW = n === 4 ? Math.min(rw, Math.floor((corner - 6) / 5)) : rw;
+    const topArm = n === 4 ? b.gap + b.riverH : 16 + tileH(doraW) + 4;
+    const boardH = topArm + centerH + b.gap + b.riverH + 4;
     const used = (n - 1) * oppRowH + boardH + self0 + 2 * (n + 1);
-    // 余った高さは帯に回す（指で押しやすく。72px まで）
     const bandH = Math.min(72, band0 + Math.max(0, height - used));
     const selfH = self0 - band0 + bandH;
-    const c = Math.round(b.cross / 2);
-    const m: Metrics = { ...b, ow, oh, od, hw, hh, mw, mh, bandH, listH, boardW: b.cross, boardH, cx: c, cy: c, stripGap: 0, topArm: b.gap + b.riverH, stripLen: 0, stripCy: 0, oppRowH, selfH };
-    return { m, ok: b.cross <= width && used <= height };
+    const m: Metrics = {
+      ...b, centerW, centerH, sidePer, sideDepth, doraW, ow, oh, od, hw, hh, mw, mh, bandH, listH, boardW, boardH,
+      cx: Math.round(boardW / 2), cy: topArm + Math.round(centerH / 2), stripGap: 0, topArm, stripLen: 0, stripCy: 0, oppRowH, selfH,
+    };
+    return { m, ok: boardW <= width && used <= height };
   };
-  for (let rw = 30; rw > 10; rw--) {
-    const r = fit(rw);
-    if (r.ok) return r.m;
+  // 左右の河を 8 枚 × 3 段（中央パネルが縦長）にするか、6 枚 × 4 段（正方形）にするかは、河の牌が大きくなる方
+  // （四麻は上の河と他家 3 段で高さが足りないので、多くは正方形になる）
+  for (let rw = 40; rw > 10; rw--) {
+    const square = fit(rw, 6);
+    if (square.ok) return square.m;
+    const tall = fit(rw, 8);
+    if (tall.ok) return tall.m;
   }
-  return fit(10).m;
+  return fit(10, 6).m;
 }
 
 /** 縦長（幅 < 高さ × 0.8）か幅 700 未満なら縦画面の配置 */
