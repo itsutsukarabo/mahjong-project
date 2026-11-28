@@ -84,7 +84,8 @@ def main() -> None:
     lines(axs[0, 0], st, [("和了率", ("play", "latest", "hora_rate")), ("放銃率", ("play", "latest", "deal_in_rate"))], k, "和了率・放銃率（学習の対局、最新のモデルの席）")
     lines(axs[0, 1], st, [("立直率", ("play", "latest", "riichi_rate")), ("副露率", ("play", "latest", "call_rate")), ("流局時聴牌率", ("play", "latest", "exhaustive_tenpai_rate"))], k, "立直率・副露率・流局時聴牌率")
     lines(axs[1, 0], st, [("平均打点", ("play", "latest", "avg_hora_points"))], k, "平均打点（点）")
-    lines(axs[1, 1], st, [("平均順位", ("play", "latest", "avg_rank")), ("局収支 / 1000", ("play", "latest", "avg_score_delta"))], k, "平均順位・局収支")
+    # 学習の対局は全員が最新のモデル（①-a）だと平均順位は常に 2 なので、局収支だけを描く（順位は評価の図で見る）
+    lines(axs[1, 1], st, [("局収支（点、1局あたり）", ("play", "latest", "avg_score_delta"))], k, "局収支")
     save(fig, "play", "打ち方の7項目（学習の対局）。薄い線は更新ごと、濃い線は移動平均")
 
     fig, axs = plt.subplots(2, 2, figsize=(12, 8))

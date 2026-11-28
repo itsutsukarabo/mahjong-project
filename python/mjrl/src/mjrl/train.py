@@ -105,7 +105,7 @@ class Trainer:
         self.model.load_state_dict(s["model"])
         self.opt.load_state_dict(s["optimizer"])
         checkpoint.set_rng_state(s["rng"])
-        self.gen.set_state(s["gen"])
+        self.gen.set_state(s["gen"].cpu())
         self.pool.load_state(s["pool"])
         self.update_idx = s["update"]
         self.elapsed = s["elapsed"]

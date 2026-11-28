@@ -41,9 +41,10 @@ def rng_state() -> dict:
 def set_rng_state(s: dict) -> None:
     random.setstate(s["python"])
     np.random.set_state(s["numpy"])
-    torch.set_rng_state(s["torch"])
+    # チェックポイントを GPU に読み込むと乱数の状態の tensor も GPU に移るので、CPU に戻す
+    torch.set_rng_state(s["torch"].cpu())
     if s["cuda"] and torch.cuda.is_available():
-        torch.cuda.set_rng_state_all(s["cuda"])
+        torch.cuda.set_rng_state_all([x.cpu() for x in s["cuda"]])
 
 
 def atomic_save(obj: dict, path: Path) -> None:

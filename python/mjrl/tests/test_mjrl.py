@@ -189,3 +189,20 @@ def test_resume_matches_uninterrupted(tmp_path, self_only):
     assert rows and all("rulebot" in r["results"] for r in rows)
     assert read_jsonl(tmp_path / "b" / "rating.jsonl")
     assert read_jsonl(tmp_path / "b" / "curriculum.jsonl")
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU がない（CI は CPU だけ）")
+def test_resume_on_gpu(tmp_path):
+    """GPU に読み込んだチェックポイントから再開できる（乱数の状態の tensor が GPU に移っても戻せる。試運転で見つけた不具合）"""
+    over = dict(samples__every=0)
+    cfg = tiny(**over)
+    cfg.device = "cuda"
+    cfg.gpu.memory_fraction = 0.1
+    run_updates(tmp_path / "g", cfg, 2)
+    cfg2 = tiny(**over)
+    cfg2.device = "cuda"
+    cfg2.gpu.memory_fraction = 0.1
+    tr = Trainer(cfg2, tmp_path / "g")
+    assert tr.update_idx == 2
+    tr.train(max_updates=1, log_every=0)
+    assert tr.update_idx == 3
