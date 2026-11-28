@@ -1,4 +1,6 @@
-"""PPO の更新（RL_TRAINING §2.2）。損失の内訳と、補助タスクの損失が全体に占める割合（D-050）を毎回記録する。"""
+"""PPO の更新（RL_TRAINING §2.2）。損失の内訳と、補助タスクの損失が全体に占める割合（D-050）、
+共有の幹にかかる勾配の大きさの項ごとの割合（D-061）を毎回記録する。
+ミニバッチは乱数で混ぜるか、イベント列の長さの近い行でまとめる（D-063 案1、`ppo.length_grouped`）。"""
 
 from __future__ import annotations
 
@@ -17,6 +19,37 @@ def schedule(cfg: Config, update: int) -> tuple[float, float]:
     f = min(update / max(cfg.ppo.total_updates, 1), 1.0)
     p = cfg.ppo
     return p.lr + (p.lr_final - p.lr) * f, p.ent_coef + (p.ent_coef_final - p.ent_coef) * f
+
+
+def minibatches(
+    idx_all: torch.Tensor, lens: torch.Tensor, size: int, grouped: bool, gen: torch.Generator
+) -> list[torch.Tensor]:
+    """1エポックのミニバッチ（学習する行の番号の列）。grouped なら長さ（同じ長さの中は乱数）で並べて切り、ミニバッチの順番を混ぜる。
+    端数の小さなミニバッチは前のものに含める（1行だけのミニバッチはアドバンテージの標準偏差が出ず NaN になる）"""
+    n = len(idx_all)
+    if grouped:
+        order = torch.argsort(lens.float() + torch.rand(n, generator=gen))
+    else:
+        order = torch.randperm(n, generator=gen)
+    bounds = list(range(0, n, size))
+    if len(bounds) > 1 and n - bounds[-1] < size // 2:
+        bounds.pop()
+    ends = bounds[1:] + [n]
+    chunks = [order[s:e] for s, e in zip(bounds, ends)]
+    if grouped:
+        chunks = [chunks[i] for i in torch.randperm(len(chunks), generator=gen).tolist()]
+    dev = idx_all.device
+    return [idx_all[c.to(dev)] for c in chunks]
+
+
+def grad_norms(terms: dict[str, torch.Tensor], params: list[torch.nn.Parameter]) -> dict[str, torch.Tensor]:
+    """項ごとに、共有の幹のパラメータにかかる勾配の大きさ（L2）。重みと係数を掛けた後の項で測る（D-061）"""
+    out = {}
+    for k, v in terms.items():
+        gs = torch.autograd.grad(v, params, retain_graph=True, allow_unused=True)
+        sq = [g.float().pow(2).sum() for g in gs if g is not None]
+        out[k] = torch.stack(sq).sum().sqrt() if sq else torch.zeros((), device=v.device)
+    return out
 
 
 def update(
@@ -40,28 +73,33 @@ def update(
     adv_t = torch.from_numpy(adv).float().to(dev)
     ret_t = torch.from_numpy(ret).float().to(dev)
     aux_w = {k: getattr(cfg.aux, k) for k in AUX_NAMES}
+    lens = rows.t["events_len"][idx_all].cpu()
+    if p.adv_norm == "batch":
+        a_all = adv_t[idx_all]
+        a_mean, a_std = a_all.mean(), a_all.std(correction=0) + 1e-8
+    elif p.adv_norm != "minibatch":
+        raise ValueError(f"ppo.adv_norm = {p.adv_norm!r}")
+    trunk = model.trunk_parameters()
+    gacc: dict[str, torch.Tensor] = {}
+    gcount = 0
     acc: dict[str, torch.Tensor] = {}
     skipped = 0
     count = 0
     stopped_epoch = p.epochs
     model.train()
     for epoch in range(p.epochs):
-        perm = idx_all[torch.randperm(len(idx_all), generator=gen, device="cpu").to(dev)]
         kls = []
-        # 端数の小さなミニバッチは前のものに含める（1行だけのミニバッチはアドバンテージの標準偏差が出ず NaN になる）
-        bounds = list(range(0, len(perm), p.minibatch))
-        if len(bounds) > 1 and len(perm) - bounds[-1] < p.minibatch // 2:
-            bounds.pop()
-        ends = bounds[1:] + [len(perm)]
-        for s, e in zip(bounds, ends):
-            mb = perm[s:e]
+        for mb in minibatches(idx_all, lens, p.minibatch, p.length_grouped, gen):
             t = {k: v[mb] for k, v in rows.t.items()}
             out = forward(model, t, p.bf16)
             logp_all = torch.log_softmax(out.logits, dim=-1)
             logp = logp_all.gather(1, t["action"].unsqueeze(1)).squeeze(1)
             ratio = torch.exp(logp - t["logp"])
             a = adv_t[mb]
-            a = (a - a.mean()) / (a.std(correction=0) + 1e-8)
+            if p.adv_norm == "batch":
+                a = (a - a_mean) / a_std
+            else:
+                a = (a - a.mean()) / (a.std(correction=0) + 1e-8)
             pg = -torch.min(ratio * a, ratio.clamp(1 - p.clip, 1 + p.clip) * a).mean()
             v_old = t["value"]
             v_clip = v_old + (out.value - v_old).clamp(-p.value_clip, p.value_clip)
@@ -72,6 +110,12 @@ def update(
             aux = aux_losses(out, t["aux"], num_players)
             aux_total = sum(aux_w[k] * aux[k] for k in AUX_NAMES)
             loss = pg + p.vf_coef * vf - ent_coef * ent + aux_total
+            if gcount < p.grad_share_minibatches and torch.isfinite(loss):
+                terms = {"policy": pg, "value": p.vf_coef * vf, "entropy": -ent_coef * ent}
+                terms |= {k: aux_w[k] * aux[k] for k in AUX_NAMES}
+                for k, v in grad_norms(terms, trunk).items():
+                    gacc[k] = gacc[k] + v.detach() if k in gacc else v.detach()
+                gcount += 1
             opt.zero_grad(set_to_none=True)
             if not torch.isfinite(loss):
                 # 重みを壊さないように飛ばして数える（統計の nonfinite_skipped）
@@ -115,9 +159,16 @@ def update(
     tot = sum(terms.values()) or 1.0
     for k, v in terms.items():
         out[f"share_{k}"] = v / tot
+    # 共有の幹にかかる勾配の大きさの項ごとの割合（D-061。項ごとの大きさの和に対して）
+    if gcount:
+        gn = {k: float(v) / gcount for k, v in gacc.items()}
+        gtot = sum(gn.values()) or 1.0
+        for k, v in gn.items():
+            out[f"grad_trunk_{k}"] = v
+            out[f"grad_share_{k}"] = v / gtot
     with torch.no_grad():
         v = rows.t["value"][idx_all].float()
         r = ret_t[idx_all]
         out["explained_variance"] = float(1 - (r - v).var() / (r.var() + 1e-8))
-    out |= {"nonfinite_skipped": skipped, "lr": lr, "ent_coef": ent_coef, "epochs_run": stopped_epoch, "minibatches": count, "train_rows": len(idx_all)}
+    out |= {"nonfinite_skipped": skipped, "lr": lr, "ent_coef": ent_coef, "epochs_run": stopped_epoch, "minibatches": count, "train_rows": len(idx_all), "grad_share_minibatches": gcount}
     return out

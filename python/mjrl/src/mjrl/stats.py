@@ -121,3 +121,75 @@ def read_jsonl(path: Path) -> list[dict]:
         return []
     with open(path, encoding="utf-8") as f:
         return [json.loads(x) for x in f if x.strip()]
+
+
+# 牌の番号（ACTION_SPACE §2）
+TILE_NAMES = (
+    *(f"{i}m" for i in (1, 2, 3, 4)), "5mr", *(f"{i}m" for i in (5, 6, 7, 8, 9)),
+    *(f"{i}p" for i in (1, 2, 3, 4)), "5pr", *(f"{i}p" for i in (5, 6, 7, 8, 9)),
+    *(f"{i}s" for i in (1, 2, 3, 4)), "5sr", *(f"{i}s" for i in (5, 6, 7, 8, 9)),
+    "E", "S", "W", "N", "P", "F", "C",
+)
+
+
+def dahai_tiles(action_names: list[str]) -> np.ndarray:
+    """行動の番号 → 打牌（手出し・ツモ切り）なら牌の番号、ほかは -1"""
+    idx = {n: i for i, n in enumerate(TILE_NAMES)}
+    out = np.full(len(action_names), -1, np.int64)
+    for a, name in enumerate(action_names):
+        p = name.split(":")
+        if p[0] == "dahai":
+            out[a] = idx[p[1]]
+    return out
+
+
+class DiscardStats:
+    """シャンテン数を悪化させる打牌の割合（打牌の判断のうち、選んだ打牌の後のシャンテン数が、打牌の候補の中で最も小さい
+    シャンテン数より大きいもの）。シャンテン数は普通の手・七対子・国士無双のうち最も小さいもの（mj-features が観測の
+    `discard_candidates` に入れた値を読むだけで、ここでは計算しない。原則1）。他家の立直がない局面とある局面、
+    抽選した行動（`sample`）と一番確率の高い行動（`greedy`）を分けて数える。立直の打牌は数えない（立直は聴牌なので悪化しない）
+    """
+
+    MODES = ("sample", "greedy")
+    CONDS = ("no_riichi", "opp_riichi")
+
+    def __init__(self, layout: list[tuple[str, int, int]], action_names: list[str], num_players: int) -> None:
+        off = {n: (o, d) for n, o, d in layout}
+        self.dc = off["discard_candidates"][0]
+        self.seats = off["seats"][0]
+        self.num_players = num_players
+        self.tile = dahai_tiles(action_names)
+        self.reset()
+
+    def reset(self) -> None:
+        self.c = {m: {c: [0, 0] for c in self.CONDS} for m in self.MODES}
+
+    def add(self, policy: np.ndarray, actions: dict[str, np.ndarray]) -> None:
+        if len(policy) == 0:
+            return
+        cand = policy[:, self.dc : self.dc + 37] > 0.5
+        csh = np.rint(policy[:, self.dc + 37 : self.dc + 74] * 8.0 - 1.0)
+        best = np.where(cand, csh, 99.0).min(axis=1)
+        # 相対の席 1〜（人数 − 1）の「立直」（OBSERVATION §2 の seats：1席7つの4つ目）
+        riichi = np.zeros(len(policy), bool)
+        for r in range(1, self.num_players):
+            riichi |= policy[:, self.seats + r * 7 + 3] > 0.5
+        rows = np.arange(len(policy))
+        for m in self.MODES:
+            t = self.tile[actions[m]]
+            is_d = t >= 0
+            worse = is_d & (csh[rows, np.maximum(t, 0)] > best)
+            for c, sel in (("no_riichi", ~riichi), ("opp_riichi", riichi)):
+                self.c[m][c][0] += int((is_d & sel).sum())
+                self.c[m][c][1] += int((worse & sel).sum())
+
+    def take(self) -> dict:
+        out = {
+            m: {
+                c: {"discards": d, "worsen": w, "rate": (w / d) if d else None}
+                for c, (d, w) in self.c[m].items()
+            }
+            for m in self.MODES
+        }
+        self.reset()
+        return out

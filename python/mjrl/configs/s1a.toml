@@ -24,7 +24,10 @@ ff = 1024
 steps_per_update = 128
 # 4096 は VRAM に収まらない（学習の1歩で 20GB）。512 が速さ・VRAM とも良い（RL_TRAINING §1.5 の実測）
 minibatch = 512
-epochs = 3
+# D-063：エポック 3 → 2、長さの近い行でミニバッチを作る（アドバンテージの正規化は更新のデータ全体で1回）
+epochs = 2
+length_grouped = true
+adv_norm = "batch"
 gamma = 0.995
 lam = 0.95
 lr = 3e-4

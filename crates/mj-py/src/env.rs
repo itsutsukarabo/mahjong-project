@@ -240,6 +240,8 @@ pub struct VecEnv {
     pool: rayon::ThreadPool,
     tables: Vec<Table>,
     policy_dim: usize,
+    /// 方策の入力の区画（名前・次元。OBSERVATION §2）
+    policy_sections: Vec<(&'static str, usize)>,
     critic_dim: usize,
     aux_dim: usize,
     /// 次に始める対局の通し番号（`schedule` がないとき。再開に使う）
@@ -292,6 +294,7 @@ impl VecEnv {
             pool,
             tables,
             policy_dim: layout.policy(),
+            policy_sections: layout.sections.clone(),
             critic_dim: layout.critic,
             aux_dim: layout.aux,
             next_game_index: cfg.first_game_index,
@@ -309,6 +312,10 @@ impl VecEnv {
 
     pub fn policy_dim(&self) -> usize {
         self.policy_dim
+    }
+
+    pub fn policy_sections(&self) -> &[(&'static str, usize)] {
+        &self.policy_sections
     }
 
     pub fn critic_dim(&self) -> usize {

@@ -57,6 +57,13 @@ class PpoCfg:
     total_updates: int = 20000
     # BF16 の自動混合精度（Transformer の部分）
     bf16: bool = True
+    # D-063 案1：イベント列の長さの近い行でミニバッチを作る（ミニバッチの順番は乱数で混ぜる）
+    length_grouped: bool = False
+    # アドバンテージの正規化："minibatch"（ミニバッチごと）か "batch"（1回の更新のデータ全体で1回）。
+    # 長さでまとめたミニバッチは局の序盤・終盤に偏るので、ミニバッチごとに正規化すると局面の段階ごとの差が消える。"batch" を使う
+    adv_norm: str = "minibatch"
+    # D-061：共有の幹にかかる勾配の大きさを項ごとに測るミニバッチの数（1回の更新の最初から。0 で測らない）
+    grad_share_minibatches: int = 1
 
 
 @dataclass

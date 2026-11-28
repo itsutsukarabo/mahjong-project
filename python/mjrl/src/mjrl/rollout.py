@@ -20,7 +20,7 @@ import torch
 from .config import Config
 from .model import MjModel
 from .pool import LATEST, Pool
-from .stats import Accum, finished_arrays
+from .stats import Accum, DiscardStats, finished_arrays
 from .timing import GpuSampler, Timer
 
 TENSOR_KEYS = ("policy", "events", "events_len", "mask", "critic", "aux")
@@ -104,6 +104,8 @@ class Collector:
         self.kyokus = 0
         # 終わった対局でイベント列が上限を超えた行の数の和（D-045）
         self.overflow_rows = 0
+        # シャンテン数を悪化させる打牌の割合（最新のモデルの席。抽選・一番確率の高い行動）
+        self.discard = DiscardStats(self.env.policy_layout, mj_py.action_names(), self.num_players)
 
     def _assign_new_games(self, table: np.ndarray, game_id: np.ndarray) -> None:
         new = self.table_game[table] != game_id
@@ -164,6 +166,7 @@ class Collector:
                     lt["logp"] = dist.log_prob(a)
                     lt["value"] = out.value
                     actions[li] = a.cpu().numpy()
+                    greedy = out.logits.argmax(-1).cpu().numpy()
                 for v in np.unique(who[~learner]):
                     oi = np.nonzero(who == v)[0]
                     ot = take(t, torch.from_numpy(oi).to(self.dev))
@@ -173,6 +176,7 @@ class Collector:
             with timer("bookkeeping"):
                 k = len(li)
                 if k:
+                    self.discard.add(b["policy"][li], {"sample": actions[li], "greedy": greedy})
                     parts.append(lt)
                     idx = np.arange(n, n + k)
                     key = table[li] * self.seats + seat[li]

@@ -73,6 +73,11 @@ class MjModel(nn.Module):
         self.tenpai_head = nn.Linear(d, 3)
         self.waits_head = nn.Linear(d, 3 * NUM_KINDS)
 
+    def trunk_parameters(self) -> list[nn.Parameter]:
+        """共有の幹（埋め込み・状態トークン・Transformer・最後の LayerNorm）。頭（方策・価値・補助タスク）は含まない（D-061）"""
+        mods = [*self.field_emb, self.pos_emb, self.state, self.encoder, self.norm]
+        return [self.state_type, *(p for m in mods for p in m.parameters())]
+
     def trunk(self, policy: torch.Tensor, events: torch.Tensor, events_len: torch.Tensor) -> torch.Tensor:
         """先頭トークンの出力 h（B, d）。events は (B, L, 6) の整数（-1 はパディング）"""
         b, length, _ = events.shape

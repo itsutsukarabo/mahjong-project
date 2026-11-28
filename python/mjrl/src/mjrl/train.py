@@ -16,6 +16,7 @@ import random
 import shutil
 import signal
 import time
+from collections import deque
 from pathlib import Path
 
 import numpy as np
@@ -100,6 +101,8 @@ class Trainer:
         self.timer = Timer()
         self.accum = Accum()
         self.stop_requested = False
+        # 直近の1更新の時間（秒）。直近の平均の SLOW_FACTOR 倍を超えたら警告を記録する（VRAM のあふれなどに気づくため）
+        self.recent: deque[float] = deque(maxlen=SLOW_WINDOW)
 
     def _restore(self, s: dict, path: Path) -> None:
         self.model.load_state_dict(s["model"])
@@ -227,6 +230,7 @@ class Trainer:
             },
             "train": losses,
             "play": play,
+            "discard": col.discard.take(),
             "timing": timing,
             "gpu": self.sampler.take(),
             "throughput": {
@@ -240,9 +244,32 @@ class Trainer:
             row["gpu"]["torch_max_allocated_mb"] = torch.cuda.max_memory_allocated() / 2**20
             row["gpu"]["torch_max_reserved_mb"] = torch.cuda.max_memory_reserved() / 2**20
             torch.cuda.reset_peak_memory_stats()
+        row["slow_update"] = self._check_slow(el, timing)
         self.stats_log.append(row)
         self.periodic()
         return row
+
+    def _check_slow(self, el: float, timing: dict) -> bool:
+        """1更新の時間が直近の平均の SLOW_FACTOR 倍を超えたら events.jsonl に警告を書く（その更新は平均に入れない）"""
+        slow = len(self.recent) >= SLOW_MIN and el > SLOW_FACTOR * (sum(self.recent) / len(self.recent))
+        if slow:
+            mean = sum(self.recent) / len(self.recent)
+            top = sorted(((k, v) for k, v in timing.items() if k != "total"), key=lambda kv: -kv[1])[:3]
+            self.events_log.append(
+                {
+                    "event": "slow_update",
+                    "update": self.update_idx,
+                    "seconds": round(el, 2),
+                    "recent_mean": round(mean, 2),
+                    "ratio": round(el / mean, 2),
+                    "top_timing": {k: round(v, 2) for k, v in top},
+                    "time": time.time(),
+                }
+            )
+            print(f"WARNING slow update u{self.update_idx}: {el:.1f}s vs recent mean {mean:.1f}s", flush=True)
+        else:
+            self.recent.append(el)
+        return slow
 
     def train(self, max_updates: int | None = None, max_seconds: float | None = None, log_every: int = 1) -> None:
         start = time.perf_counter()
@@ -284,6 +311,11 @@ class Trainer:
 
     def _on_sigint(self, *_):
         self.stop_requested = True
+
+
+SLOW_WINDOW = 20
+SLOW_MIN = 5
+SLOW_FACTOR = 2.0
 
 
 def fmt(x) -> str:

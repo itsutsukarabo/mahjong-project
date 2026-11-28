@@ -18,7 +18,8 @@ from mjrl.pool import LATEST, Pool
 from mjrl.rating import fit
 from mjrl.rollout import Rows, gae
 from mjrl.samples import play_and_write
-from mjrl.stats import read_jsonl
+from mjrl.ppo import minibatches
+from mjrl.stats import DiscardStats, dahai_tiles, read_jsonl
 from mjrl.train import Trainer
 
 CONFIGS = Path(__file__).resolve().parents[1] / "configs"
@@ -206,3 +207,74 @@ def test_resume_on_gpu(tmp_path):
     assert tr.update_idx == 2
     tr.train(max_updates=1, log_every=0)
     assert tr.update_idx == 3
+
+
+@pytest.mark.parametrize("grouped", [False, True])
+def test_minibatches_cover_every_row_once(grouped):
+    """ミニバッチは学習する行をちょうど1回ずつ含む。長さでまとめたときは、ミニバッチの中の長さの幅が混ぜた場合より狭い（D-063）"""
+    gen = torch.Generator().manual_seed(0)
+    idx = torch.arange(10, 1010)
+    lens = torch.randint(1, 192, (1000,), generator=gen)
+    mbs = minibatches(idx, lens, 128, grouped, gen)
+    allv = torch.cat(mbs)
+    assert sorted(allv.tolist()) == idx.tolist()
+    assert all(len(m) >= 64 for m in mbs)
+    spread = np.mean([float(lens[m - 10].max() - lens[m - 10].min()) for m in mbs])
+    assert (spread < 40) if grouped else (spread > 150)
+
+
+def test_discard_stats_read_rust_shanten():
+    """打牌の候補ごとのシャンテン数の読み方が Rust の値と合う：14枚形（和了形を除く）では、候補の中の最小 ＝ 今のシャンテン数。
+    最小の候補を選べば悪化は 0、最大の候補（最小より大きいとき）を選べば必ず悪化に数える"""
+    env = mj_py.VecEnv(num_tables=16, seed=7, overrides="[table]\nlength = 'single'")
+    names = mj_py.action_names()
+    ds = DiscardStats(env.policy_layout, names, 3)
+    tile = dahai_tiles(names)
+    assert names[int(np.nonzero(tile == 0)[0][0])] == "dahai:1m"
+    rng = np.random.default_rng(1)
+    b = env.observe()
+    checked = 0
+    for _ in range(300):
+        pol = b["policy"]
+        cand = pol[:, ds.dc : ds.dc + 37] > 0.5
+        csh = np.rint(pol[:, ds.dc + 37 : ds.dc + 74] * 8 - 1)
+        has = cand.any(1)
+        best = np.where(cand, csh, 99).min(1)
+        sh = b["shanten"].astype(np.int64)
+        m = has & (sh >= 0)
+        assert (best[m] == sh[m]).all()
+        checked += int(m.sum())
+        # 打牌の行動のうち、切った後のシャンテン数が最小／最大のもの
+        acts_best = np.zeros(len(pol), np.int64)
+        acts_worst = np.zeros(len(pol), np.int64)
+        for i in np.nonzero(has)[0]:
+            legal = [a for a in np.nonzero(b["mask"][i])[0] if tile[a] >= 0]
+            v = [csh[i, tile[a]] for a in legal]
+            acts_best[i] = legal[int(np.argmin(v))]
+            acts_worst[i] = legal[int(np.argmax(v))]
+        ds.add(pol[has], {"sample": acts_best[has], "greedy": acts_worst[has]})
+        a = (rng.random(b["mask"].shape) * b["mask"]).argmax(1).astype(np.int64)
+        b = env.step(b["decision_id"], a)
+    out = ds.take()
+    assert checked > 500
+    for c in DiscardStats.CONDS:
+        assert out["sample"][c]["worsen"] == 0
+    tot = sum(out["greedy"][c]["discards"] for c in DiscardStats.CONDS)
+    worse = sum(out["greedy"][c]["worsen"] for c in DiscardStats.CONDS)
+    assert tot > 500 and worse > 0.5 * tot
+    assert out["greedy"]["opp_riichi"]["discards"] > 0
+
+
+def test_grad_shares_recorded(tmp_path):
+    """共有の幹にかかる勾配の大きさの割合が項ごとに記録され、合計が 1（D-061）。長さでまとめたミニバッチでも学習が回る（D-063）"""
+    cfg = tiny(samples__every=0, ppo__length_grouped=True, ppo__adv_norm="batch")
+    tr = run_updates(tmp_path / "g", cfg, 2)
+    st = read_jsonl(tmp_path / "g" / "stats.jsonl")
+    tr_ = st[-1]["train"]
+    keys = ["policy", "value", "entropy", "opp_hand", "opp_shanten", "opp_tenpai", "opp_waits"]
+    assert abs(sum(tr_[f"grad_share_{k}"] for k in keys) - 1) < 1e-6
+    assert all(tr_[f"grad_trunk_{k}"] > 0 for k in keys)
+    d = st[-1]["discard"]
+    assert d["sample"]["no_riichi"]["discards"] > 0
+    assert "slow_update" in st[-1]
+    del tr

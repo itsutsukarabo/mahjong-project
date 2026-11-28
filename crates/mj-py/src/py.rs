@@ -185,6 +185,21 @@ impl VecEnv {
         self.inner.policy_dim()
     }
 
+    /// 方策の入力の区画：(名前, 始まりの位置, 次元)。OBSERVATION §2 の順
+    #[getter]
+    fn policy_layout(&self) -> Vec<(String, usize, usize)> {
+        let mut off = 0;
+        self.inner
+            .policy_sections()
+            .iter()
+            .map(|(n, d)| {
+                let r = (n.to_string(), off, *d);
+                off += d;
+                r
+            })
+            .collect()
+    }
+
     #[getter]
     fn critic_dim(&self) -> usize {
         self.inner.critic_dim()
