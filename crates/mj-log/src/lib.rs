@@ -376,6 +376,12 @@ pub fn validate_annotations(annotations: &[Value], events: &[Value]) -> Result<u
         let decision = a["decision"]
             .as_str()
             .ok_or_else(|| LogError(format!("annotation without decision: {a}")))?;
+        // selection は任意。書くなら "sample" か "greedy"（LOG_FORMAT §6）
+        if let Some(sel) = a.get("selection")
+            && !matches!(sel.as_str(), Some("sample" | "greedy"))
+        {
+            return err(format!("selection must be \"sample\" or \"greedy\": {a}"));
+        }
         // choices があれば判断ポイント（選択肢2つ以上）で、decision と policy の行動を含む（LOG_FORMAT §6）
         if let Some(choices) = a.get("choices") {
             let choices: Vec<&str> = choices

@@ -325,6 +325,10 @@ pub struct Annotation {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub value: Option<f64>,
+    /// 行動の選び方：`"sample"`（確率どおりに抽選）／`"greedy"`（一番確率の高い行動）。省略は記録なし（LOG_FORMAT §6）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub selection: Option<String>,
 }
 
 /// JSONL を型で読む（1行目からの行番号付きのエラー）

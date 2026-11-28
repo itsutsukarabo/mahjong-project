@@ -189,6 +189,16 @@ fn annotations_point_at_existing_events() {
     let mut outside = ann.clone();
     outside[0]["decision"] = Value::from("daiminkan");
     assert!(validate_annotations(&outside, &ev).is_err());
+    // selection は任意（サンプルには書いていない）。書くなら "sample" か "greedy"
+    for (v, ok) in [("sample", true), ("greedy", true), ("argmax", false)] {
+        let mut sel = ann.clone();
+        sel[0]["selection"] = Value::from(v);
+        assert_eq!(validate_annotations(&sel, &ev).is_ok(), ok, "{v}");
+        let typed: mj_log::schema::Annotation = serde_json::from_value(sel[0].clone()).unwrap();
+        assert_eq!(typed.selection.as_deref(), Some(v));
+    }
+    let typed: mj_log::schema::Annotation = serde_json::from_value(ann[0].clone()).unwrap();
+    assert_eq!(typed.selection, None);
 }
 
 #[test]

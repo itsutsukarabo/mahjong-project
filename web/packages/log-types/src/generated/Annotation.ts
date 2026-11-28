@@ -7,4 +7,8 @@ export type Annotation = { game_id: string, kyoku_idx: number, event_idx: number
 /**
  * `[[行動, 確率], ...]`
  */
-policy?: Array<[string, number]>, value?: number, };
+policy?: Array<[string, number]>, value?: number, 
+/**
+ * 行動の選び方：`"sample"`（確率どおりに抽選）／`"greedy"`（一番確率の高い行動）。省略は記録なし（LOG_FORMAT §6）
+ */
+selection?: string, };
