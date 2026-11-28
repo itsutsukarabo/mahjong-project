@@ -145,6 +145,15 @@ pnpm install
 pnpm build:wasm                                             # web/packages/engine/pkg
 pnpm --filter @mj/replay dev                                # http://localhost:5173 を開く
 ```
+- コマンドはリポジトリの最上位（`package.json` のある所）で打つ
+- PowerShell では Git Bash の `~/bin` が PATH にないので、`pnpm` の代わりに `corepack pnpm` と打つ（`rustup`・`cargo` の2行は同じ）
+  ```powershell
+  cd C:\Users\tetsu\mahjong-project
+  corepack pnpm install
+  corepack pnpm build:wasm
+  corepack pnpm --filter @mj/replay dev
+  ```
+  `pnpm` だけで打ちたいときは、管理者の PowerShell で1回だけ `corepack enable pnpm`（`C:\Program Files\nodejs` に書き込むため管理者が要る）
 - 画面：サンプルの牌譜を選ぶか、牌譜ファイル（`*.mjlog.jsonl`、全情報版・公開情報版）と注釈（`*.annot.jsonl`）を開く。URL で開くときは `?log=fixtures/rulebot.mjlog.jsonl&annot=fixtures/rulebot.annot.jsonl&kyoku=0&event=30&dev=1&seat=0`
 - 操作：進む・戻る（← →）、前の局・次の局、局の選択、巡目のスライダー、自動再生（4段階の速さ）、開発者モード（全員の手牌）、下の席
 - 検査：`pnpm typecheck`・`pnpm test`（table-model）・`pnpm build`・`cd web/apps/replay && npx playwright install chromium && npx playwright test`
