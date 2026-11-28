@@ -15,3 +15,8 @@ Thumbs.db
 rules-coverage.md
 .venv-riichienv/
 .venv-mjpy/
+# WASM のビルド成果物（npm run build:wasm で作る）
+web/packages/engine/pkg/
+# Playwright
+web/apps/replay/test-results/
+web/apps/replay/playwright-report/

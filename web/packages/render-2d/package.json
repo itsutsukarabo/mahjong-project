@@ -1,0 +1,11 @@
+{
+  "name": "@mj/render-2d",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "2D レンダラー（開発者向け、DOM）。卓の状態（TableView）を描くだけ。牌の見た目は TileRenderer で差し替えられる",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p ." },
+  "dependencies": { "@mj/log-types": "workspace:*" },
+  "devDependencies": { "typescript": "5.9.3" }
+}

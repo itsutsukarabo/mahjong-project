@@ -7,7 +7,8 @@
 |---|---|
 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` | cargo workspace（Rust 1.100.0 に固定） |
 | `crates/mj-core/` | `rules.rs`・`catalog.rs`（ルールの全項目＝正、D-025）、`tile.rs`、`wall.rs`（`chacha8-v1`）、`shanten.rs`、`agari.rs`（和了・待ちの表引き）、`yaku.rs`（役・符・点数）、`score.rs`（点数・祝儀の移動）、`action.rs`・`event.rs`・`kyoku.rs`（判断ポイント単位の局進行、D-022）、`game.rs`（対局の進行・精算）、`policy.rs`・`scenario.rs`（テスト・計測用）、`examples/selfplay_bench.rs` |
-| `crates/mj-log/` | 牌譜 v0.4 の検証・`wall_commit`・`wall_salt`・redact（全情報→席視点/公開）、`write.rs`（エンジンの対局→牌譜）、`replay.rs`（牌譜→エンジンで再生・注釈の検査）、サンプルとゴールデンのテスト |
+| `crates/mj-log/` | 牌譜 v0.4 の検証・`wall_commit`・`wall_salt`・redact（全情報→席視点/公開）、`write.rs`（エンジンの対局→牌譜）、`replay.rs`（牌譜→エンジンで再生・注釈の検査）、`schema.rs`（牌譜・注釈の型。TS の型の生成元、feature `ts`）、`view.rs`（牌譜の再生：各イベントを当てた卓の状態 `TableView`）、サンプルとゴールデンのテスト |
+| `crates/mj-wasm/` | WASM バインディング（wasm-bindgen）：牌譜の再生（`Replay`・`parse_annotations`）。`pnpm build:wasm`（`web/scripts/build-wasm.mjs`）で `web/packages/engine/pkg` に書き出す |
 | `crates/mj-features/` | RL のための変換（mj-core の外）：行動の番号表（`ActionId`、325）と合法手マスク、観測（`obs`、D-043）、報酬（`reward`、REWARD_CONFIG） |
 | `crates/mj-scenarios/` | 狙った局面（D-047、`docs/spec/SCENARIOS.md`）：`fixtures/scenarios/*.toml` の読み込み、台本の打ち手、期待の確認、一覧の生成。差分テストの道具が使う |
 | `crates/mj-py/` | RL 環境：多数の卓をまとめて進め、判断ポイントごとの観測・合法手マスクを返す（`env.rs`）。Python からは PyO3（feature `python`、maturin、`pyproject.toml`）。速さの計測 `python/bench_random.py` |
@@ -17,9 +18,10 @@
 | `tools/rules-catalog/` | `docs/spec/RULES_CATALOG.md` の生成と、テスト対応表（`fixtures/rules/coverage.toml`）の検査、質問票の下書き |
 | `rules/` | プリセット（`tenhou-sanma.toml`, `mjsoul-sanma.toml`）。出典は `docs/spec/RULES_PRESETS.md` |
 | `fixtures/` | `rules/`（テスト専用の四麻ルール `test-yonma.toml`、差分テスト用の上書き `majiang-yonma-game.toml`・`riichienv-sanma.toml`、テスト対応表 `coverage.toml`）、`difftest-riichienv/`（変換表に当たった手の例・回帰用の局）、`features/action_ids.txt`（行動の番号表の初版。背番号として固定、D-038）、`golden/walls.json`（固定シードの牌山のハッシュ）、`golden/games.json` と `golden/games/*.actions.json`（固定の行動列から作った牌譜のハッシュ） |
-| `.github/workflows/` | `ci.yml`（main への push、Ubuntu/Windows）、`nightly.yml`（差分テスト大規模版） |
+| `web/` | pnpm workspace（`pnpm-workspace.yaml`・`package.json` はリポジトリの直下）：`packages/log-types`（mj-log から生成した TS の型）、`packages/engine`（mj-wasm を Worker で動かす）、`packages/table-model`（再生の位置・注釈の突き合わせ）、`packages/render-2d`（DOM の 2D レンダラー。牌は文字と図形、`TileRenderer` で差し替え）、`apps/replay`（牌譜再生画面、Vite、Playwright のテスト・スナップショット、`public/fixtures` に試験用の牌譜） |
+| `.github/workflows/` | `ci.yml`（main への push、Ubuntu/Windows の check と、ubuntu の web）、`nightly.yml`（差分テスト大規模版）、`web-snapshots.yml`（牌譜再生画面のスナップショットを撮り直す、手で起動） |
 
-それ以外（mj-features, mj-sim, mj-py, mj-wasm, python/, web/ など）はまだ作っていない。
+それ以外（mj-sim, python/, render-3d, apps/stream・game など）はまだ作っていない。
 
 ## 1. 全体像
 
@@ -109,7 +111,7 @@ mj-core  ←  mj-log  ←  mj-features  ←  mj-sim  ←  mj-py
 | `cargo test --workspace` | Rust 単体テスト＋仕様テスト |
 | `cargo bench -p mj-core` | 局/秒のベンチマーク（結果を `runs/bench/` に記録） |
 | `maturin develop -m crates/mj-py/Cargo.toml` | Python から呼べるようにする |
-| `wasm-pack build crates/mj-wasm --target web --out-dir ../../web/packages/engine/pkg` | WASM を FE へ |
+| `pnpm build:wasm`（cargo で wasm32 にビルド → wasm-bindgen 0.2.130 で `web/packages/engine/pkg` へ） | WASM を FE へ |
 | `pnpm -r test` / Playwright | FE のテスト・画面スナップショット |
 | `just difftest`（または Makefile） | Rust で cases を生成 → `tools/difftest-*` → ID で結合して比較、件数を報告 |
 

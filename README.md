@@ -20,7 +20,8 @@
 | `docs/spec/LOG_FORMAT.md` | 牌譜（イベント列）形式 v0.4（サンプルは `docs/spec/samples/`） |
 | `docs/spec/DECISION_POINTS.md` | 判断ポイント（注釈・RL の行動選択の単位）の仕様 |
 | `docs/spec/ACTION_SPACE.md` | RL の行動の番号表（全ルールの和集合、325 通り。実装は mj-features） |
-| `docs/spec/OBSERVATION.md` | RL の観測に入れる情報の案（実装は次回） |
+| `docs/spec/OBSERVATION.md` | RL の観測（実装は mj-features、イベント列の上限 192） |
+| `docs/spec/SCENARIOS.md` | 狙った局面（手で組んだ牌山）の一覧。オーナーが局面を足せる |
 | `docs/spec/RULES_CATALOG.md` | ルールの全項目（Rust の定義から生成。キー・値・意味・既定値） |
 | `docs/spec/RULES_PRESETS.md` | ルールプリセット（天鳳三麻・雀魂三麻相当）の値と出典 |
 | `docs/spec/RULES_QUESTIONS_MJSOUL.md` | 雀魂三麻の仮の値を確かめる質問票（残り1問） |
@@ -37,3 +38,7 @@
 2. **牌譜（イベント列）がすべての契約**。再生・対戦・学習・配信は同じイベント列を読み書きする
 3. **天鳳の牌譜は使わない**。学習データはすべて自己対戦で自前生成する
 4. **サーバー権威型**。牌山や他家の手牌はクライアントへ送らない
+
+## 牌譜再生画面（2D、開発者向け）
+`pnpm install && pnpm build:wasm && pnpm --filter @mj/replay dev`（準備は `docs/research/DEV_SETUP.md`「牌譜再生画面」）。
+卓の状態は Rust（`mj_log::view`）が作り、WASM（`crates/mj-wasm`）経由で画面に渡す。画面側にルールの処理は書かない。

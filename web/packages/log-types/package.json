@@ -1,0 +1,10 @@
+{
+  "name": "@mj/log-types",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "牌譜・注釈・再生の卓の状態の TS の型。crates/mj-log から生成する（src/generated。手書きしない）",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p ." },
+  "devDependencies": { "typescript": "5.9.3" }
+}

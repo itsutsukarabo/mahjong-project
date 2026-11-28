@@ -1,0 +1,26 @@
+{
+  "name": "@mj/replay",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "牌譜再生画面（2D、開発者向け）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc -p .",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@mj/engine": "workspace:*",
+    "@mj/log-types": "workspace:*",
+    "@mj/render-2d": "workspace:*",
+    "@mj/table-model": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/node": "24.19.4",
+    "typescript": "5.9.3",
+    "vite": "7.3.8"
+  }
+}

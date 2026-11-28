@@ -1,0 +1,11 @@
+{
+  "name": "@mj/table-model",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "牌譜の再生の位置（局・イベント・巡目）と注釈の突き合わせ。卓の状態そのものは WASM（mj_log::view）が作る",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p .", "test": "vitest run" },
+  "dependencies": { "@mj/log-types": "workspace:*" },
+  "devDependencies": { "typescript": "5.9.3", "vitest": "3.2.7" }
+}

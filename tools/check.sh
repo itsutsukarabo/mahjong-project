@@ -23,6 +23,8 @@ step "rules catalog / coverage / questions"
 cargo run --locked -q -p rules-catalog -- check
 cargo run --locked -q -p rules-catalog -- coverage --strict
 cargo run --locked -q -p rules-catalog -- questions-check rules/mjsoul-sanma.toml docs/spec/RULES_QUESTIONS_MJSOUL.md
+step "log TS types (web/packages/log-types) are generated from mj-log"
+cargo test --locked -q -p mj-log --features ts --test ts_types
 step "scenarios list"
 cargo run --locked -q -p mj-scenarios -- check
 step "log samples"

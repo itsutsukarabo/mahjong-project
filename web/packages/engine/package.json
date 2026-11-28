@@ -1,0 +1,11 @@
+{
+  "name": "@mj/engine",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "mj-wasm（牌譜の再生）を Worker で動かす薄い包み。WASM は pnpm build:wasm で pkg/ に作る",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p ." },
+  "dependencies": { "@mj/log-types": "workspace:*" },
+  "devDependencies": { "typescript": "5.9.3" }
+}

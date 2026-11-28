@@ -23,5 +23,10 @@ rayon = "1.12"
 pyo3 = { version = "0.30", optional = true, features = ["abi3-py310"] }
 numpy = { version = "0.30", optional = true }
 
+[dev-dependencies]
+mj-bots.workspace = true
+rand_chacha.workspace = true
+rand_core.workspace = true
+
 [lints]
 workspace = true

@@ -1,0 +1,4 @@
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":8,"seat":0,"decision":"pon:C,C","choices":["pon:C,C","pass"],"model":"ai-ckpt-001200","policy":[["pon:C,C",0.83],["pass",0.17]],"value":0.21}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":11,"seat":1,"decision":"reach:8p","choices":["reach:2p","reach:5p","reach:8p","dahai:2p","dahai:3p","dahai:4p","dahai:5p","dahai:6p","dahai:7p","dahai:8p","dahai:3s","dahai:5s","dahai:6s","dahai:E","dahai:E:tsumogiri"],"model":"ai-ckpt-000800"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":18,"seat":2,"decision":"pass","choices":["ron","pon:P,P","pass"],"model":"rulebot-v1"}
+{"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":20,"seat":0,"decision":"ron","choices":["ron","pass"],"model":"ai-ckpt-001200","policy":[["ron",0.99],["pass",0.01]],"value":0.64}

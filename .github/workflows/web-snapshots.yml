@@ -1,0 +1,44 @@
+# 牌譜再生画面の画面スナップショットを撮り直す（手で起動する）。CI（ci.yml の web）と同じ ubuntu-24.04 で撮り、
+# 成果物 replay-snapshots を web/apps/replay/tests/__screenshots__/ に取り込んでコミットする（docs/research/DEV_SETUP.md）
+name: web-snapshots
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24.18.0"
+
+jobs:
+  snapshots:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Rust toolchain with the wasm32 target
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          rustup target add wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen@0.2.130
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:wasm
+      - run: pnpm build
+      - name: take snapshots
+        working-directory: web/apps/replay
+        env:
+          UPDATE_SNAPSHOTS: "1"
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test -g screenshot --update-snapshots
+      - uses: actions/upload-artifact@v5
+        with:
+          name: replay-snapshots
+          path: web/apps/replay/tests/__screenshots__/

@@ -142,8 +142,10 @@ E(K, "hora", actor=0, target=1, pai="9s",
   deltas=[6800, -5800, 0], scores=[41800, 28200, 35000])
 E(K, "kyoku_end", reason="hora", scores=[41800, 28200, 35000], kyotaku=0, honba_next=1,
   renchan=True, chips={"deltas": [0, 0, 0], "items": []})
-E(-1, "game_end", scores=[41800, 28200, 35000], ranks=[1, 3, 2], chips_total=[0, 0, 0],
-  note="サンプルのため1局で打ち切り")
+# サンプルのため1局で打ち切り。精算は返し点 40000・ウマ ±20000・オカ（40000 − 35000）× 3 = 15000 をトップに
+E(-1, "game_end", scores=[41800, 28200, 35000], ranks=[1, 3, 2],
+  settlement=[41800 - 40000 + 20000 + 15000, 28200 - 40000 - 20000, 35000 - 40000],
+  tobi=[False, False, False], chips_total=[0, 0, 0])
 
 counters = {}
 for d in ev:

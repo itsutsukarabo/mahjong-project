@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/mj-core", "crates/mj-log", "crates/mj-bots", "crates/mj-features", "crates/mj-py", "crates/mj-scenarios", "tools/difftest-majiang", "tools/difftest-riichienv", "tools/rules-catalog"]
+members = ["crates/mj-core", "crates/mj-log", "crates/mj-bots", "crates/mj-features", "crates/mj-py", "crates/mj-scenarios", "crates/mj-wasm", "tools/difftest-majiang", "tools/difftest-riichienv", "tools/rules-catalog"]
 
 [workspace.package]
 edition = "2024"
@@ -20,6 +20,8 @@ sha2 = "0.10"
 hex = "0.4"
 # wall_salt を OS の CSPRNG から作る（LOG_FORMAT §4.6）
 getrandom = "0.3"
+# 牌譜の TS の型の生成（mj-log の feature ts）
+ts-rs = { version = "12.0.1", features = ["serde-compat", "no-serde-warnings"] }
 # 牌山の RNG。アルゴリズムの出力を版で固定するため完全一致で指定する（LOG_FORMAT の rng = "chacha8-v1"）
 rand_chacha = { version = "=0.9.0", default-features = false }
 rand_core = { version = "=0.9.3", default-features = false }

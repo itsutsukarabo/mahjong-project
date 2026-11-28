@@ -1,0 +1,4 @@
+# TypeScript（web/）の pnpm workspace（REPO_LAYOUT §1）
+packages:
+  - "web/packages/*"
+  - "web/apps/*"

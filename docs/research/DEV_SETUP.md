@@ -136,6 +136,22 @@ cd crates/mj-py && VIRTUAL_ENV=../../.venv-mjpy ../../.venv-mjpy/Scripts/maturin
 - `cargo test --workspace` は Python なしで回る（PyO3 の部分は feature `python`。CI は `cargo check -p mj-py --features python` で通ることだけ確かめる）
 - WSL では Windows の作業ツリーを `git archive` で写し、WSL の中の venv でビルドした（2026-11-29 は WSL から PyPI・crates.io に接続できた）
 
+### 牌譜再生画面（web/、TypeScript・Vite・pnpm）
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install wasm-bindgen-cli --version 0.2.130 --locked   # crates/mj-wasm の wasm-bindgen と同じ版
+corepack enable --install-directory ~/bin pnpm              # ~/bin が PATH にあること（pnpm 9.15.9、package.json の packageManager）
+pnpm install
+pnpm build:wasm                                             # web/packages/engine/pkg
+pnpm --filter @mj/replay dev                                # http://localhost:5173 を開く
+```
+- 画面：サンプルの牌譜を選ぶか、牌譜ファイル（`*.mjlog.jsonl`、全情報版・公開情報版）と注釈（`*.annot.jsonl`）を開く。URL で開くときは `?log=fixtures/rulebot.mjlog.jsonl&annot=fixtures/rulebot.annot.jsonl&kyoku=0&event=30&dev=1&seat=0`
+- 操作：進む・戻る（← →）、前の局・次の局、局の選択、巡目のスライダー、自動再生（4段階の速さ）、開発者モード（全員の手牌）、下の席
+- 検査：`pnpm typecheck`・`pnpm test`（table-model）・`pnpm build`・`cd web/apps/replay && npx playwright install chromium && npx playwright test`
+- 牌譜の TS の型は `web/packages/log-types/src/generated`（mj-log から生成。手書きしない）。mj-log の型を変えたら `MJ_UPDATE_TS=1 cargo test -p mj-log --features ts --test ts_types`
+- 画面のスナップショット：CI（ubuntu-24.04）で撮ったものだけを正とする（フォントで画素が変わる）。撮り直しは GitHub Actions の `web-snapshots` を手で起動 → 成果物 `replay-snapshots` を `web/apps/replay/tests/__screenshots__/` に置いてコミット（`gh workflow run web-snapshots.yml` → `gh run download <id> -n replay-snapshots -D web/apps/replay/tests/__screenshots__`）
+- 試験用の牌譜（`web/apps/replay/public/fixtures`）の作り直し：`cargo run --release -p mj-py --example replay_fixtures -- web/apps/replay/public/fixtures`（mj-py の自己対戦・RuleBot 同士・その公開情報版・注釈）
+
 ### 自己対戦の速さ
 ```bash
 cargo run --release -p mj-core --example selfplay_bench -- --seconds 10 --mode single --threads 1

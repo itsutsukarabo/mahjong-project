@@ -1,0 +1,19 @@
+[package]
+name = "mj-wasm"
+version = "0.1.0"
+description = "WASM バインディング（wasm-bindgen）：牌譜の再生（イベントを1つずつ当てた卓の状態、mj_log::view）。画面側にルールの処理を書かないために、再生も Rust で行う"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# WASM では OS の乱数を使わない（牌山の塩は作らない）
+mj-log = { workspace = true, default-features = false }
+serde_json.workspace = true
+wasm-bindgen = "=0.2.130"
+
+[lints]
+workspace = true

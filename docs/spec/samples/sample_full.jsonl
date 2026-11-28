@@ -22,4 +22,4 @@
 {"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":20,"type":"dahai","actor":1,"pai":"9s","tsumogiri":true}
 {"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":21,"type":"hora","actor":0,"target":1,"pai":"9s","hand":{"tehai":["9m","9m","1p","2p","3p","4s","5s","6s","7s","8s"],"melds":[{"type":"pon","pai":"C","consumed":["C","C"],"target":2}]},"yaku":[{"id":"yakuhai_chun","han":1},{"id":"dora","han":2}],"han":3,"fu":30,"yakuman":0,"points":5800,"ura_indicators":[],"deltas":[6800,-5800,0],"scores":[41800,28200,35000]}
 {"game_id":"g-20261122-000001","kyoku_idx":0,"event_idx":22,"type":"kyoku_end","reason":"hora","scores":[41800,28200,35000],"kyotaku":0,"honba_next":1,"renchan":true,"chips":{"deltas":[0,0,0],"items":[]}}
-{"game_id":"g-20261122-000001","kyoku_idx":-1,"event_idx":1,"type":"game_end","scores":[41800,28200,35000],"ranks":[1,3,2],"chips_total":[0,0,0],"note":"サンプルのため1局で打ち切り"}
+{"game_id":"g-20261122-000001","kyoku_idx":-1,"event_idx":1,"type":"game_end","scores":[41800,28200,35000],"ranks":[1,3,2],"settlement":[36800,-31800,-5000],"tobi":[false,false,false],"chips_total":[0,0,0]}

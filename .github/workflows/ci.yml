@@ -68,6 +68,9 @@ jobs:
       - name: rules questionnaire is up to date (docs/spec/RULES_QUESTIONS_MJSOUL.md)
         run: cargo run --locked -q -p rules-catalog -- questions-check rules/mjsoul-sanma.toml docs/spec/RULES_QUESTIONS_MJSOUL.md
 
+      - name: log TS types are generated from mj-log (web/packages/log-types)
+        run: cargo test --locked -q -p mj-log --features ts --test ts_types
+
       - name: scenarios list is up to date (docs/spec/SCENARIOS.md)
         run: cargo run --locked -q -p mj-scenarios -- check
 
@@ -117,4 +120,60 @@ jobs:
           path: |
             difftest-out/
             difftest-riichienv-out/
+          if-no-files-found: ignore
+
+  # 牌譜再生画面（web/）：WASM のビルド、型検査、単体テスト、Playwright（最後まで再生・画面のスナップショット）
+  web:
+    name: web (ubuntu-24.04)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Rust toolchain with the wasm32 target
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          rustup target add wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: wasm-bindgen-cli (same version as crates/mj-wasm)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen@0.2.130
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: pnpm (packageManager in package.json)
+        run: corepack enable pnpm
+
+      - name: install
+        run: pnpm install --frozen-lockfile
+
+      - name: build WASM (mj-wasm)
+        run: pnpm build:wasm
+
+      - name: typecheck and unit tests
+        run: |
+          pnpm typecheck
+          pnpm test
+
+      - name: build the replay app
+        run: pnpm build
+
+      - name: Playwright (chromium)
+        working-directory: web/apps/replay
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
+
+      - name: upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: |
+            web/apps/replay/playwright-report/
+            web/apps/replay/test-results/
           if-no-files-found: ignore

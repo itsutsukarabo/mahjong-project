@@ -12,6 +12,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 
 pub mod replay;
+pub mod schema;
+pub mod view;
 pub mod write;
 
 pub const FORMAT_VERSION: &str = "0.4";
@@ -78,6 +80,7 @@ pub fn wall_commit(salt_hex: &str, tehais: &Value, wall: &Value) -> String {
 }
 
 /// `wall_salt` を OS の暗号論的乱数から作る（16 バイト → 32 文字の16進）。シードからは導出しない。
+#[cfg(feature = "salt")]
 pub fn generate_salt() -> Result<String, LogError> {
     let mut b = [0u8; 16];
     getrandom::fill(&mut b).map_err(|e| LogError(format!("OS RNG unavailable: {e}")))?;
