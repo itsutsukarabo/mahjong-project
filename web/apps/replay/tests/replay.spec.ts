@@ -66,7 +66,7 @@ const SNAPSHOTS: [string, string][] = [
   ["sample-riichi", "log=fixtures/sample.mjlog.jsonl&kyoku=0&event=14"],
   ["sample-hora", "log=fixtures/sample.mjlog.jsonl&kyoku=0&event=21"],
   ["sample-public", "log=fixtures/sample.public.mjlog.jsonl&kyoku=0&event=14"],
-  ["rulebot-annotated", "log=fixtures/rulebot.mjlog.jsonl&annot=fixtures/rulebot.annot.jsonl&kyoku=0&event=30"],
+  ["rulebot-annotated", "log=fixtures/rulebot.mjlog.jsonl&annot=fixtures/rulebot.annot.jsonl&kyoku=0&event=31"],
   ["rulebot-end-of-kyoku", "log=fixtures/rulebot.mjlog.jsonl&kyoku=0&event=-1"],
   ["mjpy-selfplay", "log=fixtures/mjpy-selfplay.mjlog.jsonl&kyoku=1&event=40"],
 ];
