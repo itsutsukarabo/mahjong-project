@@ -81,12 +81,25 @@ export const SHOUT_JA: Record<ShoutKind, string> = {
   tsumo: "ツモ",
 };
 
+const LIMIT_JA: Record<string, string> = {
+  mangan: "満貫",
+  haneman: "跳満",
+  baiman: "倍満",
+  sanbaiman: "三倍満",
+  kazoe_yakuman: "数え役満",
+};
+
 /**
- * 点数の名前。翻数（と役満の倍数）だけで決まるものだけを出す（5翻以上・役満）。
- * 3・4翻の満貫は符と切り上げ満貫のルール（points.kiriage_mangan）で変わり、牌譜にその区分がないので出さない
- * （画面側で点数計算をしないため。REPLAY_UI §8「牌譜に足りない情報」）
+ * 点数の名前。牌譜の `hora.limit`（エンジンが決めた区分、LOG_FORMAT v0.5）があればそれを出す（3・4翻の満貫を含む）。
+ * 欄のない古い牌譜では、翻数（と役満の倍数）だけで決まるもの（5翻以上・役満）だけを出す。3・4翻の満貫は符と
+ * 切り上げ満貫のルールで変わるので出さない（画面側で点数計算をしないため。REPLAY_UI §5.3）
  */
 export function limitName(h: Hora): string | null {
+  if (h.limit !== undefined) {
+    if (h.limit === "none") return null;
+    if (h.limit === "yakuman") return h.yakuman > 1 ? `${h.yakuman}倍役満` : "役満";
+    return LIMIT_JA[h.limit] ?? h.limit;
+  }
   if (h.yakuman > 0) {
     if (h.yaku.some((y) => y.yakuman)) return h.yakuman === 1 ? "役満" : `${h.yakuman}倍役満`;
     return "数え役満";
