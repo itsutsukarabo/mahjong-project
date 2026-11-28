@@ -79,3 +79,60 @@ fn bot_folds_against_riichi_with_genbutsu() {
         "{a}"
     );
 }
+
+#[test]
+fn seat_stats_match_the_events() {
+    use mj_bots::stats::{SeatStats, game_seat_stats, kyoku_seat_stats};
+    for rules in [
+        single(presets::tenhou_sanma()),
+        single(presets::test_yonma()),
+    ] {
+        let n = rules.table.num_players;
+        let mut total = vec![SeatStats::default(); usize::from(n)];
+        let mut horas = 0u32;
+        let mut tsumos = 0u32;
+        let mut ron_targets = 0u32;
+        let mut reaches = 0u32;
+        let mut exhaustive = 0u32;
+        for seed in 0..40 {
+            let ev = play(&rules, seed);
+            for (t, s) in total.iter_mut().zip(kyoku_seat_stats(&ev, n)) {
+                assert!(s.deal_in <= 1 && s.riichi <= 1 && s.call <= 1);
+                t.add(&s);
+            }
+            let mut targets = std::collections::BTreeSet::new();
+            for e in &ev {
+                match e {
+                    Event::Hora(h) => {
+                        horas += 1;
+                        if h.actor == h.target {
+                            tsumos += 1;
+                        } else {
+                            targets.insert(h.target);
+                        }
+                    }
+                    Event::Reach { .. } => reaches += 1,
+                    Event::Ryukyoku(r)
+                        if r.reason == "exhaustive" || r.reason == "nagashi_mangan" =>
+                    {
+                        exhaustive += 1
+                    }
+                    _ => {}
+                }
+            }
+            ron_targets += targets.len() as u32;
+        }
+        let sum = |f: fn(&SeatStats) -> u32| total.iter().map(f).sum::<u32>();
+        assert_eq!(sum(|s| s.kyokus), 40 * u32::from(n));
+        assert_eq!(sum(|s| s.hora), horas);
+        assert_eq!(sum(|s| s.tsumo), tsumos);
+        assert_eq!(sum(|s| s.deal_in), ron_targets);
+        assert_eq!(sum(|s| s.riichi), reaches);
+        assert_eq!(sum(|s| s.exhaustive), exhaustive * u32::from(n));
+        assert!(horas > 10 && reaches > 0, "hora {horas} riichi {reaches}");
+        assert!(total.iter().all(|s| s.exhaustive_tenpai <= s.exhaustive));
+        // 対局の和は局の和と同じ
+        let g = game_seat_stats([play(&rules, 3).as_slice()], n);
+        assert_eq!(g, kyoku_seat_stats(&play(&rules, 3), n));
+    }
+}

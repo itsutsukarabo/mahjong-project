@@ -1,12 +1,19 @@
-//! 多数の卓をまとめて進める RL 環境（Python に依らない本体。PyO3 の包みは `lib.rs`）。
+//! 多数の卓をまとめて進める RL 環境（Python に依らない本体。PyO3 の包みは `py.rs`）。
 //!
 //! - 卓ごとに対局（`Game`）を持ち、判断ポイント（D-022）ごとに観測（`mj_features::obs`、D-043）・合法手マスク（325）を返す
 //! - 行動は判断ポイントの ID（`decision_id`）と行動の番号（ACTION_SPACE）で受け取る。ID で突き合わせ、並びに頼らない（CLAUDE.md）
 //! - 卓の進行と観測づくりは rayon のスレッドプールで並列にする
 //! - 乱数：牌山は `game_seed`（`chacha8-v1`）、報酬の抽選は `game_seed` と席から決まる（REWARD_CONFIG §5）。
-//!   `game_seed` は環境のシード・卓の番号・その卓の何局目かから決まるので、同じシードと同じ行動列なら同じ結果になる
-//! - 対局が終わると報酬（抽選したプリセットで計算）を返し、その卓で次の対局を始める
+//!   `game_seed` は環境のシードと「何局目か」（`game_index`。環境全体の通し番号）から決まるので、同じシード・同じ行動列なら同じ結果になる。
+//!   新しい対局は卓の番号の順に通し番号を振る（並列の進み方に依らない）
+//! - 再開（RL_TRAINING §3.2）：`first_game_index` から番号を振り直す。進行中の対局は保存しない
+//! - 評価（RL_TRAINING §6）：`schedule` に対局（`game_id`・`game_seed`・ボットの席）の一覧を渡すと、その順に対局を始め、
+//!   一覧が尽きた卓は休む（`is_done`）
+//! - ボットの席（RuleBot、D-052 の評価の最低ライン）の判断は Rust の中で決め、Python には返さない
+//! - 対局が終わると報酬（抽選したプリセットで計算）・席ごとの打ち方の統計・イベント列の上限超えの数を返し、その卓で次の対局を始める
 
+use mj_bots::RuleBot;
+use mj_bots::stats::{SeatStats, game_seat_stats};
 use mj_core::action::Action;
 use mj_core::game::{Game, WallSource};
 use mj_core::rules::Rules;
@@ -16,6 +23,15 @@ use mj_features::{ActionId, NUM_ACTIONS, action_to_id, id_to_action};
 use rayon::prelude::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+/// 評価などで決めた対局（`schedule`）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GameSpec {
+    pub game_id: i64,
+    pub game_seed: u64,
+    /// 席ごとに RuleBot が打つか（全員がボットの対局は作れない）
+    pub bots: Vec<bool>,
+}
 
 /// 環境の設定
 #[derive(Debug, Clone)]
@@ -31,6 +47,26 @@ pub struct EnvConfig {
     /// イベント列の長さの上限（D-045：1局 192）。超えた行は先頭から上限までを入れ、`events_overflow` に印を付けて
     /// 件数を数え、警告を出す（古いイベントを黙って捨てることはしない）
     pub max_events: usize,
+    /// 最初の対局の通し番号（再開のとき、保存した `next_game_index` を渡す）
+    pub first_game_index: u64,
+    /// 決めた対局の一覧（`None` なら通し番号から牌山を作り続ける）
+    pub schedule: Option<Vec<GameSpec>>,
+}
+
+impl EnvConfig {
+    pub fn new(rules: Rules, num_tables: usize, seed: u64, reward: RewardSpec) -> Self {
+        Self {
+            rules,
+            num_tables,
+            seed,
+            threads: 0,
+            reward,
+            record_logs: false,
+            max_events: mj_features::obs::MAX_EVENTS,
+            first_game_index: 0,
+            schedule: None,
+        }
+    }
 }
 
 /// 判断ポイントのまとまり（行は卓の番号・席の順）
@@ -40,6 +76,11 @@ pub struct Batch {
     pub table: Vec<i64>,
     pub seat: Vec<i8>,
     pub game_id: Vec<i64>,
+    /// 注釈のキー（LOG_FORMAT §6）：対局の中の局の番号と、判断ポイントの直前のイベントの番号
+    pub kyoku_idx: Vec<i32>,
+    pub event_idx: Vec<i32>,
+    /// 自分のシャンテン数（`Observation::shanten`）
+    pub shanten: Vec<i8>,
     /// 行 × policy の次元
     pub policy: Vec<f32>,
     /// 行 × max_events × EVENT_FIELDS（足りない分は -1）
@@ -51,6 +92,8 @@ pub struct Batch {
     pub mask: Vec<bool>,
     /// 行 × critic の次元
     pub critic: Vec<f32>,
+    /// 行 × aux の次元（補助タスクのラベル）
+    pub aux: Vec<f32>,
     /// この呼び出しの間に終わった対局
     pub finished: Vec<Finished>,
 }
@@ -68,6 +111,12 @@ pub struct Finished {
     /// 報酬の抽選の記録（席ごとのプリセット id。牌譜には書かない。REWARD_CONFIG §5）
     pub presets: Vec<&'static str>,
     pub kyokus: u32,
+    /// 席ごとの打ち方の統計（`mj_bots::stats::SeatStats`）
+    pub stats: Vec<SeatStats>,
+    /// RuleBot が打った席
+    pub bots: Vec<bool>,
+    /// この対局でイベント列が上限を超えた行の数（D-045）
+    pub overflow: u32,
     pub log_jsonl: Option<String>,
 }
 
@@ -79,13 +128,24 @@ struct Pending {
 
 struct Table {
     idx: usize,
-    games_started: u64,
     game_id: i64,
     game_seed: u64,
     game: Game,
     presets: Vec<&'static Preset>,
+    bots: Vec<bool>,
+    /// Python に返す判断ポイント（ボットでない席）
     pending: Vec<Pending>,
+    /// 同じ場のボットの席の行動（Python の答えと合わせて進める）
+    bot_actions: Vec<(u8, Action)>,
     next_decision: i64,
+    /// 今の対局でイベント列が上限を超えた行の数
+    overflow: u32,
+    /// 新しい対局を待っている
+    needs_game: bool,
+    /// 決めた対局の一覧が尽きて休んでいる
+    idle: bool,
+    /// 対局を割り当てたばかり（まだ進めていない）
+    fresh: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,19 +189,24 @@ fn splitmix64(x: u64) -> u64 {
     z ^ (z >> 31)
 }
 
-thread_local! {
-    /// スレッドごとの観測器（シャンテン数の計算器の覚えを持つので卓ごとには作らない）。鍵はルールの指紋
-    static OBSERVERS: RefCell<Vec<(String, Observer)>> = const { RefCell::new(Vec::new()) };
+/// 環境のシードと対局の通し番号から牌山のシードを作る
+pub fn game_seed(seed: u64, game_index: u64) -> u64 {
+    splitmix64(seed ^ splitmix64(game_index)) >> 1
 }
 
-fn with_observer<R>(rules: &Rules, key: &str, f: impl FnOnce(&Observer) -> R) -> R {
-    OBSERVERS.with(|o| {
+thread_local! {
+    /// スレッドごとの観測器とボット（シャンテン数の計算器の覚えを持つので卓ごとには作らない）。鍵はルールの指紋
+    static WORKERS: RefCell<Vec<(String, Observer, RuleBot)>> = const { RefCell::new(Vec::new()) };
+}
+
+fn with_worker<R>(rules: &Rules, key: &str, f: impl FnOnce(&Observer, &RuleBot) -> R) -> R {
+    WORKERS.with(|o| {
         let mut v = o.borrow_mut();
-        if !v.iter().any(|(k, _)| k == key) {
-            v.push((key.to_string(), Observer::new(rules)));
+        if !v.iter().any(|(k, _, _)| k == key) {
+            v.push((key.to_string(), Observer::new(rules), RuleBot::new(rules)));
         }
-        let (_, obs) = v.iter().find(|(k, _)| k == key).expect("observer");
-        f(obs)
+        let (_, obs, bot) = v.iter().find(|(k, _, _)| k == key).expect("worker");
+        f(obs, bot)
     })
 }
 
@@ -151,10 +216,14 @@ struct Row {
     table: i64,
     seat: i8,
     game_id: i64,
+    kyoku_idx: i32,
+    event_idx: i32,
+    shanten: i8,
     policy: Vec<f32>,
     events: Vec<[i16; EVENT_FIELDS]>,
     mask: Vec<bool>,
     critic: Vec<f32>,
+    aux: Vec<f32>,
 }
 
 pub struct VecEnv {
@@ -164,8 +233,15 @@ pub struct VecEnv {
     tables: Vec<Table>,
     policy_dim: usize,
     critic_dim: usize,
+    aux_dim: usize,
+    /// 次に始める対局の通し番号（`schedule` がないとき。再開に使う）
+    next_game_index: u64,
+    /// `schedule` の次に始める位置
+    schedule_pos: usize,
     /// これまでにイベント列が上限を超えた行の数（D-045：学習の統計に残す）
     overflow_total: u64,
+    /// 作った時点でボットだけで終わった対局（最初の `observe` で返す）
+    startup_finished: Vec<Finished>,
 }
 
 impl VecEnv {
@@ -177,18 +253,46 @@ impl VecEnv {
         let rules_key = serde_json::to_string(&cfg.rules).expect("rules json");
         let obs = Observer::new(&cfg.rules);
         let layout = obs.layout();
+        if let Some(s) = &cfg.schedule {
+            let n = usize::from(cfg.rules.table.num_players);
+            for g in s {
+                assert_eq!(g.bots.len(), n, "bots per seat (game {})", g.game_id);
+                assert!(!g.bots.iter().all(|&b| b), "all-bot game {}", g.game_id);
+            }
+        }
+        let tables = (0..cfg.num_tables)
+            .map(|idx| Table {
+                idx,
+                game_id: 0,
+                game_seed: 0,
+                game: Game::new(cfg.rules.clone(), WallSource::Seed(0)),
+                presets: Vec::new(),
+                bots: Vec::new(),
+                pending: Vec::new(),
+                bot_actions: Vec::new(),
+                next_decision: (idx as i64) << 40,
+                overflow: 0,
+                needs_game: true,
+                idle: false,
+                fresh: false,
+            })
+            .collect();
         let mut env = Self {
             rules_key,
             pool,
-            tables: Vec::new(),
+            tables,
             policy_dim: layout.policy(),
             critic_dim: layout.critic,
+            aux_dim: layout.aux,
+            next_game_index: cfg.first_game_index,
+            schedule_pos: 0,
             overflow_total: 0,
+            startup_finished: Vec::new(),
             cfg,
         };
-        env.tables = (0..env.cfg.num_tables)
-            .map(|i| env.new_table(i, 0))
-            .collect();
+        let mut fin = Vec::new();
+        env.start_games(&mut fin);
+        env.startup_finished = fin;
         env
     }
 
@@ -200,6 +304,10 @@ impl VecEnv {
         self.critic_dim
     }
 
+    pub fn aux_dim(&self) -> usize {
+        self.aux_dim
+    }
+
     pub fn max_events(&self) -> usize {
         self.cfg.max_events
     }
@@ -208,32 +316,21 @@ impl VecEnv {
         self.overflow_total
     }
 
-    fn new_table(&self, idx: usize, games_started: u64) -> Table {
-        let mut t = Table {
-            idx,
-            games_started,
-            game_id: 0,
-            game_seed: 0,
-            game: Game::new(self.cfg.rules.clone(), WallSource::Seed(0)),
-            presets: Vec::new(),
-            pending: Vec::new(),
-            next_decision: (idx as i64) << 40,
-        };
-        start_game(&self.cfg, &mut t);
-        t
+    /// 次に始める対局の通し番号（チェックポイントに保存し、再開のとき `first_game_index` に渡す）
+    pub fn next_game_index(&self) -> u64 {
+        self.next_game_index
+    }
+
+    /// `schedule` の対局がすべて終わった（`schedule` がなければ常に false）
+    pub fn is_done(&self) -> bool {
+        self.tables.iter().all(|t| t.idle)
     }
 
     /// 今の判断ポイントの観測（行動を受け取る前）
     pub fn observe(&mut self) -> Batch {
-        let cfg = &self.cfg;
-        let key = &self.rules_key;
-        let rows: Vec<Vec<Row>> = self.pool.install(|| {
-            self.tables
-                .par_iter()
-                .map(|t| rows_of(cfg, key, t))
-                .collect()
-        });
-        self.pack(rows.into_iter().flatten().collect(), Vec::new())
+        let rows = self.collect_rows();
+        let fin = std::mem::take(&mut self.startup_finished);
+        self.pack(rows, fin)
     }
 
     /// 行動を与えて進め、次の判断ポイントの観測を返す。`decision_ids` と `actions` は同じ長さ
@@ -278,29 +375,121 @@ impl VecEnv {
         }
         let cfg = &self.cfg;
         let key = &self.rules_key;
-        let results: Vec<(Vec<Row>, Option<Finished>)> = self.pool.install(|| {
+        let mut finished: Vec<Finished> = self.pool.install(|| {
             self.tables
                 .par_iter_mut()
                 .zip(chosen.into_par_iter())
-                .map(|(t, ch)| {
-                    let acts: Vec<(u8, Action)> = t
+                .filter_map(|(t, ch)| {
+                    if t.idle || t.pending.is_empty() {
+                        return None;
+                    }
+                    let mut acts: Vec<(u8, Action)> = t
                         .pending
                         .iter()
                         .zip(ch)
                         .map(|(p, a)| (p.seat, a.expect("checked")))
                         .collect();
-                    let fin = advance(cfg, t, &acts);
-                    (rows_of(cfg, key, t), fin)
+                    acts.append(&mut t.bot_actions);
+                    acts.sort_by_key(|a| a.0);
+                    t.game.step(&acts).expect("checked legal");
+                    settle(cfg, key, t)
                 })
                 .collect()
         });
-        let mut rows = Vec::new();
-        let mut finished = Vec::new();
-        for (r, f) in results {
-            rows.extend(r);
-            finished.extend(f);
-        }
+        self.start_games(&mut finished);
+        let rows = self.collect_rows();
         Ok(self.pack(rows, finished))
+    }
+
+    /// 新しい対局を待っている卓に、卓の番号の順に対局を割り当てて始める（ボットだけで終わった対局があれば繰り返す）
+    fn start_games(&mut self, finished: &mut Vec<Finished>) {
+        loop {
+            let mut any = false;
+            for i in 0..self.tables.len() {
+                if !self.tables[i].needs_game {
+                    continue;
+                }
+                let spec = self.next_spec();
+                let t = &mut self.tables[i];
+                t.needs_game = false;
+                match spec {
+                    None => {
+                        t.idle = true;
+                        t.pending.clear();
+                        t.bot_actions.clear();
+                    }
+                    Some(s) => {
+                        any = true;
+                        t.game_id = s.game_id;
+                        t.game_seed = s.game_seed;
+                        t.bots = s.bots;
+                        t.overflow = 0;
+                        t.game = Game::new(self.cfg.rules.clone(), WallSource::Seed(s.game_seed));
+                        let n = self.cfg.rules.table.num_players;
+                        t.presets = (0..n)
+                            .map(|p| self.cfg.reward.pick(s.game_seed, p))
+                            .collect();
+                        t.pending.clear();
+                        t.bot_actions.clear();
+                        t.fresh = true;
+                    }
+                }
+            }
+            if !any {
+                return;
+            }
+            let cfg = &self.cfg;
+            let key = &self.rules_key;
+            let fin: Vec<Finished> = self.pool.install(|| {
+                self.tables
+                    .par_iter_mut()
+                    .filter(|t| t.fresh)
+                    .filter_map(|t| {
+                        t.fresh = false;
+                        settle(cfg, key, t)
+                    })
+                    .collect()
+            });
+            let again = !fin.is_empty();
+            finished.extend(fin);
+            if !again {
+                return;
+            }
+        }
+    }
+
+    fn next_spec(&mut self) -> Option<GameSpec> {
+        let n = usize::from(self.cfg.rules.table.num_players);
+        match &self.cfg.schedule {
+            Some(s) => {
+                let g = s.get(self.schedule_pos).cloned();
+                if g.is_some() {
+                    self.schedule_pos += 1;
+                }
+                g
+            }
+            None => {
+                let i = self.next_game_index;
+                self.next_game_index += 1;
+                Some(GameSpec {
+                    game_id: i as i64,
+                    game_seed: game_seed(self.cfg.seed, i),
+                    bots: vec![false; n],
+                })
+            }
+        }
+    }
+
+    fn collect_rows(&mut self) -> Vec<Row> {
+        let cfg = &self.cfg;
+        let key = &self.rules_key;
+        let rows: Vec<Vec<Row>> = self.pool.install(|| {
+            self.tables
+                .par_iter()
+                .map(|t| rows_of(cfg, key, t))
+                .collect()
+        });
+        rows.into_iter().flatten().collect()
     }
 
     fn pack(&mut self, rows: Vec<Row>, finished: Vec<Finished>) -> Batch {
@@ -314,13 +503,18 @@ impl VecEnv {
             b.table.push(r.table);
             b.seat.push(r.seat);
             b.game_id.push(r.game_id);
+            b.kyoku_idx.push(r.kyoku_idx);
+            b.event_idx.push(r.event_idx);
+            b.shanten.push(r.shanten);
             b.policy.extend(&r.policy);
             b.critic.extend(&r.critic);
+            b.aux.extend(&r.aux);
             b.mask.extend(&r.mask);
             // 上限を超えたら先頭から l 個を入れ、印を付けて数える（D-045）
             let over = r.events.len() > l;
             if over {
                 self.overflow_total += 1;
+                self.tables[r.table as usize].overflow += 1;
                 eprintln!(
                     "warning: event sequence {} > max_events {l} (table {}, decision {})",
                     r.events.len(),
@@ -341,42 +535,47 @@ impl VecEnv {
     }
 }
 
-/// 卓で新しい対局を始める（`game_seed` は環境のシード・卓・その卓の何局目かから）
-fn start_game(cfg: &EnvConfig, t: &mut Table) {
-    let game_index = t.games_started * cfg.num_tables as u64 + t.idx as u64;
-    t.games_started += 1;
-    t.game_id = game_index as i64;
-    t.game_seed = splitmix64(cfg.seed ^ splitmix64(game_index)) >> 1;
-    t.game = Game::new(cfg.rules.clone(), WallSource::Seed(t.game_seed));
-    let n = cfg.rules.table.num_players;
-    t.presets = (0..n).map(|s| cfg.reward.pick(t.game_seed, s)).collect();
-    refresh_pending(t);
-}
-
-fn refresh_pending(t: &mut Table) {
-    t.pending = t
-        .game
-        .decisions()
-        .iter()
-        .map(|d| {
-            let id = t.next_decision;
-            t.next_decision += 1;
-            Pending {
-                decision_id: id,
-                seat: d.seat,
-                choices: d.choices.clone(),
+/// 対局を Python の判断が要るところまで進める：ボットの席だけの場はその場で進め、ボットとそれ以外が混じる場は
+/// ボットの行動を取っておく。対局が終わったら結果を返し、新しい対局を待つ印を付ける
+fn settle(cfg: &EnvConfig, key: &str, t: &mut Table) -> Option<Finished> {
+    loop {
+        if t.game.is_over() {
+            let fin = finish(cfg, t);
+            t.pending.clear();
+            t.bot_actions.clear();
+            t.needs_game = true;
+            return Some(fin);
+        }
+        let k = t.game.current_kyoku();
+        let mut bot_actions = Vec::new();
+        let mut pending = Vec::new();
+        for d in t.game.decisions() {
+            if t.bots[usize::from(d.seat)] {
+                let a = with_worker(&cfg.rules, key, |_, bot| bot.choose(k, d));
+                bot_actions.push((d.seat, a));
+            } else {
+                pending.push(Pending {
+                    decision_id: 0,
+                    seat: d.seat,
+                    choices: d.choices.clone(),
+                });
             }
-        })
-        .collect();
-}
-
-/// 行動を与える。対局が終わったら結果を返して次の対局を始める
-fn advance(cfg: &EnvConfig, t: &mut Table, acts: &[(u8, Action)]) -> Option<Finished> {
-    t.game.step(acts).expect("checked legal");
-    if !t.game.is_over() {
-        refresh_pending(t);
+        }
+        if pending.is_empty() {
+            t.game.step(&bot_actions).expect("bot plays legal");
+            continue;
+        }
+        for p in &mut pending {
+            p.decision_id = t.next_decision;
+            t.next_decision += 1;
+        }
+        t.pending = pending;
+        t.bot_actions = bot_actions;
         return None;
     }
+}
+
+fn finish(cfg: &EnvConfig, t: &Table) -> Finished {
     let end = t.game.end().expect("game end").clone();
     let n = cfg.rules.table.num_players;
     let rewards: Vec<f32> = (0..usize::from(n))
@@ -387,15 +586,23 @@ fn advance(cfg: &EnvConfig, t: &mut Table, acts: &[(u8, Action)]) -> Option<Fini
         .collect();
     let log_jsonl = cfg.record_logs.then(|| {
         let meta = mj_log::write::GameMeta {
-            game_id: format!("mjpy-{}-{}", cfg.seed, t.game_id),
-            players: (0..n).map(|s| format!("seat{s}")).collect(),
+            game_id: log_game_id(cfg.seed, t.game_id),
+            players: (0..n)
+                .map(|s| {
+                    if t.bots[usize::from(s)] {
+                        format!("rulebot-{s}")
+                    } else {
+                        format!("seat{s}")
+                    }
+                })
+                .collect(),
             engine_version: env!("CARGO_PKG_VERSION").to_string(),
             engine_git: "0000000".to_string(),
         };
         let mut salt = |_k: u64| mj_log::generate_salt().expect("salt");
         mj_log::to_jsonl(&mj_log::write::game_log(&t.game, &meta, &mut salt))
     });
-    let fin = Finished {
+    Finished {
         game_id: t.game_id,
         game_seed: t.game_seed,
         table: t.idx as i64,
@@ -405,16 +612,27 @@ fn advance(cfg: &EnvConfig, t: &mut Table, acts: &[(u8, Action)]) -> Option<Fini
         rewards_normalized: norm,
         presets: t.presets.iter().map(|p| p.id).collect(),
         kyokus: t.game.kyokus().count() as u32,
+        stats: game_seat_stats(t.game.kyokus(), n),
+        bots: t.bots.clone(),
+        overflow: t.overflow,
         log_jsonl,
-    };
-    start_game(cfg, t);
-    Some(fin)
+    }
+}
+
+/// 牌譜の `game_id`（注釈のキーにも使う）
+pub fn log_game_id(seed: u64, game_id: i64) -> String {
+    format!("mjpy-{seed}-{game_id}")
 }
 
 fn rows_of(cfg: &EnvConfig, key: &str, t: &Table) -> Vec<Row> {
+    if t.idle || t.pending.is_empty() {
+        return Vec::new();
+    }
     let k = t.game.current_kyoku();
     let n = cfg.rules.table.num_players;
-    with_observer(&cfg.rules, key, |obs| {
+    let kyoku_idx = t.game.kyokus().count() as i32 - 1;
+    let event_idx = k.events().len() as i32 - 1;
+    with_worker(&cfg.rules, key, |obs, _| {
         t.pending
             .iter()
             .map(|p| {
@@ -426,10 +644,14 @@ fn rows_of(cfg: &EnvConfig, key: &str, t: &Table) -> Vec<Row> {
                     table: t.idx as i64,
                     seat: p.seat as i8,
                     game_id: t.game_id,
+                    kyoku_idx,
+                    event_idx,
+                    shanten: o.shanten,
                     policy: o.policy,
                     events: o.events,
                     mask: o.mask,
                     critic: o.critic,
+                    aux: o.aux,
                 }
             })
             .collect()
@@ -443,13 +665,14 @@ mod tests {
 
     fn cfg(seed: u64, threads: usize) -> EnvConfig {
         EnvConfig {
-            rules: presets::with(&presets::tenhou_sanma(), "[table]\nlength = 'single'"),
-            num_tables: 8,
-            seed,
             threads,
-            reward: RewardSpec::parse("tenhou-sanma-7dan+").unwrap(),
             record_logs: true,
-            max_events: 192,
+            ..EnvConfig::new(
+                presets::with(&presets::tenhou_sanma(), "[table]\nlength = 'single'"),
+                8,
+                seed,
+                RewardSpec::parse("tenhou-sanma-7dan+").unwrap(),
+            )
         }
     }
 
@@ -496,6 +719,9 @@ mod tests {
         for _ in 0..300 {
             let a = first_legal(&b);
             b = env.step(&b.decision_id.clone(), &a).unwrap();
+            for f in &b.finished {
+                assert_eq!(f.overflow, 0);
+            }
         }
         assert_eq!(
             env.overflow_total(),
@@ -526,5 +752,79 @@ mod tests {
             env.step(&ids, &a2).unwrap_err(),
             EnvError::IllegalAction { .. }
         ));
+    }
+
+    /// 対局の通し番号は卓の番号の順に振られ、`first_game_index` から始めれば同じ牌山の列になる（再開）
+    #[test]
+    fn game_index_resume() {
+        let mut env = VecEnv::new(cfg(9, 3));
+        let mut b = env.observe();
+        let mut seen: Vec<(i64, u64)> = Vec::new();
+        for _ in 0..200 {
+            let a = first_legal(&b);
+            b = env.step(&b.decision_id.clone(), &a).unwrap();
+            seen.extend(b.finished.iter().map(|f| (f.game_id, f.game_seed)));
+        }
+        let next = env.next_game_index();
+        assert!(next >= 8 + seen.len() as u64);
+        for &(id, s) in &seen {
+            assert_eq!(s, game_seed(9, id as u64));
+        }
+        // 再開：次の番号から始めると、卓 i の最初の対局は next + i
+        let env2 = VecEnv::new(EnvConfig {
+            first_game_index: next,
+            ..cfg(9, 2)
+        });
+        let ids: Vec<i64> = env2.tables.iter().map(|t| t.game_id).collect();
+        assert_eq!(ids, (0..8).map(|i| next as i64 + i).collect::<Vec<_>>());
+    }
+
+    /// 決めた対局の一覧とボットの席：ボットの席の判断は返さず、一覧が尽きたら終わる
+    #[test]
+    fn schedule_with_bot_seats() {
+        let n = 3;
+        let mut specs = Vec::new();
+        for g in 0..12i64 {
+            let mut bots = vec![false; n];
+            bots[(g as usize) % n] = true;
+            specs.push(GameSpec {
+                game_id: 1000 + g,
+                game_seed: 77 + (g as u64) / 3,
+                bots,
+            });
+        }
+        let mut env = VecEnv::new(EnvConfig {
+            schedule: Some(specs.clone()),
+            num_tables: 5,
+            ..cfg(3, 2)
+        });
+        let mut b = env.observe();
+        let mut done: Vec<Finished> = b.finished.clone();
+        let mut steps = 0;
+        while !env.is_done() {
+            for i in 0..b.decision_id.len() {
+                let g = b.game_id[i];
+                let spec = specs.iter().find(|s| s.game_id == g).unwrap();
+                assert!(
+                    !spec.bots[b.seat[i] as usize],
+                    "bot seat returned to Python"
+                );
+            }
+            let a = first_legal(&b);
+            b = env.step(&b.decision_id.clone(), &a).unwrap();
+            done.extend(b.finished.iter().cloned());
+            steps += 1;
+            assert!(steps < 100_000);
+        }
+        assert!(b.decision_id.is_empty());
+        let mut ids: Vec<i64> = done.iter().map(|f| f.game_id).collect();
+        ids.sort();
+        assert_eq!(ids, (1000..1012).collect::<Vec<_>>());
+        for f in &done {
+            let spec = specs.iter().find(|s| s.game_id == f.game_id).unwrap();
+            assert_eq!(f.game_seed, spec.game_seed);
+            assert_eq!(f.bots, spec.bots);
+            assert_eq!(f.stats.iter().map(|s| s.kyokus).sum::<u32>(), 3);
+        }
     }
 }

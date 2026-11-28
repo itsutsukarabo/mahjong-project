@@ -225,13 +225,33 @@ pub struct Observation {
     pub mask: Vec<bool>,
     /// 価値関数だけの入力（隠れた情報。学習時だけ使う）
     pub critic: Vec<f32>,
+    /// 自分のシャンテン数（`policy` の `self` 区画の先頭と同じ値。自分の手牌と見えている牌だけから。
+    /// ツモ後の14枚形は14枚のまま数える。報酬のポテンシャル Φ = −シャンテン数 に使う。RL_TRAINING §2.3）
+    pub shanten: i8,
+    /// 補助タスクのラベル（隠れた情報。学習の損失だけに使い、方策・価値の入力にしない。並びは [`AUX_SECTIONS`]）
+    pub aux: Vec<f32>,
 }
+
+/// 補助タスクのラベルの区画（相対の席 1〜3 の順。三麻・四麻で同じ長さ。いない席は 0）
+/// - `opp_hand`：他家の手の中の牌の枚数（34 種 × 3、0〜4 の整数）
+/// - `opp_shanten`：他家のシャンテン数（3、−1〜8 の整数。和了形なら −1）
+/// - `opp_tenpai`：他家が聴牌か（3、0/1。待ちが1種類以上ある形。4枚使いの単騎だけの形は聴牌に入れない）
+/// - `opp_waits`：他家の待ち（34 種 × 3、0/1。形の待ち。役の有無・フリテン・見えている枚数は見ない）
+pub const AUX_SECTIONS: [(&str, usize); 4] = [
+    ("opp_hand", 3 * NUM_KINDS),
+    ("opp_shanten", 3),
+    ("opp_tenpai", 3),
+    ("opp_waits", 3 * NUM_KINDS),
+];
+/// 補助タスクのラベルの次元
+pub const N_AUX: usize = 3 * NUM_KINDS + 3 + 3 + 3 * NUM_KINDS;
 
 /// 区画ごとの次元（方策の入力 `policy` の並び）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Layout {
     pub sections: Vec<(&'static str, usize)>,
     pub critic: usize,
+    pub aux: usize,
 }
 
 impl Layout {
@@ -281,6 +301,7 @@ impl Observer {
                 ("reward", N_REWARD),
             ],
             critic: N_CRITIC,
+            aux: N_AUX,
         }
     }
 
@@ -293,8 +314,12 @@ impl Observer {
         reward: &RewardInput,
     ) -> Observation {
         let view = seat_view(&self.rules, events, seat);
+        let (critic, aux) = self.hidden(events, seat);
         let (policy, tokens) = self.policy(&view, seat, choices, reward);
+        // self 区画の先頭は (シャンテン数 + 1) / 8（小さな整数なので f32 で正確に戻せる）
+        let shanten = (policy[N_HAND] * 8.0 - 1.0).round() as i8;
         Observation {
+            shanten,
             policy,
             events: tokens,
             mask: {
@@ -302,7 +327,8 @@ impl Observer {
                 debug_assert_eq!(m.len(), NUM_ACTIONS);
                 m
             },
-            critic: self.critic(events, seat),
+            critic,
+            aux,
         }
     }
 
@@ -622,13 +648,15 @@ impl Observer {
         (sh, uk)
     }
 
-    /// 価値関数だけの入力：他家の手牌（相対の席 1〜3）、ツモ山の残り（めくっていない表示牌を含む）、裏ドラ表示牌、他家のシャンテン数
-    fn critic(&self, events: &[Event], seat: u8) -> Vec<f32> {
+    /// 隠れた情報から作る2つ：価値関数だけの入力（他家の手牌（相対の席 1〜3）、ツモ山の残り（めくっていない表示牌を含む）、
+    /// 裏ドラ表示牌、他家のシャンテン数）と、補助タスクのラベル（[`AUX_SECTIONS`]）
+    fn hidden(&self, events: &[Event], seat: u8) -> (Vec<f32>, Vec<f32>) {
         let n = self.rules.table.num_players;
         // 全情報のイベント列が食い違っていても（漏れの検査で隠れた欄を書き換えたものなど）落ちないように 0 で止める
         let dec = |h: &mut KindCounts, k: usize| h[k] = h[k].saturating_sub(1);
         let mut hands: Vec<KindCounts> = vec![[0; NUM_KINDS]; usize::from(n)];
         let mut melds = vec![0u8; usize::from(n)];
+        let mut open = vec![false; usize::from(n)];
         let mut wall = [0u8; NUM_KINDS];
         let mut ura = [0f32; NUM_KINDS];
         let mut taken = 0usize;
@@ -678,6 +706,9 @@ impl Observer {
                         dec(&mut hands[usize::from(*actor)], t.kind().index());
                     }
                     melds[usize::from(*actor)] += 1;
+                    if !matches!(e, Event::Ankan { .. }) {
+                        open[usize::from(*actor)] = true;
+                    }
                 }
                 Event::Kakan { actor, pai, .. } => {
                     dec(&mut hands[usize::from(*actor)], pai.kind().index())
@@ -700,28 +731,59 @@ impl Observer {
         for t in uras.iter().take(revealed) {
             ura[t.kind().index()] += 1.0;
         }
+        let opp = |r: u8| (r < n).then(|| usize::from((seat + r) % n));
+        let shanten: Vec<i8> = (1..4u8)
+            .map(|r| opp(r).map_or(0, |p| self.calc.shanten(&hands[p], melds[p])))
+            .collect();
         let mut f = Vec::with_capacity(N_CRITIC);
         for r in 1..4u8 {
-            if r >= n {
-                f.extend([0.0; NUM_KINDS]);
-                continue;
+            match opp(r) {
+                Some(p) => f.extend(hands[p].iter().map(|&x| f32::from(x) / 4.0)),
+                None => f.extend([0.0; NUM_KINDS]),
             }
-            let p = usize::from((seat + r) % n);
-            f.extend(hands[p].iter().map(|&x| f32::from(x) / 4.0));
         }
         f.extend(wall.iter().map(|&x| f32::from(x) / 4.0));
         f.extend(ura.iter().map(|x| x / 4.0));
         for r in 1..4u8 {
-            if r >= n {
-                f.push(0.0);
-                continue;
-            }
-            let p = usize::from((seat + r) % n);
-            let c = hands[p];
-            f.push((f32::from(self.calc.shanten(&c, melds[p])) + 1.0) / 8.0);
+            f.push(opp(r).map_or(0.0, |_| {
+                (f32::from(shanten[usize::from(r - 1)]) + 1.0) / 8.0
+            }));
         }
         debug_assert_eq!(f.len(), N_CRITIC);
-        f
+        // 補助タスクのラベル
+        let mut aux = Vec::with_capacity(N_AUX);
+        let waits: Vec<u64> = (1..4u8)
+            .map(|r| {
+                opp(r).map_or(0, |p| {
+                    let c = &hands[p];
+                    let total: u32 = c.iter().map(|&x| u32::from(x)).sum();
+                    // 3n+1 枚のときだけ待ちがある（判断ポイントでは他家はふつう 3n+1 枚）。
+                    // 食い違ったイベント列（漏れの検査で隠れた欄を書き換えたもの）で5枚以上になったら数えない
+                    if total % 3 == 1 && c.iter().all(|&x| x <= 4) {
+                        agari::waits(c, !open[p])
+                    } else {
+                        0
+                    }
+                })
+            })
+            .collect();
+        for r in 1..4u8 {
+            match opp(r) {
+                Some(p) => aux.extend(hands[p].iter().map(|&x| f32::from(x))),
+                None => aux.extend([0.0; NUM_KINDS]),
+            }
+        }
+        for r in 1..4u8 {
+            aux.push(opp(r).map_or(0.0, |_| f32::from(shanten[usize::from(r - 1)])));
+        }
+        for w in &waits {
+            aux.push(f32::from(u8::from(*w != 0)));
+        }
+        for w in &waits {
+            aux.extend((0..NUM_KINDS).map(|k| f32::from(u8::from(w >> k & 1 == 1))));
+        }
+        debug_assert_eq!(aux.len(), N_AUX);
+        (f, aux)
     }
 }
 

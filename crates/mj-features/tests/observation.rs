@@ -60,6 +60,50 @@ fn hide_shuffled(events: &[Event], seat: u8, rules: &Rules, rng: &mut ChaCha8Rng
         .collect()
 }
 
+/// 補助タスクのラベルが、エンジンの局の状態（`Kyoku` の手牌・副露）から数えたものと一致する
+fn check_aux(k: &mj_core::kyoku::Kyoku, seat: u8, aux: &[f32], rules: &Rules) {
+    use mj_core::agari;
+    use mj_core::kyoku::MeldKind;
+    use mj_core::tile::NUM_KINDS;
+    let n = rules.table.num_players;
+    let calc = mj_core::shanten::ShantenCalc::new(rules.tiles.manzu);
+    let (hand, rest) = aux.split_at(3 * NUM_KINDS);
+    let (shanten, rest) = rest.split_at(3);
+    let (tenpai, waits) = rest.split_at(3);
+    for r in 1..4u8 {
+        let i = usize::from(r - 1);
+        let kinds = i * NUM_KINDS..(i + 1) * NUM_KINDS;
+        if r >= n {
+            assert!(
+                hand[kinds.clone()]
+                    .iter()
+                    .chain(&waits[kinds])
+                    .all(|&x| x == 0.0)
+            );
+            assert_eq!((shanten[i], tenpai[i]), (0.0, 0.0));
+            continue;
+        }
+        let p = (seat + r) % n;
+        let c = k.concealed_counts(p);
+        let melds = k.melds(p);
+        let expect: Vec<f32> = c.iter().map(|&x| f32::from(x)).collect();
+        assert_eq!(&hand[kinds.clone()], expect.as_slice(), "opp_hand seat {p}");
+        assert_eq!(shanten[i], f32::from(calc.shanten(&c, melds.len() as u8)));
+        let closed = melds.iter().all(|m| m.kind == MeldKind::Ankan);
+        let total: u32 = c.iter().map(|&x| u32::from(x)).sum();
+        let w = if total % 3 == 1 {
+            agari::waits(&c, closed)
+        } else {
+            0
+        };
+        assert_eq!(tenpai[i], f32::from(u8::from(w != 0)));
+        let expect: Vec<f32> = (0..NUM_KINDS)
+            .map(|k| f32::from(u8::from(w >> k & 1 == 1)))
+            .collect();
+        assert_eq!(&waits[kinds], expect.as_slice(), "opp_waits seat {p}");
+    }
+}
+
 fn check(rules: Rules, games: u64, random: bool) -> (u64, u64) {
     let bot = RuleBot::new(&rules);
     let obs = Observer::new(&rules);
@@ -84,6 +128,8 @@ fn check(rules: Rules, games: u64, random: bool) -> (u64, u64) {
                 let a = obs.observe(events, d.seat, &d.choices, &reward);
                 assert_eq!(a.policy.len(), layout.policy());
                 assert_eq!(a.critic.len(), layout.critic);
+                assert_eq!(a.aux.len(), layout.aux);
+                check_aux(k, d.seat, &a.aux, &rules);
                 assert!(a.policy.iter().all(|x| x.is_finite()));
                 // D-045：イベント列の上限（1局 192）を超えたらテストは失敗
                 assert!(

@@ -25,13 +25,14 @@ fn main() {
 
     // mj-py の自己対戦（一様な乱数の行動）
     let mut env = VecEnv::new(EnvConfig {
-        rules: rules.clone(),
-        num_tables: 1,
-        seed: 20261129,
         threads: 1,
-        reward: RewardSpec::parse("tenhou-sanma-7dan+").unwrap(),
         record_logs: true,
-        max_events: mj_features::obs::MAX_EVENTS,
+        ..EnvConfig::new(
+            rules.clone(),
+            1,
+            20261129,
+            RewardSpec::parse("tenhou-sanma-7dan+").unwrap(),
+        )
     });
     let mut rng = ChaCha8Rng::seed_from_u64(1);
     let mut b = env.observe();
