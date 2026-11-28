@@ -37,7 +37,9 @@ def tail(path: Path, n: int = 30) -> list[str]:
 
 
 def reason_of(lines: list[str]) -> str:
-    """標準エラーの最後の例外の行（なければ最後の行）"""
+    """標準エラーの最後の例外の行（なければ最後の行。見張り役の区切りの行より後に何もなければ、外から落とされたとみなす）"""
+    if lines and lines[-1].startswith("===== watchdog start"):
+        return "no error output (killed from outside?)"
     for ln in reversed(lines):
         s = ln.strip()
         if s and ("Error" in s or "Exception" in s or s.startswith("RuntimeError") or "error" in s.lower()):
