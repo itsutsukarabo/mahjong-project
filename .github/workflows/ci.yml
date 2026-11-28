@@ -124,6 +124,33 @@ jobs:
             difftest-riichienv-out/
           if-no-files-found: ignore
 
+  # RL の学習（python/mjrl、uv）：CPU の PyTorch でテスト（学習のループ・再開・評価・注釈・D-049 の漏れの検査）
+  mjrl:
+    name: mjrl (ubuntu-24.04)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Rust toolchain (rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.10"
+          enable-cache: false
+
+      - name: uv sync (builds mj-py with maturin; CPU torch on Linux)
+        run: uv sync --frozen --python "$(which python)"
+
+      - name: pytest (python/mjrl/tests)
+        run: uv run --frozen pytest python/mjrl/tests -q
+
   # 牌譜再生画面（web/）：WASM のビルド、型検査、単体テスト、Playwright（最後まで再生・画面のスナップショット）
   web:
     name: web (ubuntu-24.04)

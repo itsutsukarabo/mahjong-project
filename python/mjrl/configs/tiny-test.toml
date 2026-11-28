@@ -1,0 +1,36 @@
+# テスト用の小さな設定（CPU で数秒。python/mjrl/tests）
+name = "tiny"
+purpose = "テスト：学習のループ・再開・評価が動くことだけを確かめる"
+device = "cpu"
+seed = 3
+
+[env]
+tables = 8
+seed = 11
+
+[model]
+layers = 1
+d_model = 32
+heads = 2
+ff = 64
+critic_hidden = 16
+
+[ppo]
+steps_per_update = 16
+minibatch = 64
+epochs = 2
+bf16 = false
+total_updates = 100
+
+[ckpt]
+every = 2
+keep = 2
+
+[samples]
+every = 3
+games = 1
+
+[eval]
+every = 2
+walls = 4
+tables = 8

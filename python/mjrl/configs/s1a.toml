@@ -1,0 +1,51 @@
+# ①-a（和了 = +1）の学習（RL_TRAINING §2.3、D-048〜D-052）
+name = "s1a"
+purpose = """
+何を確かめる実験か：①-a（和了 = +1、γ = 0.995、ポテンシャル型のシャンテン報酬）で、自分自身とだけ打って
+和了率が上がるか。損失が暴れないか、イベント列の上限を超えないか、再開・評価・レーティングが動くか（試運転は1時間）。
+"""
+device = "cuda"
+seed = 1
+
+[env]
+rules = "tenhou-sanma"
+length = "single"
+tables = 512
+seed = 20261201
+reward = "tenhou-sanma-7dan+"
+
+[model]
+layers = 4
+d_model = 256
+heads = 8
+ff = 1024
+
+[ppo]
+steps_per_update = 128
+# 4096 は VRAM に収まらない（学習の1歩で 20GB）。512 が速さ・VRAM とも良い（RL_TRAINING §1.5 の実測）
+minibatch = 512
+epochs = 3
+gamma = 0.995
+lam = 0.95
+lr = 3e-4
+lr_final = 3e-5
+total_updates = 20000
+
+[reward]
+stage = "1a"
+shanten_coef = 0.1
+
+[pool]
+self_only = true
+
+[ckpt]
+every = 10
+keep = 3
+
+[samples]
+every = 50
+games = 2
+
+[eval]
+every = 25
+walls = 500

@@ -1,0 +1,23 @@
+# uv workspace（python/*）。RL の学習は python/mjrl（D-057）。準備は docs/research/DEV_SETUP.md「RL の学習」
+[tool.uv.workspace]
+members = ["python/mjrl"]
+
+[tool.uv.sources]
+mjrl = { workspace = true }
+# RL 環境（Rust、maturin でビルド）。Rust を変えたら `uv sync --reinstall-package mj-py`
+mj-py = { path = "crates/mj-py" }
+# RTX 5080（Blackwell、sm_120）には CUDA 12.8 以降の版が要る。Windows は CUDA 13.0 の版、Linux（CI）は CPU の版
+torch = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'win32'" },
+  { index = "pytorch-cpu", marker = "sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

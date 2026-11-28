@@ -24,6 +24,14 @@ use rayon::prelude::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+/// 時間の内訳（秒の累計、壁時計）：局の進行（行動の検査・`Game::step`・ボット・新しい対局）、観測づくり、行列への詰め直し
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Timing {
+    pub advance: f64,
+    pub observe: f64,
+    pub pack: f64,
+}
+
 /// 評価などで決めた対局（`schedule`）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GameSpec {
@@ -240,6 +248,8 @@ pub struct VecEnv {
     schedule_pos: usize,
     /// これまでにイベント列が上限を超えた行の数（D-045：学習の統計に残す）
     overflow_total: u64,
+    /// 時間の内訳（秒の累計）
+    timing: Timing,
     /// 作った時点でボットだけで終わった対局（最初の `observe` で返す）
     startup_finished: Vec<Finished>,
 }
@@ -288,6 +298,7 @@ impl VecEnv {
             schedule_pos: 0,
             overflow_total: 0,
             startup_finished: Vec::new(),
+            timing: Timing::default(),
             cfg,
         };
         let mut fin = Vec::new();
@@ -310,6 +321,11 @@ impl VecEnv {
 
     pub fn max_events(&self) -> usize {
         self.cfg.max_events
+    }
+
+    /// これまでの時間の内訳（秒の累計。壁時計）
+    pub fn timing(&self) -> Timing {
+        self.timing
     }
 
     pub fn overflow_total(&self) -> u64 {
@@ -335,6 +351,7 @@ impl VecEnv {
 
     /// 行動を与えて進め、次の判断ポイントの観測を返す。`decision_ids` と `actions` は同じ長さ
     pub fn step(&mut self, decision_ids: &[i64], actions: &[i64]) -> Result<Batch, EnvError> {
+        let t0 = std::time::Instant::now();
         // ID で突き合わせる：どの卓のどの判断ポイントか
         let mut by_id: HashMap<i64, (usize, usize)> = HashMap::new();
         for (ti, t) in self.tables.iter().enumerate() {
@@ -397,8 +414,15 @@ impl VecEnv {
                 .collect()
         });
         self.start_games(&mut finished);
+        let t1 = std::time::Instant::now();
         let rows = self.collect_rows();
-        Ok(self.pack(rows, finished))
+        let t2 = std::time::Instant::now();
+        let b = self.pack(rows, finished);
+        let t3 = std::time::Instant::now();
+        self.timing.advance += (t1 - t0).as_secs_f64();
+        self.timing.observe += (t2 - t1).as_secs_f64();
+        self.timing.pack += (t3 - t2).as_secs_f64();
+        Ok(b)
     }
 
     /// 新しい対局を待っている卓に、卓の番号の順に対局を割り当てて始める（ボットだけで終わった対局があれば繰り返す）

@@ -11,3 +11,7 @@ dependencies = ["numpy"]
 [tool.maturin]
 features = ["python", "pyo3/extension-module"]
 module-name = "mj_py"
+
+[tool.uv]
+# uv が作り直す目安（Rust を変えたときは `uv sync --reinstall-package mj-py` でも作り直せる）
+cache-keys = [{ file = "pyproject.toml" }, { file = "Cargo.toml" }, { file = "src/**/*.rs" }]

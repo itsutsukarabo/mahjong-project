@@ -34,4 +34,6 @@ for c in python python3; do
 done
 [ -n "$PY" ] || { echo "python not found"; exit 1; }
 "$PY" -I -X utf8 docs/spec/samples/make_sample_log.py --check
+step "mjrl (python/mjrl/tests, uv)"
+"$PY" -m uv run --frozen pytest python/mjrl/tests -q -p no:cacheprovider
 echo "ALL CHECKS OK"

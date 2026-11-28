@@ -1,0 +1,30 @@
+[project]
+name = "mjrl"
+version = "0.1.0"
+description = "RL の学習（PPO・対戦相手プール・評価・チェックポイントと再開・統計）。docs/spec/RL_TRAINING.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "mj-py",
+  "numpy>=2.2,<3",
+  "torch==2.14.1",
+  "matplotlib>=3.10,<4",
+  "nvidia-ml-py>=13,<14",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.4,<9"]
+
+[project.scripts]
+mjrl-train = "mjrl.train:main"
+mjrl-eval = "mjrl.evaluate:main"
+mjrl-plot = "mjrl.plot:main"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mjrl"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

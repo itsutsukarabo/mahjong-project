@@ -99,7 +99,11 @@ fn to_py<'py>(py: Python<'py>, inner: &Inner, b: Batch) -> PyResult<Bound<'py, P
         x.set_item("game_seed", f.game_seed)?;
         x.set_item("table", f.table)?;
         x.set_item("scores", f.scores)?;
-        x.set_item("ranks", f.ranks)?;
+        // Vec<u8> のままだと Python の bytes になるので整数の list にする
+        x.set_item(
+            "ranks",
+            f.ranks.iter().map(|&r| i64::from(r)).collect::<Vec<_>>(),
+        )?;
         x.set_item("rewards", f.rewards)?;
         x.set_item("rewards_normalized", f.rewards_normalized)?;
         x.set_item("presets", f.presets)?;
@@ -206,6 +210,13 @@ impl VecEnv {
     #[getter]
     fn next_game_index(&self) -> u64 {
         self.inner.next_game_index()
+    }
+
+    /// 時間の内訳（秒の累計）：`advance`（局の進行）・`observe`（観測づくり）・`pack`（行列への詰め直し）
+    #[getter]
+    fn timing(&self) -> (f64, f64, f64) {
+        let t = self.inner.timing();
+        (t.advance, t.observe, t.pack)
     }
 
     /// `schedule` の対局がすべて終わった
