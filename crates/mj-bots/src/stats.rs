@@ -8,12 +8,15 @@ pub const RARE: &[&str] = &[
     "suukaikan",
     "kyushu_kyuhai",
     "pao",
+    "pao_ron",
+    "pao_compound",
     "double_ron",
     "ron_on_kita",
     "ron_on_kita_ippatsu",
     "chankan",
     "rinshan_kaihou",
     "rinshan_kaihou_after_kita",
+    "kan_dora_on_kita",
     "nagashi_mangan",
     "double_riichi",
     "tenhou",
@@ -25,6 +28,7 @@ pub const RARE: &[&str] = &[
 pub fn rare_events(events: &[Event]) -> Vec<&'static str> {
     let mut out = Vec::new();
     let mut prev: Option<&Event> = None;
+    let mut prev_non_dora: Option<&Event> = None;
     let mut prev_tsumo_after_kita = false;
     let mut ron_targets: Vec<u8> = Vec::new();
     let mut last_non_hora: Option<&Event> = None;
@@ -36,13 +40,26 @@ pub fn rare_events(events: &[Event]) -> Vec<&'static str> {
                 "nagashi_mangan" => out.push("nagashi_mangan"),
                 _ => {}
             },
+            // 北抜きの後、補充のツモの前にカンドラがめくられた（D-040）
+            Event::Dora { .. } if matches!(prev, Some(Event::Kita { .. })) => {
+                out.push("kan_dora_on_kita");
+            }
             Event::Tsumo { rinshan, .. } => {
-                prev_tsumo_after_kita = *rinshan && matches!(prev, Some(Event::Kita { .. }));
+                // 北抜きと補充のツモの間にカンドラがめくられることがある（D-040）ので、ドラ表示を除いた1つ前を見る
+                prev_tsumo_after_kita =
+                    *rinshan && matches!(prev_non_dora, Some(Event::Kita { .. }));
             }
             Event::Hora(h) => {
                 let has = |y: Yaku| h.yaku.iter().any(|i| i.yaku == y);
                 if h.pao.is_some() {
                     out.push("pao");
+                    if h.actor != h.target {
+                        out.push("pao_ron");
+                    }
+                    // 複合役満（役満の役が2つ以上、または2倍役満）
+                    if h.yakuman >= 2 {
+                        out.push("pao_compound");
+                    }
                 }
                 if h.actor != h.target {
                     if ron_targets.contains(&h.target) {
@@ -83,6 +100,9 @@ pub fn rare_events(events: &[Event]) -> Vec<&'static str> {
             _ => {}
         }
         prev = Some(e);
+        if !matches!(e, Event::Dora { .. }) {
+            prev_non_dora = Some(e);
+        }
         if !matches!(e, Event::Hora(_)) {
             last_non_hora = Some(e);
         }

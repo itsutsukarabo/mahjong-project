@@ -259,7 +259,8 @@ LOG_FORMAT のサンプル和了（親・中ポン・ドラ2・ロン）を `Uti
 | 2倍役満（和了の層） | `HandEvaluator3P.calc` は `GameRule` を受け取らず、四暗刻単騎・国士無双十三面を常に2倍［実測］ | すべてシングル | 和了の層だけ `yakuman.double_special = true`。局進行は `GameRule.default_tenhou`（シングル）で一致 |
 | 天和の和了牌 | 国士無双は十三面待ちとして数え、四暗刻などはツモ牌で数える［実測］ | 最も高い点数の牌（I-4、`best`） | 変換：ツモ牌（`drawn`）で数えた値と一致すれば、この違いとする（20 万件中 2 件［実測］） |
 | 役満と数え役満の取り方 | 同じ点数なら数え役満の取り方を返すことがある（例：四暗刻の形を一盃口・混一色などの 13 翻） | 役満を選ぶ | 変換：支払いが同じなら一致とする（20 万件中 6 件［実測］） |
-| 北抜きへのロンの一発 | 一発を付ける（`state_3p/sanma.rs` のコメント「MjSoul awards ippatsu for ron on kita」）［読解］ | 北抜きで一発が消える（`kita.breaks_ippatsu`） | 差分テストではまだ起きていない［未実測］ |
+| 北抜きへのロンの一発 | 一発を付ける（`state_3p/sanma.rs` のコメント「MjSoul awards ippatsu for ron on kita」）［読解］ | 一発を付ける（D-046、`kita.ippatsu_on_kita_ron = true`。2026-11-29 に変更） | 同じ。狙った局面 `ron-on-kita-ippatsu`（手で組んだ牌山）で比べた |
+| 4枚使いの単騎待ちでの立直 | できない（`hand_evaluator_3p.rs` の `is_tenpai` は手の中に4枚ある種類を待ちにしない）［読解＋実測：狙った局面 `suukaikan-sanma` の第1ツモで立直の選択肢が食い違った］ | できる（D-033 B1、`riichi.pure_karaten_riichi = true`） | 上書き（`riichi.pure_karaten_riichi = false`）。天鳳の値は仕様テスト `riichi_pure_karaten_riichi_true_and_false` |
 
 - 実測（ローカル、Windows、2026-11-28、`--cases 200000 --game-cases 2000 --random-seed`、seed 1795802953679877900）：シャンテン数 200,000／0／0（変換 886）、待ち 179,885／20,115／0、和了 155,919／44,081／0（変換 8、比べた役 41 種）、局進行 1,911／89／0（判断ポイント 69,890）
 

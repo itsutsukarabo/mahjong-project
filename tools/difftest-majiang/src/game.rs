@@ -13,7 +13,7 @@
 //! ルールは `fixtures/rules/majiang-yonma-game.toml`（`test-yonma.toml` を majiang-core に合わせた上書き）。
 //! 延長戦の親の連荘は2通り（`end_if_reached` ↔ majiang-core 延長戦方式 1、`continue` ↔ 延長戦方式 2）を半分ずつ回す。
 
-use mj_bots::RuleBot;
+use mj_bots::{Player, RuleBot};
 use mj_core::event::{Event, Ryukyoku};
 use mj_core::game::{Game, WallSource};
 use mj_core::rules::{Rules, presets};
@@ -260,24 +260,58 @@ fn pingju(r: &Ryukyoku, oya: usize, last_dahai_actor: u8) -> Value {
     json!({"pingju": {"name": script_name, "shoupai": shoupai, "fenpei": fenpei, "_name": name}})
 }
 
-/// ボット同士の1半荘。（majiang-core の Dev.Game に渡す台本, こちらの結果）
-pub fn play(rules: &Rules, seed: u64) -> (Value, Value, Vec<&'static str>) {
-    let bot = RuleBot::new(rules);
-    let mut g = Game::new(rules.clone(), WallSource::Seed(seed));
+/// ボット同士の1半荘。（majiang-core の Dev.Game に渡す台本, こちらの結果）。`mixed` なら探索用ボットを席ごとに混ぜる（D-047）
+pub fn play(rules: &Rules, seed: u64, mixed: bool) -> (Value, Value, Vec<&'static str>) {
+    let mut p: Box<dyn Player> = if mixed {
+        Box::new(mj_bots::explore::MixedBots::new(rules, seed))
+    } else {
+        Box::new(RuleBot::new(rules))
+    };
+    let g = run_game(Game::new(rules.clone(), WallSource::Seed(seed)), p.as_mut());
+    to_script(&g, &format!("mj-core seed {seed}"))
+}
+
+/// 狙った局面（D-047）：手で組んだ牌山の1局を台本で回す（ルールは1局戦にする。majiang-core が次の局を
+/// 始めようとするのは食い違いにしない。[`judge_scenario`]）
+pub fn play_scenario(
+    rules: &Rules,
+    d: &mj_scenarios::Def,
+) -> Result<(Value, Value, Vec<&'static str>), String> {
+    let rules = presets::with(rules, "[table]\nlength = 'single'");
+    let sc = d.scenario(&rules)?;
+    let st = d.setup.as_ref().ok_or("no setup")?;
+    if st.oya != 0 || st.honba != 0 || st.kyotaku != 0 || st.scores.is_some() || st.bakaze != 0 {
+        return Err("majiang-core の Dev.Game は東1局の初期状態から始まる（親・本場・持ち点を変えた局面は比べない）".into());
+    }
+    let mut p = d.script()?;
+    let g = run_game(
+        Game::new(rules.clone(), WallSource::Manual(vec![sc.wall()])),
+        &mut p,
+    );
+    if !p.done() {
+        return Err(format!(
+            "script not applicable under the comparison rules: {:?}",
+            p.progress()
+        ));
+    }
+    Ok(to_script(&g, &format!("scenario {}", d.id)))
+}
+
+fn run_game(mut g: Game, p: &mut dyn Player) -> Game {
     while !g.is_over() {
-        let k = g.current_kyoku();
-        let acts: Vec<_> = g
-            .decisions()
-            .iter()
-            .map(|d| (d.seat, bot.choose(k, d)))
-            .collect();
+        let ds = g.decisions().to_vec();
+        let acts = p.act(g.current_kyoku(), &ds);
         g.step(&acts).expect("legal");
     }
+    g
+}
+
+fn to_script(g: &Game, title: &str) -> (Value, Value, Vec<&'static str>) {
     let logs: Vec<Vec<Value>> = g.kyokus().map(kyoku_log).collect();
     let rare: Vec<&'static str> = g.kyokus().flat_map(mj_bots::stats::rare_events).collect();
     let end = g.end().expect("game over");
     let script = json!({
-        "title": format!("mj-core seed {seed}"),
+        "title": title,
         "player": ["0", "1", "2", "3"],
         "qijia": 0,
         "log": logs,
@@ -326,6 +360,20 @@ pub struct GameVerdict {
     pub kyokus_theirs: usize,
     pub kyokus_matched: usize,
     pub first_mismatch: Option<Value>,
+}
+
+/// 狙った局面の比べ方：1局だけなので、majiang-core が次の局を始めようとしたことと終局の精算は比べない
+pub fn judge_scenario(ours: &Value, theirs: &Value) -> GameVerdict {
+    let mut v = judge(ours, theirs);
+    if v.kyokus_matched == 1
+        && v.first_mismatch.as_ref().is_some_and(|m| {
+            m["item"] == "kyoku_count"
+                || ["defen", "rank", "point"].contains(&m["item"].as_str().unwrap_or(""))
+        })
+    {
+        v.first_mismatch = None;
+    }
+    v
 }
 
 pub fn judge(ours: &Value, theirs: &Value) -> GameVerdict {

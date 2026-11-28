@@ -1,0 +1,23 @@
+id = "tenhou-sanma"
+category = "天和・地和"
+title = "天和（三麻）"
+description = "親の席0 が配牌と第1ツモ（東）で和了の形になり、ツモ和了する"
+expect_text = "天和（役満）"
+source = "天鳳 ルール（https://tenhou.net/man/）"
+rules = "tenhou-sanma"
+difftest = ["riichienv"]
+script = [
+    "0=tsumo",
+]
+
+[setup]
+hands = [
+    "1p 2p 3p 4p 5p 6p 7p 8p 9p 2s 3s 4s E",
+    "1m 1m 9m 2p 6p 9p 3s 7s S W F F C",
+    "9m 9m 1p 4p 8p 2s 6s 9s S W P P C",
+]
+draws = "E"
+
+[expect]
+rare = ["tenhou"]
+hora = [{ seat = 0, from = 0, yaku = ["tenhou"], yakuman = 1 }]

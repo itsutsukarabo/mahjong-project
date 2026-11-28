@@ -1,0 +1,36 @@
+id = "pao-daisuushii-ron"
+category = "包"
+title = "包：大四喜のロン（四麻）"
+description = "大四喜のツモと同じ形で、包の席0 ではない席2 が 4p を切り、席1 がロンする"
+expect_text = "ロンは折半：放銃の席2 と包の席0 が半分ずつ払う"
+source = "test-yonma（四麻の比較用ルール）・majiang-core の lib/hule.js"
+rules = "test-yonma"
+difftest = ["majiang"]
+script = [
+    "0=dahai:E",
+    "1=pon:E,E",
+    "1=dahai:9m",
+    "2=dahai:S",
+    "1=pon:S,S",
+    "1=dahai:1s",
+    "3=dahai:W",
+    "1=pon:W,W",
+    "1=dahai:2s",
+    "0=dahai:N",
+    "1=pon:N,N",
+    "1=dahai:3s",
+    "1=ron",
+]
+
+[setup]
+hands = [
+    "E N 2m 5m 8m 3p 6p 9p 4s 7s P F C",
+    "E E S S W W N N 1s 2s 3s 4p 9m",
+    "S 1m 4m 7m 2p 5p 8p 3s 6s 9s P F C",
+    "W 2m 3m 6m 7m 1p 4p 7p 5s 8s 9s P F",
+]
+draws = "1m 9p 5m 1s 8m 6p 3m 4p"
+
+[expect]
+rare = ["pao", "pao_ron"]
+hora = [{ seat = 1, from = 2, yaku = ["daisuushii"], pao = 0, yakuman = 2, deltas = [-32000, 64000, -32000, 0] }]

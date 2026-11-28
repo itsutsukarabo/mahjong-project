@@ -1,0 +1,32 @@
+id = "pao-compound"
+category = "包"
+title = "包：複合役満（大三元＋字一色）"
+description = "席1 が白・發・中をポンし（中は席0から）、東の暗刻と南の単騎で大三元＋字一色をツモる"
+expect_text = "天鳳三麻は複合役満の全額（ダブル役満のツモ 48000）を包の席0 が払う（pao_scope = full）"
+source = "オーナー確認（2026-11-28）I-3「複合役満は全額が責任払い」"
+rules = "tenhou-sanma"
+difftest = ["riichienv"]
+script = [
+    "0=dahai:P",
+    "1=pon:P,P",
+    "1=dahai:9m",
+    "2=dahai:F",
+    "1=pon:F,F",
+    "1=dahai:9s",
+    "0=dahai:C",
+    "1=pon:C,C",
+    "1=dahai:5p",
+    "1=tsumo",
+]
+
+[setup]
+hands = [
+    "P C 9m 2p 6p 9p 3s 7s S W 1s 2s 6s",
+    "P P F F C C E E E S 9m 9s 5p",
+    "F 1m 1p 5p 7p 3s 4s 8s S W 9p 1s N",
+]
+draws = "8s 6p 8p 7p 7s 4s S"
+
+[expect]
+rare = ["pao", "pao_compound"]
+hora = [{ seat = 1, from = 1, yaku = ["daisangen", "tsuuiisou"], pao = 0, yakuman = 2, deltas = [-48000, 48000, 0] }]

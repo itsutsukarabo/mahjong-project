@@ -16,6 +16,7 @@
 //! 6. 九種九牌：シャンテン数が3以上なら流局にする
 //! 7. ノーテン宣言はしない（聴牌のまま）
 
+pub mod explore;
 pub mod stats;
 
 use mj_core::action::Action;
@@ -161,6 +162,17 @@ impl PublicView {
             (false, true) => 4,
             (false, false) => 5,
         }
+    }
+}
+
+/// 打ち手：その場の判断ポイント（席ごと）にまとめて行動を返す。差分テスト・計測の対局を回す道具が使う
+pub trait Player {
+    fn act(&mut self, k: &Kyoku, ds: &[Decision]) -> Vec<(u8, Action)>;
+}
+
+impl Player for RuleBot {
+    fn act(&mut self, k: &Kyoku, ds: &[Decision]) -> Vec<(u8, Action)> {
+        ds.iter().map(|d| (d.seat, self.choose(k, d))).collect()
     }
 }
 

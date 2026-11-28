@@ -1,0 +1,30 @@
+id = "suukaikan-yonma"
+category = "四槓散了"
+title = "四槓散了（四麻）"
+description = "三麻と同じ形に席3 を足したもの"
+expect_text = "四槓散了で流局"
+source = "test-yonma（四麻の比較用ルール）・majiang-core の lib/hule.js"
+rules = "test-yonma"
+difftest = ["majiang"]
+script = [
+    "0=ankan:E",
+    "0=ankan:S",
+    "0=dahai:8p:tsumogiri",
+    "1=ankan:W",
+    "1=ankan:P",
+    "1=dahai:8s:tsumogiri",
+]
+
+[setup]
+hands = [
+    "E E E E S S S S 1p 2p 3p 4p 5p",
+    "W W W W P P P P 1s 2s 3s 4s 9m",
+    "1m 1m 9m 6p 9p 3s 7s F F C C N 2s",
+    "2m 3m 5m 6m 8m 8m 4s 5s 1m 7m F C N",
+]
+draws = "6p 6s"
+rinshan = "7p 8p 7s 8s"
+
+[expect]
+ryukyoku = "suukaikan"
+rare = ["suukaikan"]

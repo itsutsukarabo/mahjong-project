@@ -9,6 +9,7 @@
 | `crates/mj-core/` | `rules.rs`・`catalog.rs`（ルールの全項目＝正、D-025）、`tile.rs`、`wall.rs`（`chacha8-v1`）、`shanten.rs`、`agari.rs`（和了・待ちの表引き）、`yaku.rs`（役・符・点数）、`score.rs`（点数・祝儀の移動）、`action.rs`・`event.rs`・`kyoku.rs`（判断ポイント単位の局進行、D-022）、`game.rs`（対局の進行・精算）、`policy.rs`・`scenario.rs`（テスト・計測用）、`examples/selfplay_bench.rs` |
 | `crates/mj-log/` | 牌譜 v0.4 の検証・`wall_commit`・`wall_salt`・redact（全情報→席視点/公開）、`write.rs`（エンジンの対局→牌譜）、`replay.rs`（牌譜→エンジンで再生・注釈の検査）、サンプルとゴールデンのテスト |
 | `crates/mj-features/` | RL のための変換（mj-core の外）：行動の番号表（`ActionId`、325）と合法手マスク、観測（`obs`、D-043）、報酬（`reward`、REWARD_CONFIG） |
+| `crates/mj-scenarios/` | 狙った局面（D-047、`docs/spec/SCENARIOS.md`）：`fixtures/scenarios/*.toml` の読み込み、台本の打ち手、期待の確認、一覧の生成。差分テストの道具が使う |
 | `crates/mj-py/` | RL 環境：多数の卓をまとめて進め、判断ポイントごとの観測・合法手マスクを返す（`env.rs`）。Python からは PyO3（feature `python`、maturin、`pyproject.toml`）。速さの計測 `python/bench_random.py` |
 | `crates/mj-bots/` | ルールベースのボット（`RuleBot`：シャンテン数・受け入れ・簡単な押し引き。公開の情報だけを読む）と、ボット同士の対局の統計・速さ（`examples/bot_bench.rs`） |
 | `tools/difftest-majiang/` | Rust の差分テスト本体（シャンテン数・待ち、和了・点数、四麻の局進行。生成・比較・最小化）＋ `node/`（majiang-core 1.4.1 を呼ぶハーネス） |

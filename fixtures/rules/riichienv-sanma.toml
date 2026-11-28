@@ -15,3 +15,8 @@ honba_tsumo_each = 100
 [dora]
 # 後めくりのカンドラは打牌の直後（応答の前）にめくる（state_3p の pending_kan_dora_count）
 kan_dora_timing = "ankan_immediate"
+
+[riichi]
+# RiichiEnv は4枚使いの単騎待ちだけの形では立直できない（hand_evaluator_3p.rs の is_tenpai は手の中に4枚ある種類を待ちにしない）。
+# 天鳳三麻プリセットは true（オーナー確認 D-033 B1）。狙った局面（四槓散了）の差分テストで見つかった（2026-11-29）
+pure_karaten_riichi = false

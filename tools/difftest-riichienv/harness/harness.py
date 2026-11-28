@@ -7,7 +7,8 @@ op:
   hora     {"tiles": [...], "melds": [...], "win", "dora", "ura", "cond": {...}}
                                                         -> {"is_win", "han", "fu", "yaku": [名前], "yakuman",
                                                             "ron", "tsumo_oya", "tsumo_ko"}
-  game_new {"seed", "mode"}                             -> 局の状態（牌山 "wall"・配牌 "hands" を含む）
+  game_new {"seed", "mode", "wall"?, "oya"?}            -> 局の状態（牌山 "wall"・配牌 "hands" を含む）
+           "wall" を渡すと手で組んだ牌山（RiichiEnv の reset(wall=...) の 108 枚の並び）で始める
   game_step {"actions": {席: 行動}}                       -> 局の状態
 局の状態：{"done", "seats": {席: [合法手の正規形]}, "drawn", "events": [新しい MJAI イベント], "scores"}
 合法手の正規形：dahai:<牌>（手出し・ツモ切りは区別しない）, reach, pon:<牌>,<牌>, chi:<牌>,<牌>, daiminkan,
@@ -146,9 +147,12 @@ GAMES = {}
 
 
 class G:
-    def __init__(self, seed, mode):
+    def __init__(self, seed, mode, wall=None, oya=None):
         self.env = r.RiichiEnv(game_mode=mode, seed=seed)
-        self.obs = self.env.reset()
+        if wall is None:
+            self.obs = self.env.reset()
+        else:
+            self.obs = self.env.reset(oya=oya or 0, wall=wall)
         self.seen = 0
 
     def state(self, first=False):
@@ -227,7 +231,7 @@ def handle(c):
     if op == "hora":
         return hora(c)
     if op == "game_new":
-        g = G(c["seed"], c.get("mode", "3p-red-single"))
+        g = G(c["seed"], c.get("mode", "3p-red-single"), c.get("wall"), c.get("oya"))
         GAMES[c["game"]] = g
         return g.state(first=True)
     if op == "game_step":

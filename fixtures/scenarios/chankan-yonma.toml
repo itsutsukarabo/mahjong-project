@@ -1,0 +1,28 @@
+id = "chankan-yonma"
+category = "槍槓"
+title = "槍槓（四麻）"
+description = "三麻の槍槓と同じ形に、何もしない席3 を足したもの。席1 が 5p をポンして加槓し、席0 が槍槓でロンする"
+expect_text = "席0 の和了に槍槓が付く"
+source = "test-yonma（四麻の比較用ルール）・majiang-core の lib/hule.js"
+rules = "test-yonma"
+difftest = ["majiang"]
+script = [
+    "2=dahai:5p",
+    "1=pon:5p,5p",
+    "1=dahai:E",
+    "1=kakan:5pr",
+    "0=ron",
+]
+
+[setup]
+hands = [
+    "1p 2p 3p 4p 6p 7p 8p 9p 1s 1s 1s 9s 9s",
+    "5p 5p 2s 3s 7s 8s 1m 1m 9m E S W W",
+    "5p 2p 2p 3p 6s 6s 7s 4s 9m 9m S P P",
+    "2m 3m 5m 6m 8m 8m 4s 5s 1m 7m F C P",
+]
+draws = "C F C F 7m C 5pr"
+
+[expect]
+rare = ["chankan"]
+hora = [{ seat = 0, from = 1, yaku = ["chankan", "ittsu"] }]

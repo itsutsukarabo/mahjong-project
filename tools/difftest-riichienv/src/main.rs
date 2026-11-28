@@ -7,6 +7,9 @@
 //! - 層：手牌（シャンテン数・待ち）、和了・点数、局進行（北抜きを含む、`game.rs`）
 //! - RiichiEnv は隔離した venv の Python で動かす（D-010。`--python` はその venv の python）
 //! - 結果は層ごとに「比較した件数／除外した件数／不一致件数」。不一致は最小化して `--out` に書く
+//! - 局進行の打ち手：乱数の牌山の局は、偶数番が通常のボット（RuleBot）、奇数番が通常のボットと探索用ボット
+//!   （`mj_bots::explore`、槓・立直・北抜きなどを積極的に選ぶ）を席ごとに混ぜたもの（D-047）。回帰用の局は RuleBot
+//! - 狙った局面（`fixtures/scenarios` の `difftest` に `riichienv` があるもの、D-047）：手で組んだ牌山と台本を RiichiEnv と並べて回す
 //! - ルールは `fixtures/rules/riichienv-sanma.toml`（`tenhou-sanma.toml` を RiichiEnv の三麻の固定値に合わせた上書き）
 //! - シャンテン数の定義の違い（D-018）は、下の [`convert_shanten`] の変換表で吸収する
 
@@ -125,6 +128,8 @@ fn main() {
     let mut game_n: Option<usize> = None;
     // 1局だけ回す（失敗した局の再現用。summary の game_seed を渡す）
     let mut only_game: Option<u64> = None;
+    // --game-seed の局の打ち手（rule / mixed）
+    let mut only_player = "rule".to_string();
     // 回帰用の局（fixtures/difftest-riichienv/regression_games.txt）を足す
     let mut seeds_file: Option<PathBuf> = None;
     let mut seed: u64 = 20_261_128;
@@ -141,6 +146,7 @@ fn main() {
             "--hora-cases" => hora_n = Some(val().parse().unwrap()),
             "--game-cases" => game_n = Some(val().parse().unwrap()),
             "--game-seed" => only_game = Some(val().parse().unwrap()),
+            "--game-player" => only_player = val(),
             "--game-seeds-file" => seeds_file = Some(PathBuf::from(val())),
             "--seed" => seed = val().parse().unwrap(),
             "--random-seed" => random_seed = true,
@@ -369,18 +375,36 @@ tenhou_win_tile = 'drawn'",
             }
         }
     }
+    let mut by_player: BTreeMap<&str, Counts> = BTreeMap::new();
     for (gi, &gseed) in game_seeds.iter().enumerate() {
-        let o = game::run_until_stable(&mut h, &rules, gseed, &format!("g{gi}"));
+        // 乱数の局の奇数番は探索用ボットを混ぜる（回帰用の局は RuleBot）
+        let mixed = match only_game {
+            Some(_) => only_player == "mixed",
+            None => gi < game_n && gi % 2 == 1,
+        };
+        let player = if mixed { "mixed" } else { "rule" };
+        let r2 = rules.clone();
+        let make = move || -> Box<dyn mj_bots::Player> {
+            if mixed {
+                Box::new(mj_bots::explore::MixedBots::new(&r2, gseed))
+            } else {
+                Box::new(mj_bots::RuleBot::new(&r2))
+            }
+        };
+        let o = game::run_until_stable(&mut h, &rules, gseed, &format!("g{gi}"), &make, None);
+        let pc = by_player.entry(player).or_default();
         *game_wall_tries.entry(o.wall_tries).or_default() += 1;
         game_decisions += o.decisions;
         if let Some(r) = &o.excluded {
             games.excluded += 1;
+            pc.excluded += 1;
             *game_excluded
                 .entry(r.split(' ').next().unwrap_or("").to_string())
                 .or_default() += 1;
             continue;
         }
         games.compared += 1;
+        pc.compared += 1;
         for r in &o.rare {
             *game_rare.entry(r).or_default() += 1;
         }
@@ -389,13 +413,74 @@ tenhou_win_tile = 'drawn'",
         }
         if let Some(m) = &o.mismatch {
             games.mismatched += 1;
+            pc.mismatched += 1;
             *game_items
                 .entry(m["item"].as_str().unwrap_or("?").to_string())
                 .or_default() += 1;
             if game_failures.len() < 200 {
-                game_failures.push(json!({"seed": seed, "game_seed": gseed, "mismatch": m}));
+                game_failures.push(
+                    json!({"seed": seed, "game_seed": gseed, "player": player, "mismatch": m}),
+                );
             }
         }
+    }
+
+    // ---- 狙った局面（D-047）
+    let mut scen = Counts::default();
+    let mut scen_rows: Vec<Value> = Vec::new();
+    let mut scen_rare: BTreeMap<&str, u64> = mj_bots::stats::RARE.iter().map(|k| (*k, 0)).collect();
+    let defs =
+        mj_scenarios::load_dir(&mj_scenarios::fixtures_dir()).unwrap_or_else(|e| panic!("{e}"));
+    for d in defs.iter().filter(|d| {
+        d.status == mj_scenarios::Status::Ready && d.difftest.iter().any(|x| x == "riichienv")
+    }) {
+        // こちらで比較用のルールで回し、台本が通るかと、嶺上ツモ・カンドラの数（牌山の写し方）を得る
+        let sc = d
+            .scenario(&rules)
+            .unwrap_or_else(|e| panic!("{}: {e}", d.id));
+        let mut k = sc.kyoku();
+        let mut sp = d.script().unwrap_or_else(|e| panic!("{}: {e}", d.id));
+        if let Err(e) = mj_scenarios::play_kyoku(&mut k, &mut sp) {
+            scen.excluded += 1;
+            scen_rows.push(json!({"id": d.id, "result": "excluded", "reason": format!("script not applicable under the comparison rules: {e}")}));
+            continue;
+        }
+        let rk = game::our_rk(k.events());
+        let manual = game::ManualWall {
+            ids: game::riichienv_wall(&sc.wall(), sc.oya, rk.0, rk.1),
+            oya: sc.oya,
+            rk,
+        };
+        let def = d.clone();
+        let make = move || -> Box<dyn mj_bots::Player> { Box::new(def.script().expect("script")) };
+        let o = game::run_until_stable(
+            &mut h,
+            &rules,
+            0,
+            &format!("s-{}", d.id),
+            &make,
+            Some(&manual),
+        );
+        let expected: Vec<&str> = d
+            .expect
+            .as_ref()
+            .map(|e| e.rare.iter().map(String::as_str).collect())
+            .unwrap_or_default();
+        let reached = expected.iter().all(|r| o.rare.contains(r));
+        for r in &o.rare {
+            *scen_rare.entry(r).or_default() += 1;
+        }
+        scen.compared += 1;
+        let result = if o.mismatch.is_some() {
+            scen.mismatched += 1;
+            "mismatch"
+        } else if !reached {
+            scen.mismatched += 1;
+            "not_reached"
+        } else {
+            "match"
+        };
+        scen_rows.push(json!({"id": d.id, "result": result, "rare": o.rare, "decisions": o.decisions, "mismatch": o.mismatch}));
     }
 
     let summary = json!({
@@ -420,6 +505,11 @@ tenhou_win_tile = 'drawn'",
         "game_excluded": game_excluded,
         "game_ends": game_ends,
         "game_mismatch_items": game_items,
+        "games_by_player": by_player,
+        "game_player_note": "rule＝RuleBot だけ、mixed＝RuleBot と探索用ボット（mj_bots::explore）を席ごとに混ぜた局（乱数の局の奇数番）",
+        "scenarios": scen,
+        "scenario_rare_events": scen_rare,
+        "scenario_results": scen_rows,
         "hand_failures": hand_failures.len(),
         "hora_failures": hora_failures.len(),
         "game_failures": game_failures.len(),
@@ -453,7 +543,16 @@ tenhou_win_tile = 'drawn'",
     for r in game_failures.iter().take(5) {
         eprintln!("GAME MISMATCH {r}");
     }
-    if shanten.mismatched + waits.mismatched + hora_counts.mismatched + games.mismatched > 0 {
+    for r in scen_rows.iter().filter(|r| r["result"] != "match") {
+        eprintln!("SCENARIO {r}");
+    }
+    if shanten.mismatched
+        + waits.mismatched
+        + hora_counts.mismatched
+        + games.mismatched
+        + scen.mismatched
+        > 0
+    {
         std::process::exit(1);
     }
 }

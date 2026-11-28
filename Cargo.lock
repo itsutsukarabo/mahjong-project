@@ -73,6 +73,7 @@ version = "0.1.0"
 dependencies = [
  "mj-bots",
  "mj-core",
+ "mj-scenarios",
  "rand_chacha",
  "rand_core",
  "serde",
@@ -85,6 +86,7 @@ version = "0.1.0"
 dependencies = [
  "mj-bots",
  "mj-core",
+ "mj-scenarios",
  "rand_chacha",
  "rand_core",
  "serde",
@@ -250,6 +252,16 @@ dependencies = [
  "pyo3",
  "rayon",
  "serde_json",
+]
+
+[[package]]
+name = "mj-scenarios"
+version = "0.1.0"
+dependencies = [
+ "mj-bots",
+ "mj-core",
+ "serde",
+ "toml",
 ]
 
 [[package]]

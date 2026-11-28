@@ -1,0 +1,27 @@
+id = "kita-rinshan-kan-dora"
+category = "北抜きの補充での嶺上開花"
+title = "北抜きの補充での嶺上開花とカンドラ"
+description = "席1 が席0 の中を大明槓し、嶺上牌の北をそのまま抜く。北抜きの補充の嶺上牌 2s でツモ和了する"
+expect_text = "大明槓のカンドラは、北抜きの補充の嶺上牌をツモる直前にめくる（D-040）。和了は嶺上開花"
+source = "オーナー確認（2026-11-28）D-040"
+rules = "tenhou-sanma"
+difftest = ["riichienv"]
+script = [
+    "0=dahai:C",
+    "1=daiminkan",
+    "1=kita",
+    "1=tsumo",
+]
+
+[setup]
+hands = [
+    "C 1m 9m 2p 6p 9p 3s 7s S W F F P",
+    "C C C 1p 2p 3p 4p 5p 6p 7p 8p 9p 2s",
+    "1m 1m 9m 3p 4p 8p 3s 7s S W F F E",
+]
+draws = "E"
+rinshan = "N 2s"
+
+[expect]
+rare = ["rinshan_kaihou", "rinshan_kaihou_after_kita", "kan_dora_on_kita"]
+hora = [{ seat = 1, from = 1, yaku = ["rinshan"] }]

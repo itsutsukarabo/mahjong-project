@@ -1,0 +1,32 @@
+id = "pao-daisangen-tsumo"
+category = "包"
+title = "包：大三元のツモ"
+description = "席1 が白（席0から）・發（席2から）・中（席0から）をポンして大三元を確定させ、4p 単騎をツモる。3つ目の中を鳴かせた席0 が包"
+expect_text = "包の席0 が、ツモ損の子の役満ツモの合計（24000）を1人で払う"
+source = "天鳳 ルール「大三元/大四喜のパオあり」・オーナー確認（2026-11-28）回答 E"
+rules = "tenhou-sanma"
+difftest = ["riichienv"]
+script = [
+    "0=dahai:P",
+    "1=pon:P,P",
+    "1=dahai:9m",
+    "2=dahai:F",
+    "1=pon:F,F",
+    "1=dahai:9s",
+    "0=dahai:C",
+    "1=pon:C,C",
+    "1=dahai:5p",
+    "1=tsumo",
+]
+
+[setup]
+hands = [
+    "P C 9m 2p 6p 9p 3s 7s S W 1s 2s 6s",
+    "P P F F C C 1s 2s 3s 4p 5p 9s 9m",
+    "F 1m 1p 5p 7p 3s 4s 8s S W E E N",
+]
+draws = "8s 6p 8p 7p 7s 4s 4p"
+
+[expect]
+rare = ["pao"]
+hora = [{ seat = 1, from = 1, yaku = ["daisangen"], pao = 0, deltas = [-24000, 24000, 0] }]

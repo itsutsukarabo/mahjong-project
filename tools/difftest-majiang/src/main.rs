@@ -643,11 +643,18 @@ fn main() {
     let mut game_extension: BTreeMap<&str, u64> = BTreeMap::new();
     let mut game_rare: BTreeMap<&str, u64> = mj_bots::stats::RARE.iter().map(|k| (*k, 0)).collect();
     let mut game_failures: Vec<serde_json::Value> = Vec::new();
+    let mut by_player: BTreeMap<&str, Counts> = BTreeMap::new();
     for i in 0..game_n {
         let (vname, rules, mrule) = &variants[i % variants.len()];
         let gseed = (seed ^ 0x67616d65).wrapping_add(i as u64);
         let case_id = format!("game-{i}");
-        let (script, ours, rare) = game::play(rules, gseed);
+        // 奇数番は探索用ボットを席ごとに混ぜる（D-047）
+        let mixed = i % 2 == 1;
+        let (script, ours, rare) = game::play(rules, gseed, mixed);
+        let pc = by_player
+            .entry(if mixed { "mixed" } else { "rule" })
+            .or_default();
+        pc.compared += 1;
         let theirs = harness.ask_game(&case_id, &script, mrule);
         let v = game::judge(&ours, &theirs);
         games.compared += 1;
@@ -674,12 +681,60 @@ fn main() {
         }
         if let Some(m) = &v.first_mismatch {
             games.mismatched += 1;
+            pc.mismatched += 1;
             game_kyokus.mismatched += 1;
             game_failures.push(serde_json::json!({
                 "seed": seed, "case_id": case_id, "variant": vname, "game_seed": gseed,
                 "verdict": v, "mismatch": m, "script": script, "majiang": theirs,
             }));
         }
+    }
+
+    // ---- 狙った局面（D-047。fixtures/scenarios の difftest に majiang があるもの）
+    let mut scen = Counts::default();
+    let mut scen_rows: Vec<serde_json::Value> = Vec::new();
+    let mut scen_rare: BTreeMap<&str, u64> = mj_bots::stats::RARE.iter().map(|k| (*k, 0)).collect();
+    let defs =
+        mj_scenarios::load_dir(&mj_scenarios::fixtures_dir()).unwrap_or_else(|e| panic!("{e}"));
+    let (_, srules, smrule) = &variants[0];
+    for d in defs.iter().filter(|d| {
+        d.status == mj_scenarios::Status::Ready && d.difftest.iter().any(|x| x == "majiang")
+    }) {
+        let (script, ours, rare) = match game::play_scenario(srules, d) {
+            Ok(x) => x,
+            Err(e) => {
+                scen.excluded += 1;
+                scen_rows.push(serde_json::json!({"id": d.id, "result": "excluded", "reason": e}));
+                continue;
+            }
+        };
+        let theirs = harness.ask_game(&format!("scenario-{}", d.id), &script, smrule);
+        let v = game::judge_scenario(&ours, &theirs);
+        let expected: Vec<&str> = d
+            .expect
+            .as_ref()
+            .map(|e| e.rare.iter().map(String::as_str).collect())
+            .unwrap_or_default();
+        let reached = expected.iter().all(|r| rare.contains(r));
+        for r in &rare {
+            *scen_rare.entry(r).or_default() += 1;
+        }
+        scen.compared += 1;
+        let result = if v.first_mismatch.is_some() {
+            "mismatch"
+        } else if !reached {
+            "not_reached"
+        } else {
+            "match"
+        };
+        if result != "match" {
+            scen.mismatched += 1;
+        }
+        scen_rows.push(serde_json::json!({"id": d.id, "result": result, "rare": rare, "mismatch": v.first_mismatch,
+                                          "script": if result == "match" { serde_json::Value::Null } else { script }}));
+    }
+    for r in scen_rows.iter().filter(|r| r["result"] != "match") {
+        eprintln!("SCENARIO {r}");
     }
 
     let mut budget = max_shrink_queries;
@@ -717,7 +772,11 @@ fn main() {
         "game_kyoku_ends": game_ends,
         "game_extension_kyokus": game_extension,
         "game_rare_events": game_rare,
-        "game_note": "games：半荘ごと（compared＝比べた半荘、mismatched＝どこかで食い違った半荘）。game_kyokus：最初の食い違いまでに一致した局（compared）と、食い違った局（mismatched）。ルールは fixtures/rules/majiang-yonma-game.toml、打ち手は mj-bots の RuleBot",
+        "games_by_player": by_player,
+        "scenarios": scen,
+        "scenario_rare_events": scen_rare,
+        "scenario_results": scen_rows,
+        "game_note": "games：半荘ごと（compared＝比べた半荘、mismatched＝どこかで食い違った半荘）。game_kyokus：最初の食い違いまでに一致した局（compared）と、食い違った局（mismatched）。ルールは fixtures/rules/majiang-yonma-game.toml、打ち手は偶数番が mj-bots の RuleBot、奇数番が RuleBot と探索用ボット（mj_bots::explore）を席ごとに混ぜたもの（games_by_player）",
         "failures": failures.len(),
         "hora_failures": hora_failures.len(),
         "game_failures": game_failures.len(),
@@ -753,7 +812,11 @@ fn main() {
     for r in game_failures.iter().take(5) {
         eprintln!("GAME MISMATCH {} {}", r["case_id"], r["mismatch"]);
     }
-    if !failures.is_empty() || !hora_failures.is_empty() || !game_failures.is_empty() {
+    if !failures.is_empty()
+        || !hora_failures.is_empty()
+        || !game_failures.is_empty()
+        || scen.mismatched > 0
+    {
         std::process::exit(1);
     }
 }

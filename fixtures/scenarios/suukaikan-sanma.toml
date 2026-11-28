@@ -1,0 +1,29 @@
+id = "suukaikan-sanma"
+category = "四槓散了"
+title = "四槓散了（三麻）"
+description = "席0 が東・南、席1 が西・白を暗槓し、合わせて4つの槓が2人に分かれた。4つ目の槓の後の打牌が通る"
+expect_text = "四槓散了で流局"
+source = "天鳳 ルール（https://tenhou.net/man/）"
+rules = "tenhou-sanma"
+difftest = ["riichienv"]
+script = [
+    "0=ankan:E",
+    "0=ankan:S",
+    "0=dahai:8p:tsumogiri",
+    "1=ankan:W",
+    "1=ankan:P",
+    "1=dahai:8s:tsumogiri",
+]
+
+[setup]
+hands = [
+    "E E E E S S S S 1p 2p 3p 4p 5p",
+    "W W W W P P P P 1s 2s 3s 4s 9m",
+    "1m 1m 9m 6p 9p 3s 7s F F C C N 2s",
+]
+draws = "6p 6s"
+rinshan = "7p 8p 7s 8s"
+
+[expect]
+ryukyoku = "suukaikan"
+rare = ["suukaikan"]

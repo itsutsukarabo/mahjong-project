@@ -1,0 +1,32 @@
+id = "pao-daisangen-ron"
+category = "包"
+title = "包：大三元のロン"
+description = "大三元のツモと同じ形で、包の席0 ではない席2 が 4p を切り、席1 がロンする"
+expect_text = "ロンは折半：放銃の席2 と包の席0 が半分ずつ払う（pao_ron_split）"
+source = "天鳳 ルール「ツモ＝全額・ロン＝折半」"
+rules = "tenhou-sanma"
+difftest = ["riichienv"]
+script = [
+    "0=dahai:P",
+    "1=pon:P,P",
+    "1=dahai:9m",
+    "2=dahai:F",
+    "1=pon:F,F",
+    "1=dahai:9s",
+    "0=dahai:C",
+    "1=pon:C,C",
+    "1=dahai:5p",
+    "1=ron",
+]
+
+[setup]
+hands = [
+    "P C 9m 2p 6p 9p 3s 7s S W 1s 2s 6s",
+    "P P F F C C 1s 2s 3s 4p 5p 9s 9m",
+    "F 1m 1p 5p 7p 3s 4s 8s S W E E N",
+]
+draws = "8s 6p 8p 7p 4p"
+
+[expect]
+rare = ["pao", "pao_ron"]
+hora = [{ seat = 1, from = 2, yaku = ["daisangen"], pao = 0, deltas = [-16000, 32000, -16000] }]

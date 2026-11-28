@@ -1,0 +1,27 @@
+id = "chankan-sanma"
+category = "槍槓"
+title = "槍槓（三麻）"
+description = "席0（親）は 4p・6p の嵌張で 5p 待ち（一気通貫）。席2 が切った 5p を席1 がポンする（席0 はこのときロンを見送る）。席1 が後で赤の 5p をツモって加槓し、その 5p で席0 がロンする"
+expect_text = "席0 の和了に槍槓が付く（一気通貫と合わせて）。見送りの同巡フリテンは席0 の次の打牌で解けている"
+source = "天鳳 ルール（https://tenhou.net/man/）「槍槓」"
+rules = "tenhou-sanma"
+difftest = ["riichienv"]
+script = [
+    "2=dahai:5p",
+    "1=pon:5p,5p",
+    "1=dahai:E",
+    "1=kakan:5pr",
+    "0=ron",
+]
+
+[setup]
+hands = [
+    "1p 2p 3p 4p 6p 7p 8p 9p 1s 1s 1s 9s 9s",
+    "5p 5p 2s 3s 7s 8s 1m 1m 9m E S W W",
+    "5p 2p 2p 3p 6s 6s 7s 4s 9m 9m S P P",
+]
+draws = "C F C F C 5pr"
+
+[expect]
+rare = ["chankan"]
+hora = [{ seat = 0, from = 1, yaku = ["chankan", "ittsu"] }]

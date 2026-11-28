@@ -13,7 +13,7 @@
 //! 同じ seed でやり直す（[`run_until_stable`]）。除外はしない。
 
 use crate::harness::Harness;
-use mj_bots::RuleBot;
+use mj_bots::Player;
 use mj_core::action::Action;
 use mj_core::event::Event;
 use mj_core::kyoku::{Kyoku, KyokuSetup};
@@ -107,13 +107,121 @@ fn rinshan_and_kan_dora(flow: &[Value]) -> (usize, usize) {
     (r, flow.iter().filter(|v| v[0] == "dora").count())
 }
 
+/// 手で組んだ牌山（D-047。`mj-scenarios` の局面）を RiichiEnv に渡す形
+pub struct ManualWall {
+    /// RiichiEnv の `reset(wall=...)` に渡す 108 枚（牌の id）
+    pub ids: Vec<u64>,
+    pub oya: u8,
+    /// こちらで回したときの嶺上ツモの回数とカンドラの枚数（牌山の写し方の R・K）
+    pub rk: (usize, usize),
+}
+
+/// 牌の種類 → RiichiEnv の牌の id（赤の5は各種類の 0 番。ほかは 1 番から）
+fn ids_for(tiles: &[Tile]) -> Vec<u64> {
+    let mut next = [0u64; 34];
+    tiles
+        .iter()
+        .map(|t| {
+            let k = t.kind().index();
+            let base = (k * 4) as u64;
+            if t.is_red() {
+                return base;
+            }
+            let five = matches!(k, 4 | 13 | 22);
+            let c = next[k] + u64::from(five);
+            next[k] += 1;
+            assert!(c < 4, "too many {t}");
+            base + c
+        })
+        .collect()
+}
+
+/// こちらの牌山（手で組んだもの）と、こちらで回したときの R・K から、RiichiEnv の 108 枚の並びを作る（[`our_wall`] の逆）。
+/// RiichiEnv は `reset(wall)` で並びを逆にしてから末尾から配る：親から 4 枚ずつ 3 周、1 枚ずつ 1 周、親の第1ツモ
+pub fn riichienv_wall(w: &Wall, oya: u8, r: usize, k: usize) -> Vec<u64> {
+    assert!(r <= 8 && k <= 4 && r >= k);
+    assert_eq!(w.pile.len(), 59);
+    let mut t: Vec<Option<Tile>> = vec![None; 69];
+    let mut used_pile = [false; 59];
+    for i in 0..55 - r {
+        t[68 - i] = Some(w.pile[i]);
+        used_pile[i] = true;
+    }
+    for j in 0..r {
+        t[j] = Some(w.pile[58 - j]);
+        used_pile[58 - j] = true;
+    }
+    for i in 0..=k {
+        t[8 + 2 * i] = Some(w.dora_indicators[i]);
+        t[9 + 2 * i] = Some(w.ura_indicators[i]);
+    }
+    let mut rest = (0..59)
+        .filter(|&i| !used_pile[i])
+        .map(|i| w.pile[i])
+        .chain(w.dora_indicators[k + 1..].iter().copied())
+        .chain(w.ura_indicators[k + 1..].iter().copied());
+    for x in t.iter_mut() {
+        if x.is_none() {
+            *x = Some(rest.next().expect("enough"));
+        }
+    }
+    assert!(rest.next().is_none());
+    // 内部の並び（末尾から配る）：internal[107 - n] が n 番目に配られる牌
+    let mut internal: Vec<Option<Tile>> = t;
+    internal.resize(108, None);
+    let mut n = 0usize;
+    let mut taken = [0usize; 3];
+    let mut put = |seat: usize, cnt: usize, internal: &mut Vec<Option<Tile>>| {
+        for _ in 0..cnt {
+            internal[107 - n] = Some(w.haipai[seat][taken[seat]]);
+            taken[seat] += 1;
+            n += 1;
+        }
+    };
+    for _ in 0..3 {
+        for idx in 0..3 {
+            put((idx + usize::from(oya)) % 3, 4, &mut internal);
+        }
+    }
+    for idx in 0..3 {
+        put((idx + usize::from(oya)) % 3, 1, &mut internal);
+    }
+    let tiles: Vec<Tile> = internal.into_iter().map(|x| x.expect("placed")).collect();
+    let mut ids = ids_for(&tiles);
+    ids.reverse();
+    ids
+}
+
+/// こちらの局のイベント列の、嶺上ツモの回数とカンドラの枚数
+pub fn our_rk(events: &[Event]) -> (usize, usize) {
+    let r = events
+        .iter()
+        .filter(|e| matches!(e, Event::Tsumo { rinshan: true, .. }))
+        .count();
+    let k = events
+        .iter()
+        .filter(|e| matches!(e, Event::Dora { .. }))
+        .count();
+    (r, k)
+}
+
+/// 打ち手を作る（牌山を組み直してやり直すたびに新しく作る）
+pub type MakePlayer<'a> = &'a dyn Fn() -> Box<dyn Player>;
+
 /// R・K を合わせながら回す。写し方が違うと (R+1) 回目の嶺上ツモで食い違って止まるので、R・K は1回に1つずつ
 /// 増えていく（R ≤ 8、K ≤ 4 なので最大 10 回）。合わなければ食い違いとして返す
-pub fn run_until_stable(h: &mut Harness, rules: &Rules, seed: u64, gid: &str) -> GameOutcome {
-    let mut guess = (0, 0);
+pub fn run_until_stable(
+    h: &mut Harness,
+    rules: &Rules,
+    seed: u64,
+    gid: &str,
+    make: MakePlayer,
+    manual: Option<&ManualWall>,
+) -> GameOutcome {
+    let mut guess = manual.map(|m| m.rk).unwrap_or((0, 0));
     let mut tried = Vec::new();
     for _ in 0..10 {
-        let (o, actual) = run(h, rules, seed, gid, guess);
+        let (o, actual) = run(h, rules, seed, gid, guess, make, manual);
         if actual == guess {
             let mut o = o;
             o.wall_tries = tried.len() as u32 + 1;
@@ -273,10 +381,17 @@ fn run(
     seed: u64,
     gid: &str,
     rk: (usize, usize),
+    make: MakePlayer,
+    manual: Option<&ManualWall>,
 ) -> (GameOutcome, (usize, usize)) {
-    let bot = RuleBot::new(rules);
+    let mut player = make();
     let mut out = GameOutcome::default();
-    let st = h.ask(json!({"op": "game_new", "game": gid, "seed": seed}));
+    let mut req = json!({"op": "game_new", "game": gid, "seed": seed});
+    if let Some(m) = manual {
+        req["wall"] = json!(m.ids);
+        req["oya"] = json!(m.oya);
+    }
+    let st = h.ask(req);
     if let Some(e) = st.get("error") {
         panic!("harness error: {e}");
     }
@@ -313,7 +428,7 @@ fn run(
         .collect();
     let setup = KyokuSetup {
         bakaze: 0,
-        kyoku: 0,
+        kyoku: oya,
         honba: 0,
         kyotaku: 0,
         oya,
@@ -415,6 +530,7 @@ fn run(
             break;
         }
         let mut acts_ours = Vec::new();
+        let picks = player.act(&k, &ours);
         let mut reach_seat: Option<(u8, Action, BTreeSet<String>)> = None;
         for d in &ours {
             out.decisions += 1;
@@ -436,7 +552,11 @@ fn run(
                 );
                 break;
             }
-            let a = bot.choose(&k, d);
+            let a = picks
+                .iter()
+                .find(|(s, _)| *s == d.seat)
+                .map(|(_, a)| *a)
+                .expect("player answers every decision");
             if let Action::Reach { .. } = a {
                 let tiles: BTreeSet<String> = d
                     .choices
