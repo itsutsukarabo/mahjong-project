@@ -119,7 +119,7 @@ def main() -> None:
     save(fig, "losses", "損失の内訳")
 
     fig, axs = plt.subplots(1, 2, figsize=(12, 4))
-    lines(axs[0], st, [("局の終わりの報酬（和了 +1）", ("reward", "terminal_mean_latest")), ("リターン", ("reward", "return_mean")), ("価値", ("reward", "value_mean"))], k, "報酬")
+    lines(axs[0], st, [("局の終わりの報酬（①-a は和了 +1、①-b は局収支の log1p）", ("reward", "terminal_mean_latest")), ("リターン", ("reward", "return_mean")), ("価値", ("reward", "value_mean"))], k, "報酬")
     lines(axs[1], st, [("上限超え（累計）", ("events_overflow_total",))], 1, "イベント列の上限超え（D-045）")
     save(fig, "reward", "報酬・イベント列の上限超え")
 

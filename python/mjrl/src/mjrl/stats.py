@@ -23,6 +23,7 @@ COUNTS = (
     "exhaustive",
     "exhaustive_tenpai",
     "score_delta",
+    "hora_delta",
 )
 
 

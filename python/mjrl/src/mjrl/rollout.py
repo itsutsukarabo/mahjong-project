@@ -104,6 +104,9 @@ class Collector:
         self.kyokus = 0
         # 終わった対局でイベント列が上限を超えた行の数の和（D-045）
         self.overflow_rows = 0
+        # 最新のモデルの席の局の終わりの報酬の和と数（この更新の分。stats の reward.terminal_mean_latest）
+        self.term_sum = 0.0
+        self.term_n = 0
         # シャンテン数を悪化させる打牌の割合（最新のモデルの席。抽選・一番確率の高い行動）
         self.discard = DiscardStats(self.env.policy_layout, mj_py.action_names(), self.num_players)
 
@@ -209,7 +212,10 @@ class Collector:
                     labels = np.where(models == LATEST, "latest", np.char.add("v", models.astype(str)))
                     accum.add(fa, labels)
                     # 局の終わり：学習する席の最後の行に報酬（①-a：和了 = +1）と終わりの印
-                    term = terminal_reward(cfg.reward.stage, fa)
+                    term = terminal_reward(cfg.reward, fa)
+                    lat = models == LATEST
+                    self.term_sum += float(term[:, : self.num_players][lat].sum())
+                    self.term_n += int(lat.sum())
                     for s_ in range(self.num_players):
                         key = ft * self.seats + s_
                         last = self.last[key]
@@ -263,12 +269,25 @@ class Collector:
         return self.carry
 
 
-def terminal_reward(stage: str, fa: dict[str, np.ndarray]) -> np.ndarray:
-    """局（対局）の終わりの報酬（G × 席）"""
-    if stage == "1a":
+def take_terminal(col: "Collector") -> float | None:
+    """この更新の最新のモデルの席の局の終わりの報酬の平均（取ったら 0 に戻す）"""
+    m = col.term_sum / col.term_n if col.term_n else None
+    col.term_sum, col.term_n = 0.0, 0
+    return m
+
+
+def terminal_reward(rc, fa: dict[str, np.ndarray]) -> np.ndarray:
+    """局（対局）の終わりの報酬（G × 席）。rc は RewardCfg"""
+    if rc.stage == "1a":
         # 和了 = +1（ダブロンの両者もそれぞれ +1。D-051）
         return fa["hora"].astype(np.float64)
-    raise NotImplementedError(f"reward stage {stage}（①-b 以降は次の段で作る）")
+    if rc.stage == "1b":
+        # 局収支：sign(v) · log1p(|v| / score_scale)（02_RL_DESIGN ①-b、RL_TRAINING §2.3）。1局戦なので対局 = 局
+        if rc.b_source not in ("hora_delta", "score_delta"):
+            raise ValueError(f"reward.b_source = {rc.b_source!r}")
+        v = fa[rc.b_source].astype(np.float64)
+        return np.sign(v) * np.log1p(np.abs(v) / rc.score_scale)
+    raise NotImplementedError(f"reward stage {rc.stage}（② 以降は次の段で作る）")
 
 
 def gae(rows: Rows, value: np.ndarray, gamma: float, lam: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

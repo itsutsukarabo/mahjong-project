@@ -68,10 +68,15 @@ class PpoCfg:
 
 @dataclass
 class RewardCfg:
-    # 1a：和了 = +1（D-051）。1b・2・3 は次の段で作る
+    # 1a：和了 = +1（D-051）。1b：局収支（±打点 ÷ score_scale を log1p で縮める）。2・3 は次の段で作る
     stage: str = "1a"
     # ポテンシャル Φ = −シャンテン数 × shanten_coef（γ は ppo.gamma と同じ、D-051）
     shanten_coef: float = 0.1
+    # 1b：局収支のもと。"hora_delta"（和了の精算 hora.deltas の和：和了者 ＋、放銃者・ツモの支払い −。本場・供託を含み、
+    # 立直棒・ノーテン罰符を含まない）か "score_delta"（局の始めと終わりの持ち点の差。立直棒・ノーテン罰符も含む）
+    b_source: str = "hora_delta"
+    # 1b：報酬 = sign(v) · log1p(|v| / score_scale)（02_RL_DESIGN：1万点で割って log1p）
+    score_scale: float = 10000.0
 
 
 @dataclass
@@ -143,6 +148,9 @@ class Config:
     purpose: str = ""
     device: str = "cuda"
     seed: int = 1
+    # 新しい実験を、前の段のモデル（models/・best.pt・memorial/ のモデルのファイル、または ckpt/ のチェックポイント）の重みから始める。
+    # 最適化器・プール・統計は新しく始める（RL_TRAINING §2.3：段を切り替えるときは新しい実験にする）。再開のときは使わない
+    init_from: str = ""
     env: EnvCfg = field(default_factory=EnvCfg)
     model: ModelCfg = field(default_factory=ModelCfg)
     ppo: PpoCfg = field(default_factory=PpoCfg)

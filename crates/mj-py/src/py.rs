@@ -43,6 +43,7 @@ fn stats_dict<'py>(py: Python<'py>, stats: &[SeatStats]) -> PyResult<Bound<'py, 
     d.set_item("exhaustive", col(|s| i64::from(s.exhaustive)))?;
     d.set_item("exhaustive_tenpai", col(|s| i64::from(s.exhaustive_tenpai)))?;
     d.set_item("score_delta", col(|s| s.score_delta))?;
+    d.set_item("hora_delta", col(|s| s.hora_delta))?;
     Ok(d)
 }
 

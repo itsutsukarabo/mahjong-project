@@ -1,0 +1,63 @@
+# ①-b（局収支）の学習（RL_TRAINING §2.3、D-052・D-060〜D-063）。オーナーの確認があるまで始めない
+name = "s1b"
+purpose = """
+何を確かめる実験か：①-a の最良のモデルから、報酬を局収支（和了の精算 ÷ 1万点 を log1p で縮める）に変え、
+対戦相手を最新 50%・過去 50%（D-052）にして、和了率を大きく落とさずに放銃率が下がり平均打点・局収支が上がるか。
+始め方：--set 'init_from="runs/<①-a の実験>/best.pt"'
+"""
+device = "cuda"
+seed = 1
+
+[env]
+rules = "tenhou-sanma"
+length = "single"
+tables = 512
+seed = 20261202
+reward = "tenhou-sanma-7dan+"
+
+[model]
+layers = 4
+d_model = 256
+heads = 8
+ff = 1024
+
+[ppo]
+steps_per_update = 128
+# 4096 は VRAM に収まらない（学習の1歩で 20GB）。512 が速さ・VRAM とも良い（RL_TRAINING §1.5 の実測）
+minibatch = 512
+# D-063：エポック 3 → 2、長さの近い行でミニバッチを作る（アドバンテージの正規化は更新のデータ全体で1回）
+epochs = 2
+length_grouped = true
+adv_norm = "batch"
+gamma = 0.995
+lam = 0.95
+lr = 3e-4
+lr_final = 3e-5
+total_updates = 20000
+
+[reward]
+stage = "1b"
+b_source = "hora_delta"
+score_scale = 10000.0
+shanten_coef = 0.1
+
+[pool]
+# D-052・RL_TRAINING §3.3 の初期値
+self_only = false
+latest_frac = 0.5
+n = 10
+save_every = 50
+decay = 0.8
+memorial_every = 1000
+
+[ckpt]
+every = 10
+keep = 3
+
+[samples]
+every = 50
+games = 2
+
+[eval]
+every = 25
+walls = 2000  # D-062

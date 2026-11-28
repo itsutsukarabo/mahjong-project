@@ -27,7 +27,7 @@ from .config import Config, from_dict, load
 from .model import Dims, MjModel, num_params
 from .pool import Pool
 from .ppo import update as ppo_update
-from .rollout import Collector, gae
+from .rollout import Collector, gae, take_terminal
 from .samples import play_and_write
 from .stats import Accum, JsonlLog
 from .timing import Gpu, GpuSampler, Timer
@@ -96,6 +96,12 @@ class Trainer:
         self.opponents: dict[int, MjModel] = {}
         if self.state is not None:
             self._restore(self.state, ck)
+        elif cfg.init_from:
+            src = torch.load(cfg.init_from, map_location=self.dev, weights_only=False)
+            self.model.load_state_dict(src["model"])
+            self.events_log.append(
+                {"event": "init_from", "path": cfg.init_from, "source_update": src.get("update"), "source_name": src.get("name"), "time": time.time()}
+            )
         self.gpu = Gpu()
         self.sampler = GpuSampler(self.gpu)
         self.timer = Timer()
@@ -222,7 +228,7 @@ class Trainer:
             "events_overflow_total": self.overflow_total,
             "events_overflow_finished_rows": col.overflow_rows,
             "reward": {
-                "terminal_mean_latest": play.get("latest", {}).get("hora_rate"),
+                "terminal_mean_latest": take_terminal(col),
                 "step_reward_mean": float(rows.reward[train].mean()) if train.any() else None,
                 "adv_mean": float(adv[train].mean()) if train.any() else None,
                 "return_mean": float(ret[train].mean()) if train.any() else None,

@@ -96,7 +96,27 @@ fn seat_stats_match_the_events() {
         let mut exhaustive = 0u32;
         for seed in 0..40 {
             let ev = play(&rules, seed);
-            for (t, s) in total.iter_mut().zip(kyoku_seat_stats(&ev, n)) {
+            let ks = kyoku_seat_stats(&ev, n);
+            // 和了の精算：和了者は＋、放銃者は −、和了のない局は 0。席の和は和了の deltas の和（供託の分だけ正）
+            let hora_sum: i64 = ev
+                .iter()
+                .filter_map(|e| match e {
+                    Event::Hora(h) => Some(h.deltas.iter().map(|&d| i64::from(d)).sum::<i64>()),
+                    _ => None,
+                })
+                .sum();
+            assert_eq!(ks.iter().map(|s| s.hora_delta).sum::<i64>(), hora_sum);
+            for s in &ks {
+                if s.hora > 0 {
+                    assert!(s.hora_delta > 0, "{s:?}");
+                } else if s.deal_in > 0 {
+                    assert!(s.hora_delta < 0, "{s:?}");
+                }
+                if !ev.iter().any(|e| matches!(e, Event::Hora(_))) {
+                    assert_eq!(s.hora_delta, 0);
+                }
+            }
+            for (t, s) in total.iter_mut().zip(ks) {
                 assert!(s.deal_in <= 1 && s.riichi <= 1 && s.call <= 1);
                 t.add(&s);
             }

@@ -304,3 +304,32 @@ def test_grad_shares_recorded(tmp_path):
     assert d["sample"]["no_riichi"]["discards"] > 0
     assert "slow_update" in st[-1]
     del tr
+
+
+def test_reward_1b_is_signed_log1p_of_hora_delta():
+    """①-b の報酬：和了の精算（hora_delta）を 1万点で割って log1p で縮める。符号は保つ（RL_TRAINING §2.3）"""
+    from mjrl.config import RewardCfg
+    from mjrl.rollout import terminal_reward
+
+    fa = {"hora_delta": np.array([[12000, -12000, 0], [-3900, 0, 3900]]), "score_delta": np.array([[11000, -12000, 1000], [0, 0, 0]]),
+          "hora": np.array([[1, 0, 0], [0, 0, 1]])}
+    r = terminal_reward(RewardCfg(stage="1b"), fa)
+    assert np.allclose(r, np.sign(fa["hora_delta"]) * np.log1p(np.abs(fa["hora_delta"]) / 10000))
+    assert r[0, 0] == pytest.approx(np.log1p(1.2)) and r[0, 1] == pytest.approx(-np.log1p(1.2)) and r[0, 2] == 0
+    r2 = terminal_reward(RewardCfg(stage="1b", b_source="score_delta"), fa)
+    assert r2[0, 2] == pytest.approx(np.log1p(0.1))
+    assert (terminal_reward(RewardCfg(stage="1a"), fa) == fa["hora"]).all()
+
+
+def test_pool_runs_with_1b(tmp_path):
+    """①-b の対戦相手のプール（D-052）が学習の中で動く：過去のモデルが入り、席が最新と過去に分かれ、学習の行は最新の席だけ"""
+    cfg = tiny(samples__every=0, pool__self_only=False, pool__save_every=2, pool__n=2, pool__memorial_every=100)
+    cfg.reward.stage = "1b"
+    tr = run_updates(tmp_path / "p", cfg, 7)
+    st = read_jsonl(tmp_path / "p" / "stats.jsonl")
+    assert [e.version for e in tr.pool.past] == [4, 6]
+    labels = set().union(*(r["play"].keys() for r in st[3:]))
+    assert "latest" in labels and any(x.startswith("v") for x in labels), labels
+    # 対局が終わらなかった更新は None（小さな設定では起こる）
+    assert any(r["reward"]["terminal_mean_latest"] is not None for r in st)
+    assert all("hora_delta" in r["play"]["latest"]["counts"] for r in st if "latest" in r["play"])

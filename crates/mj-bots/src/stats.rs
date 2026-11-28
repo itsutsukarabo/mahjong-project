@@ -133,6 +133,9 @@ pub struct SeatStats {
     pub exhaustive_tenpai: u32,
     /// 局収支の合計（局の終わりの持ち点 − 局の始めの持ち点。立直棒・本場・供託を含む）
     pub score_delta: i64,
+    /// 和了の精算（`hora.deltas`）の合計：和了者は＋（本場・供託を含む）、放銃者・ツモの支払いは −。
+    /// 立直棒の供託・ノーテン罰符・流し満貫は含まない（①-b の報酬、RL_TRAINING §2.3）
+    pub hora_delta: i64,
 }
 
 impl SeatStats {
@@ -147,6 +150,7 @@ impl SeatStats {
         self.exhaustive += o.exhaustive;
         self.exhaustive_tenpai += o.exhaustive_tenpai;
         self.score_delta += o.score_delta;
+        self.hora_delta += o.hora_delta;
     }
 }
 
@@ -182,6 +186,9 @@ pub fn kyoku_seat_stats(events: &[Event], n: u8) -> Vec<SeatStats> {
                 let a = usize::from(h.actor);
                 s[a].hora += 1;
                 s[a].hora_points += h.points;
+                for (p, d) in h.deltas.iter().enumerate() {
+                    s[p].hora_delta += i64::from(*d);
+                }
                 if h.actor == h.target {
                     s[a].tsumo += 1;
                 } else {
