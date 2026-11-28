@@ -146,12 +146,17 @@ python -m uv run pytest python/mjrl/tests -q    # CPU で約 10 秒（tools/chec
 python -m uv run mjrl-train --config python/mjrl/configs/s1a.toml --max-minutes 60   # 学習（runs/s1a/）
 python -m uv run mjrl-eval --run runs/s1a       # 評価（学習と別のプロセス。runs/s1a/eval_queue/ を待つ）
 python -m uv run mjrl-plot --run runs/s1a       # グラフ（runs/s1a/plots/index.html）
+python -m uv run python -m mjrl.watchdog --config python/mjrl/configs/s1a.toml --run-dir runs/s1a --hours 9   # 長い学習：見張り役が学習と評価を起動し、落ちたら再開（D-064）
+python -m uv run python -m mjrl.vram_check      # VRAM があふれたらエラーで止まるか（学習の間は回さない）
 ```
 - Rust（mj-py・mj-core など）を変えたら `python -m uv sync --reinstall-package mj-py`（mj-py の `src/**/*.rs` の変更は uv が自動で拾うが、ほかの crate の変更は拾わない）
 - PyTorch は RTX 5080（Blackwell、計算能力 12.0、sm_120）に対応した CUDA 13.0 の版（`download.pytorch.org/whl/cu130`）。ドライバ 610.88（CUDA 13.3）で動作を確認した（RL_TRAINING §8.1）
-- **VRAM を超えないこと**：Windows（WDDM）は VRAM が足りないと共有メモリ（RAM）に溢れさせ、エラーにならずに数十倍遅くなる。ゲーム・OBS・動画編集などのアプリも VRAM を使う（2026-11-29 は 4〜5GB）。学習は `gpu.memory_fraction`（既定 0.6）、評価は 0.15 に PyTorch の分を抑える。NVIDIA コントロールパネルの「CUDA - システムメモリ フォールバック ポリシー」を「フォールバックしない」にすると、溢れる代わりにエラーで止まる（未設定。オーナーの確認事項）
+- **VRAM を超えないこと**：Windows（WDDM）は VRAM が足りないと共有メモリ（RAM）に溢れさせ、エラーにならずに数十倍遅くなる。ゲーム・OBS・動画編集などのアプリも VRAM を使う（2026-11-29 は 4〜5GB）。学習は `gpu.memory_fraction`（既定 0.6）、評価は 0.15 に PyTorch の分を抑える。NVIDIA コントロールパネル（または NVIDIA Profile Inspector）の「CUDA - Sysmem Fallback Policy」を「Prefer No Sysmem Fallback」にすると、溢れる代わりにエラーで止まる（D-064。止まったら見張り役が再開する）
+- **設定する実行ファイル**：uv の仮想環境の `.venv\Scripts\python.exe` は中継役で、本物の `C:\Users\tetsu\AppData\Local\Programs\Python\Python312\python.exe` を子のプロセスとして起動する。GPU を使うのは子の方（nvidia-smi で確認、2026-11-29）。設定は本物の python.exe に対して行う（念のため両方に）
+- 確認（2026-11-29、`mjrl.vram_check`）：空き 14,985MB に対して 16.5GB を確保しようとすると、空きを 375MB 超えたところで `torch.OutOfMemoryError`（9.7 秒）。空きの範囲内の確保（11GB）は書き込み 264GB/秒。試運転（設定の前）はバッチ 2,048 でエラーにならずに遅くなった
 - 止め方：Ctrl+C か `runs/<name>/STOP` を置く（チェックポイントを書いてから終わる）。同じ `--run-dir` で起動し直すと再開する。評価は `runs/<name>/STOP_EVAL`
-- Windows で長い処理をバックグラウンドで止めるときは、子の python.exe も止まったかを確かめる（親だけ止まって GPU を握ったまま残ったことがある）
+- Windows で長い処理をバックグラウンドで止めるときは、子の python.exe も止まったかを確かめる（親だけ止まって GPU を握ったまま残ったことがある）。見張り役はプロセスを木ごと落とす（`taskkill /T /F`）
+- 見張り役の記録：`runs/<name>/watchdog.jsonl`（起動・終了のコードと理由・再開）、`events.jsonl` の `slow_update`（1更新の時間が直近の平均の2倍を超えた）
 
 ### 牌譜再生画面（web/、TypeScript・Vite・pnpm）
 ```bash
