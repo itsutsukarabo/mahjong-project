@@ -55,7 +55,7 @@ describe("band slots", () => {
 describe("selection mode", () => {
   const ann = (decision: string, policy: [string, number][]): Annotation => ({ game_id: "g", kyoku_idx: 0, event_idx: 1, seat: 0, decision, policy });
   it("uses the selection field first", () => {
-    const a = (selection: string) => ({ ...ann("a", [["a", 0.2], ["b", 0.8]]), selection }) as Annotation;
+    const a = (selection: string): Annotation => ({ ...ann("a", [["a", 0.2], ["b", 0.8]]), selection });
     expect(detectSelectionMode([a("greedy")], "x.sampled.annot.jsonl")).toMatchObject({ kind: "argmax", source: "field" });
     expect(detectSelectionMode([a("sample")])).toMatchObject({ kind: "sample", source: "field" });
     expect(detectSelectionMode([a("sample"), a("greedy")]).kind).toBe("unknown");

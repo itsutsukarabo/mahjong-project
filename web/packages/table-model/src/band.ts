@@ -143,8 +143,7 @@ const SAMPLE_RE = /(^|[._@/-])(sampled|sampling|stochastic)([._@/-]|$)/i;
  * 10 個以上あれば最大確率（推定）。それ以外は不明
  */
 export function detectSelectionMode(list: Annotation[], fileName?: string | null): SelectionMode {
-  // log-types の生成し直しの前でも読めるように、欄は任意として読む
-  const sel = list.map((a) => (a as Annotation & { selection?: string }).selection).filter((s): s is string => !!s);
+  const sel = list.map((a) => a.selection).filter((s): s is string => !!s);
   if (sel.length > 0) {
     const greedy = sel.filter((s) => s === "greedy").length;
     const sample = sel.filter((s) => s === "sample").length;
