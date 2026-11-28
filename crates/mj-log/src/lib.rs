@@ -16,7 +16,7 @@ pub mod schema;
 pub mod view;
 pub mod write;
 
-pub const FORMAT_VERSION: &str = "0.4";
+pub const FORMAT_VERSION: &str = "0.5";
 pub const HIDDEN: &str = "?";
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1688,6 +1688,7 @@ impl Kyoku {
                 han: r.han,
                 fu: r.fu,
                 yakuman: r.yakuman,
+                limit: r.limit,
                 points,
                 ura_indicators: ura,
                 pao: pao.map(|(s, _)| s),
@@ -1823,6 +1824,7 @@ impl Kyoku {
                 yakuman: 0,
                 kazoe: false,
                 base: 2000,
+                limit: crate::yaku::Limit::Mangan,
             };
             // 本場・供託は、流し満貫の人のうち親から順で最初の人だけ（`draws.nagashi_pays_honba`・`nagashi_takes_kyotaku`）
             let first = (0..self.n)

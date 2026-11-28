@@ -23,7 +23,7 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 GAME_ID = "g-20261122-000001"
-FORMAT_VERSION = "0.4"
+FORMAT_VERSION = "0.5"
 HIDDEN = "?"
 
 KINDS = ([f"{n}m" for n in range(1, 10)] + [f"{n}p" for n in range(1, 10)]
@@ -138,7 +138,7 @@ E(K, "hora", actor=0, target=1, pai="9s",
   hand={"tehai": ["9m", "9m", "1p", "2p", "3p", "4s", "5s", "6s", "7s", "8s"],
         "melds": [{"type": "pon", "pai": "C", "consumed": ["C", "C"], "target": 2}]},
   yaku=[{"id": "yakuhai_chun", "han": 1}, {"id": "dora", "han": 2}],
-  han=3, fu=30, yakuman=0, points=5800, ura_indicators=[],
+  han=3, fu=30, yakuman=0, limit="none", points=5800, ura_indicators=[],
   deltas=[6800, -5800, 0], scores=[41800, 28200, 35000])
 E(K, "kyoku_end", reason="hora", scores=[41800, 28200, 35000], kyotaku=0, honba_next=1,
   renchan=True, chips={"deltas": [0, 0, 0], "items": []})

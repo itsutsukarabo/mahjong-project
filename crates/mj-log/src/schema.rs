@@ -244,6 +244,11 @@ pub struct Hora {
     pub han: u8,
     pub fu: u8,
     pub yakuman: u8,
+    /// 点数の区分：`"none"`・`"mangan"`・`"haneman"`・`"baiman"`・`"sanbaiman"`・`"yakuman"`・`"kazoe_yakuman"`。
+    /// エンジンが点数を決めたときの区分（切り上げ満貫・数え役満のルールを反映）。省略は記録なし（LOG_FORMAT §4）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub limit: Option<String>,
     pub points: i32,
     pub ura_indicators: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

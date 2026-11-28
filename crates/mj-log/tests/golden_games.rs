@@ -7,6 +7,7 @@
 //!
 //! 行動列は「シャンテン数を下げる打ち手」（`mj_core::policy::greedy_choice`）を固定シードで動かして作った。
 //! エンジンの挙動を意図して変えたら `MJ_UPDATE_GOLDEN=1 cargo test -p mj-log --test golden_games` で作り直す。
+//! 牌譜そのものを見たいときは `MJ_DUMP_GOLDEN=<dir>` で `<dir>/<name>.mjlog.jsonl` に書き出す（作り直しの前後の差分を確かめる用）。
 //! `wall_salt` はテスト用の固定値（本番は OS の乱数、LOG_FORMAT §4.6）。
 
 use mj_core::action::Action;
@@ -140,6 +141,22 @@ fn golden_games_replay_and_match() {
             assert_eq!(r.len(), log.len());
         }
         let text = to_jsonl(&log);
+        if let Ok(d) = std::env::var("MJ_DUMP_GOLDEN") {
+            std::fs::create_dir_all(&d).unwrap();
+            std::fs::write(PathBuf::from(d).join(format!("{name}.mjlog.jsonl")), &text).unwrap();
+        }
+        // hora.limit は牌譜の翻・符・役満から同じ判定（mj_core::yaku::base_and_limit）で出した区分と一致する
+        for h in log.iter().filter(|e| e["type"] == "hora") {
+            let han = h["han"].as_u64().unwrap() as u8;
+            let fu = h["fu"].as_u64().unwrap() as u8;
+            let yakuman = if han == 0 {
+                h["yakuman"].as_u64().unwrap() as u8
+            } else {
+                0
+            };
+            let (_, limit) = mj_core::yaku::base_and_limit(&rules, han, fu, yakuman);
+            assert_eq!(h["limit"].as_str(), Some(limit.as_str()), "{name}: {h}");
+        }
         let count = |t: &str| log.iter().filter(|e| e["type"] == t).count();
         rows.push(json!({
             "name": name, "events": log.len(), "kyoku": report.kyoku, "steps": steps.len(),

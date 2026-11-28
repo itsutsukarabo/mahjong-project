@@ -218,6 +218,41 @@ pub struct WinResult {
     pub kazoe: bool,
     /// 基本点（子のロンは ×4、親のロンは ×6 を100点単位に切り上げ）
     pub base: i64,
+    /// 点数の区分（満貫・跳満など）。`base` と同じ判定で決める
+    pub limit: Limit,
+}
+
+/// 点数の区分（牌譜の `hora.limit`、LOG_FORMAT §4）。基本点を決めた判定（`base_and_limit`）がそのまま区分になる
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Limit {
+    /// 満貫に届かない（翻と符から計算した点数）。役がなく点数が 0 のときもこれ
+    None,
+    /// 5翻、または 4翻以下で基本点が 2000 以上（切り上げ満貫のルールなら 1920 以上：4翻30符・3翻60符）
+    Mangan,
+    /// 6〜7翻
+    Haneman,
+    /// 8〜10翻
+    Baiman,
+    /// 11〜12翻（数え役満のないルールでは 13翻以上も）
+    Sanbaiman,
+    /// 役満（倍数は `yakuman`）
+    Yakuman,
+    /// 13翻以上の数え役満（`points.kazoe_yakuman = true`）
+    KazoeYakuman,
+}
+
+impl Limit {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Limit::None => "none",
+            Limit::Mangan => "mangan",
+            Limit::Haneman => "haneman",
+            Limit::Baiman => "baiman",
+            Limit::Sanbaiman => "sanbaiman",
+            Limit::Yakuman => "yakuman",
+            Limit::KazoeYakuman => "kazoe_yakuman",
+        }
+    }
 }
 
 impl WinResult {
@@ -243,27 +278,32 @@ pub fn round_up_100(x: i64) -> i64 {
 
 /// 翻・符から基本点。
 pub fn base_points(rules: &Rules, han: u8, fu: u8, yakuman: u8) -> i64 {
+    base_and_limit(rules, han, fu, yakuman).0
+}
+
+/// 翻・符から基本点と点数の区分（同じ判定で決める）
+pub fn base_and_limit(rules: &Rules, han: u8, fu: u8, yakuman: u8) -> (i64, Limit) {
     if yakuman > 0 {
-        return 8000 * i64::from(yakuman);
+        return (8000 * i64::from(yakuman), Limit::Yakuman);
     }
     match han {
         13.. => {
             if rules.points.kazoe_yakuman {
-                8000
+                (8000, Limit::KazoeYakuman)
             } else {
-                6000
+                (6000, Limit::Sanbaiman)
             }
         }
-        11..=12 => 6000,
-        8..=10 => 4000,
-        6..=7 => 3000,
-        5 => 2000,
+        11..=12 => (6000, Limit::Sanbaiman),
+        8..=10 => (4000, Limit::Baiman),
+        6..=7 => (3000, Limit::Haneman),
+        5 => (2000, Limit::Mangan),
         _ => {
             let b = i64::from(fu) << (2 + han);
             if b >= 2000 || (rules.points.kiriage_mangan && b >= 1920) {
-                2000
+                (2000, Limit::Mangan)
             } else {
-                b
+                (b, Limit::None)
             }
         }
     }
@@ -462,8 +502,10 @@ impl<'a, 'b> Ctx<'a, 'b> {
                 vec![top]
             };
             let total: u8 = items.iter().map(|y| y.yakuman).sum();
+            let (base, limit) = base_and_limit(w.rules, 0, 0, total);
             return Some(WinResult {
-                base: base_points(w.rules, 0, 0, total),
+                base,
+                limit,
                 yaku: items,
                 han: 0,
                 fu: 0,
@@ -506,12 +548,14 @@ impl<'a, 'b> Ctx<'a, 'b> {
         items.sort_by_key(|y| y.yaku);
         let han: u8 = items.iter().map(|y| y.han).sum();
         let kazoe = han >= 13 && self.w.rules.points.kazoe_yakuman;
+        let (base, limit) = if yaku_han == 0 {
+            (0, Limit::None)
+        } else {
+            base_and_limit(self.w.rules, han, fu, 0)
+        };
         WinResult {
-            base: if yaku_han == 0 {
-                0
-            } else {
-                base_points(self.w.rules, han, fu, 0)
-            },
+            base,
+            limit,
             yaku: items,
             han,
             fu,
@@ -1042,8 +1086,47 @@ mod tests {
         w.dora = vec![k("6s"), k("1p")]; // 7s・2p → 立直・平和・ドラ2 = 4翻30符
         let r = w.eval().unwrap();
         assert_eq!((r.han, r.fu, r.base), (4, 30, 1920), "{r:?}");
+        assert_eq!(r.limit, Limit::None);
         w.rules = with("[points]\nkiriage_mangan = true");
-        assert_eq!(w.eval().unwrap().base, 2000);
+        let r = w.eval().unwrap();
+        assert_eq!((r.base, r.limit), (2000, Limit::Mangan));
+    }
+
+    #[test]
+    fn limit_follows_base_points() {
+        // (翻, 符, 役満, 切り上げ満貫, 数え役満) → (基本点, 区分)
+        let cases: &[(u8, u8, u8, bool, bool, i64, Limit)] = &[
+            (1, 30, 0, false, true, 240, Limit::None),
+            (3, 60, 0, false, true, 1920, Limit::None),
+            (3, 60, 0, true, true, 2000, Limit::Mangan),
+            (3, 70, 0, false, true, 2000, Limit::Mangan),
+            (4, 30, 0, false, true, 1920, Limit::None),
+            (4, 30, 0, true, true, 2000, Limit::Mangan),
+            (4, 25, 0, true, true, 1600, Limit::None),
+            (4, 40, 0, false, true, 2000, Limit::Mangan),
+            (5, 30, 0, false, true, 2000, Limit::Mangan),
+            (6, 30, 0, false, true, 3000, Limit::Haneman),
+            (7, 30, 0, false, true, 3000, Limit::Haneman),
+            (8, 30, 0, false, true, 4000, Limit::Baiman),
+            (10, 30, 0, false, true, 4000, Limit::Baiman),
+            (11, 30, 0, false, true, 6000, Limit::Sanbaiman),
+            (12, 30, 0, false, true, 6000, Limit::Sanbaiman),
+            (13, 30, 0, false, true, 8000, Limit::KazoeYakuman),
+            (13, 30, 0, false, false, 6000, Limit::Sanbaiman),
+            (0, 0, 1, false, true, 8000, Limit::Yakuman),
+            (0, 0, 2, false, true, 16000, Limit::Yakuman),
+        ];
+        for &(han, fu, yakuman, kiriage, kazoe, base, limit) in cases {
+            let r = with(&format!(
+                "[points]\nkiriage_mangan = {kiriage}\nkazoe_yakuman = {kazoe}"
+            ));
+            assert_eq!(
+                base_and_limit(&r, han, fu, yakuman),
+                (base, limit),
+                "{han}翻{fu}符 役満{yakuman} 切り上げ{kiriage} 数え{kazoe}"
+            );
+            assert_eq!(base_points(&r, han, fu, yakuman), base);
+        }
     }
 
     #[test]
@@ -1054,10 +1137,16 @@ mod tests {
         w.dora = vec![k("7p"), k("7p")]; // 8p ×3 ×2 = 6
         let r = w.eval().unwrap();
         assert!(r.han >= 13, "{r:?}");
-        assert_eq!((r.base, r.kazoe, r.yakuman), (8000, true, 1));
+        assert_eq!(
+            (r.base, r.kazoe, r.yakuman, r.limit),
+            (8000, true, 1, Limit::KazoeYakuman)
+        );
         w.rules = with("[points]\nkazoe_yakuman = false");
         let r = w.eval().unwrap();
-        assert_eq!((r.base, r.kazoe, r.yakuman), (6000, false, 0));
+        assert_eq!(
+            (r.base, r.kazoe, r.yakuman, r.limit),
+            (6000, false, 0, Limit::Sanbaiman)
+        );
     }
 
     #[test]

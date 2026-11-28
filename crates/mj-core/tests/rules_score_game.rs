@@ -5,7 +5,7 @@ use mj_core::game::{TableState, progress, settle};
 use mj_core::kyoku::KyokuOutcome;
 use mj_core::rules::{Rules, presets};
 use mj_core::score::{PayCtx, chips_to_points, hora_chips, hora_deltas, noten_deltas};
-use mj_core::yaku::{WinResult, Yaku, YakuItem};
+use mj_core::yaku::{Limit, WinResult, Yaku, YakuItem};
 
 fn sanma() -> Rules {
     presets::tenhou_sanma()
@@ -184,6 +184,11 @@ fn result(yaku: &[(Yaku, u8, u8)], kazoe: bool) -> WinResult {
         yakuman,
         kazoe,
         base: 2000,
+        limit: if kazoe {
+            Limit::KazoeYakuman
+        } else {
+            Limit::Mangan
+        },
     }
 }
 

@@ -105,6 +105,8 @@ pub struct Hora {
     pub han: u8,
     pub fu: u8,
     pub yakuman: u8,
+    /// 点数の区分（`crate::yaku::Limit`。牌譜の `hora.limit`）
+    pub limit: crate::yaku::Limit,
     /// 和了の点数（本場・供託を除いた、和了者が受け取る手の値）
     pub points: i64,
     pub ura_indicators: Vec<Tile>,

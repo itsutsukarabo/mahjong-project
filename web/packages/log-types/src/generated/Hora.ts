@@ -2,4 +2,9 @@
 import type { HoraHand } from "./HoraHand";
 import type { YakuEntry } from "./YakuEntry";
 
-export type Hora = { actor: number, target: number, pai: string, hand: HoraHand, yaku: Array<YakuEntry>, han: number, fu: number, yakuman: number, points: number, ura_indicators: Array<string>, pao?: number, deltas: Array<number>, scores: Array<number>, };
+export type Hora = { actor: number, target: number, pai: string, hand: HoraHand, yaku: Array<YakuEntry>, han: number, fu: number, yakuman: number, 
+/**
+ * 点数の区分：`"none"`・`"mangan"`・`"haneman"`・`"baiman"`・`"sanbaiman"`・`"yakuman"`・`"kazoe_yakuman"`。
+ * エンジンが点数を決めたときの区分（切り上げ満貫・数え役満のルールを反映）。省略は記録なし（LOG_FORMAT §4）
+ */
+limit?: string, points: number, ura_indicators: Array<string>, pao?: number, deltas: Array<number>, scores: Array<number>, };

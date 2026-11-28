@@ -55,7 +55,7 @@ fn hora_json(h: &Hora) -> Value {
     let mut o = json!({
         "actor": h.actor, "target": h.target, "pai": h.pai.to_string(),
         "hand": {"tehai": tiles(&h.tehai), "melds": melds(&h.melds)},
-        "yaku": yaku, "han": h.han, "fu": h.fu, "yakuman": h.yakuman, "points": h.points,
+        "yaku": yaku, "han": h.han, "fu": h.fu, "yakuman": h.yakuman, "limit": h.limit.as_str(), "points": h.points,
         "ura_indicators": tiles(&h.ura_indicators),
     });
     if let Some(p) = h.pao {

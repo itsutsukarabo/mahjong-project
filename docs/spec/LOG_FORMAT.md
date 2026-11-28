@@ -1,6 +1,6 @@
-# LOG FORMAT — 牌譜（イベント列）形式 v0.4
+# LOG FORMAT — 牌譜（イベント列）形式 v0.5
 
-状態：**承認済みの方針（D-014・D-017・D-022・D-028）に基づく v0.4**。
+状態：**承認済みの方針（D-014・D-017・D-022・D-028・D-066・D-068）に基づく v0.5**。
 
 ## 変更履歴
 | 版 | 内容 |
@@ -8,6 +8,7 @@
 | 0.1 | 初版（Phase 0 の案） |
 | 0.2 | レビューでの修正：注釈のキーに `seat` を追加し見送りの判断にも付けられるようにした／`hora.hand.tehai` に和了牌を含まないことを明記／`ryukyoku` の全情報版・公開版のフィールドを1つの表に統一（`hidden_hands` を廃止し `hands` に一本化）／`wall_salt` は暗号論的乱数で作りシードから導出しないことを明記／祝儀のフィールド（`kyoku_end.chips`、`game_end.chips_total`）を追加／暗槓の中身と流局時の手牌公開範囲をルール設定 `log_visibility` で変えられるようにした。**追加の変更（Claude Code の提案）**：牌山を `live`＋`rinshan` の2列から `pile` の1列（先頭からツモ・末尾から嶺上）に変えた（§4.2。理由：天鳳三麻の「嶺上牌は8枚」と、嶺上を引くたびにハイテイがずれる処理を、王牌の枚数をルール値にして表すため）。`seed.rng = "manual"`（手で組んだ牌山）を追加 |
 | 0.3 | 注釈を「判断ポイント」で定義した（D-022、§6、`docs/spec/DECISION_POINTS.md`）：キーの `event_idx` は判断ポイントの直前のイベント、`decision` の表記を DECISION_POINTS §5 に統一（`hora` → `ron`／`tsumo`、`pon` → `pon:C,C` など）、任意のフィールド `choices` を追加／牌山の1列化を承認（D-017）し、ハイテイの位置を `rules.wall.dead_wall`（王牌の枚数）から導く形にした（`rules.wall.reserve` は廃止）／同時和了の `hora` の並びを「放銃者の下家から順（頭ハネの優先順）」と書き直した（v0.2 の「上家順」は誤り）／ルールの北ロンのキーを `kita.ron_on_kita`・`kita.ron_on_discard` に分けた。**局進行（mj-core）の実装に合わせた追加**：`hora.pao`（包の人）、役満の役は `{id, yakuman}`（倍数）で書く、`hora.hand.melds` に暗槓も含める、`ryukyoku.actor`（九種九牌の宣言者）、`game_end.settlement`（精算）・`game_end.tobi`（飛んだ席） |
+| 0.5 | 任意の欄を2つ足した（既存の欄の意味と並びは変えていない。v0.4 の牌譜・注釈もそのまま読める）：注釈の `selection`（行動の選び方 `sample`／`greedy`、§6、D-066）、`hora.limit`（点数の区分 `none`〜`kazoe_yakuman`、エンジンが点数を決めたときの区分、§4、D-068） |
 | 0.4 | v0.3 の「局進行の実装に合わせた追加」（`hora.pao`、役満の `{id, yakuman}`、`melds` に暗槓、`ryukyoku.actor`、`game_end.settlement`・`tobi`）をオーナーが承認した（D-028）。**ルールの変更に合わせた追加**：後めくりのカンドラを打牌が通った後にめくるルール（`rules.dora.kan_dora_timing = "ankan_immediate_after_pass"`）での `dora` の位置（§4.1。打牌がロンされたら `dora` は出ない）／天和で和了牌を選ぶルール（`rules.yakuman.tenhou_win_tile = "best"`）では `hora.pai` が直前の `tsumo` の牌と違うことがある／`rules` に足したキー（`yakuman.pao_scope`・`pao_honba`・`pao_tsumo_honba`・`tenhou_win_tile`、`draws.keishiki_tenpai` は真偽値から文字列に） |
 
 ---
@@ -42,7 +43,7 @@
 ### 4.1 一覧
 | type | 主なフィールド |
 |---|---|
-| `game_start` | `format_version`("0.4"), `visibility`, `engine{name,version,git}`, `rules`（§4.3）, `seed{game_seed, rng}`, `players[{seat,name}]` |
+| `game_start` | `format_version`("0.5"), `visibility`, `engine{name,version,git}`, `rules`（§4.3）, `seed{game_seed, rng}`, `players[{seat,name}]` |
 | `kyoku_start` | `bakaze`, `kyoku`(1〜), `honba`, `kyotaku`, `oya`, `scores`, `dora_indicator`, `tehais`（席ごと13枚・整列済み）, `wall`（§4.2）, `wall_salt`, `wall_commit` |
 | `tsumo` | `actor`, `pai`, `rinshan`（省略時 false。槓・北抜きの補充） |
 | `dahai` | `actor`, `pai`, `tsumogiri` |
@@ -52,11 +53,22 @@
 | `kakan` | `actor`, `pai`（加えた牌）, `consumed`（元のポンの3枚） |
 | `kita` | `actor`, `pai` |
 | `dora` | `dora_indicator` |
-| `hora` | `actor`, `target`（ツモは actor と同じ）, `pai`（和了牌）, `hand{tehai, melds}`, `yaku`（役は `{id, han}`、役満は `{id, yakuman}`＝倍数）, `han`（合計。役満なら 0）, `fu`, `yakuman`（役満の倍数の合計。数え役満は 1）, `points`（和了者が受け取る手の値。本場・供託を除く）, `ura_indicators`（立直していなければ空）, `pao`（包の人。あるときだけ）, `deltas`, `scores` |
+| `hora` | `actor`, `target`（ツモは actor と同じ）, `pai`（和了牌）, `hand{tehai, melds}`, `yaku`（役は `{id, han}`、役満は `{id, yakuman}`＝倍数）, `han`（合計。役満なら 0）, `fu`, `yakuman`（役満の倍数の合計。数え役満は 1）, `limit`（任意。点数の区分、下の注）, `points`（和了者が受け取る手の値。本場・供託を除く）, `ura_indicators`（立直していなければ空）, `pao`（包の人。あるときだけ）, `deltas`, `scores` |
 | `ryukyoku` | §4.4（九種九牌なら宣言者 `actor`） |
 | `kyoku_end` | `reason`, `scores`, `kyotaku`, `honba_next`, `renchan`, `chips`（§4.5） |
 | `game_end` | `scores`（残った供託の精算後）, `ranks`（1始まり）, `settlement`（持ち点 − 返し点 ＋ ウマ ＋ オカ、点）, `tobi`（飛んだ席、bool[人数]。1局戦は `rules.table.tobi_single_kyoku` で記録だけ）, `chips_total`（§4.5） |
 
+- **`hora.limit`**（任意、2026-11-29 に追加。既存の欄の意味と並びは変えていない。古い牌譜もそのまま読める）：エンジンが点数を決めたときの区分をそのまま書く（mj-core の `yaku::base_and_limit`。表示用）
+
+  | 値 | 区分 |
+  |---|---|
+  | `none` | 満貫に届かない（翻と符から計算した点数） |
+  | `mangan` | 満貫：5翻、または 4翻以下で基本点が 2000 以上。切り上げ満貫（`rules.points.kiriage_mangan = true`）なら基本点 1920 以上（4翻30符・3翻60符）も |
+  | `haneman` | 跳満：6〜7翻 |
+  | `baiman` | 倍満：8〜10翻 |
+  | `sanbaiman` | 三倍満：11〜12翻（数え役満なし `rules.points.kazoe_yakuman = false` なら 13翻以上も） |
+  | `yakuman` | 役満（倍数は `yakuman`） |
+  | `kazoe_yakuman` | 数え役満：13翻以上（`rules.points.kazoe_yakuman = true`） |
 - **`hora.hand.tehai` は和了牌を含まない**（ロンでもツモでも、和了牌は `pai` だけに書く。ツモ和了なら直前の `tsumo` で引いた牌が `pai`。ただし天和で `rules.yakuman.tenhou_win_tile = "best"` なら、手牌14枚のうち点数が最も高くなる牌が `pai`）。`hand.melds` は副露と暗槓（`{type, pai, consumed, target}`。`type` は `chi`/`pon`/`daiminkan`/`kakan`/`ankan`、暗槓は `pai`・`target` なしで `consumed` に4枚）。北抜きは含めない（`kita` イベントで分かる）
 - 役の `id` は `crates/mj-core/src/yaku.rs` の `Yaku::id`（例：`riichi`, `menzen_tsumo`, `yakuhai_chun`, `yakuhai_bakaze`, `chiitoitsu`, `daisangen`, `dora`, `aka`, `ura`, `kita`＝抜きドラ）
 - 「見送り（パス）」はイベントにしない（起きたことだけを記録する）。判断の記録は注釈（§6）に置く
