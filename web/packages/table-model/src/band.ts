@@ -126,22 +126,35 @@ export function layoutAnnotation(a: Annotation, seat: Pick<SeatView, "hand" | "d
 /** 注釈の牌譜が「確率どおりに抽選した」か「一番確率の高い行動だけを選んだ」か（REPLAY_UI §6.4） */
 export interface SelectionMode {
   kind: "sample" | "argmax" | "unknown";
-  /** 何から判断したか */
-  source: "filename" | "model" | "inferred" | "none";
+  /** 何から判断したか（field：注釈の `selection` 欄、LOG_FORMAT §6） */
+  source: "field" | "filename" | "model" | "inferred" | "none";
   /** 判断の根拠（画面に出す） */
   detail: string;
 }
 
-const ARGMAX_RE = /greedy|argmax|best[-_]?action|deterministic/i;
-const SAMPLE_RE = /sampl|stochastic/i;
+// 区切り（. _ - @ / 先頭・末尾）で囲まれた語だけを見る（`sample.annot.jsonl` の sample は「見本」の意味なので数えない）
+const ARGMAX_RE = /(^|[._@/-])(greedy|argmax)([._@/-]|$)/i;
+const SAMPLE_RE = /(^|[._@/-])(sampled|sampling|stochastic)([._@/-]|$)/i;
 
 /**
- * 注釈に「選び方」のフィールドがない（LOG_FORMAT §6）ので、ファイル名 → model の名前 → 中身の順に推定する。
+ * 注釈の `selection` 欄（`"sample"`／`"greedy"`。2026-11-29 に足された任意の欄）があればそれを使う。
+ * なければ（古い注釈ファイル）、ファイル名 → model の名前 → 中身の順に推定する。
  * 中身からの推定：選んだ行動の確率が最大より小さい判断が1つでもあれば抽選。1つもなく、確率が一様でない判断が
  * 10 個以上あれば最大確率（推定）。それ以外は不明
  */
 export function detectSelectionMode(list: Annotation[], fileName?: string | null): SelectionMode {
+  // log-types の生成し直しの前でも読めるように、欄は任意として読む
+  const sel = list.map((a) => (a as Annotation & { selection?: string }).selection).filter((s): s is string => !!s);
+  if (sel.length > 0) {
+    const greedy = sel.filter((s) => s === "greedy").length;
+    const sample = sel.filter((s) => s === "sample").length;
+    const detail = `注釈の selection 欄（greedy ${greedy}・sample ${sample}・ほか ${sel.length - greedy - sample} / ${list.length}）`;
+    if (greedy === sel.length) return { kind: "argmax", source: "field", detail };
+    if (sample === sel.length) return { kind: "sample", source: "field", detail };
+    return { kind: "unknown", source: "field", detail: `混在：${detail}` };
+  }
   if (fileName) {
+    fileName = fileName.split(/[\/]/).pop() ?? fileName;
     if (ARGMAX_RE.test(fileName)) return { kind: "argmax", source: "filename", detail: `ファイル名（${fileName}）` };
     if (SAMPLE_RE.test(fileName)) return { kind: "sample", source: "filename", detail: `ファイル名（${fileName}）` };
   }

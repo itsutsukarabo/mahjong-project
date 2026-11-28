@@ -54,9 +54,16 @@ describe("band slots", () => {
 
 describe("selection mode", () => {
   const ann = (decision: string, policy: [string, number][]): Annotation => ({ game_id: "g", kyoku_idx: 0, event_idx: 1, seat: 0, decision, policy });
-  it("uses the file name first", () => {
+  it("uses the selection field first", () => {
+    const a = (selection: string) => ({ ...ann("a", [["a", 0.2], ["b", 0.8]]), selection }) as Annotation;
+    expect(detectSelectionMode([a("greedy")], "x.sampled.annot.jsonl")).toMatchObject({ kind: "argmax", source: "field" });
+    expect(detectSelectionMode([a("sample")])).toMatchObject({ kind: "sample", source: "field" });
+    expect(detectSelectionMode([a("sample"), a("greedy")]).kind).toBe("unknown");
+  });
+  it("uses the file name next (not the word sample in sample.annot.jsonl)", () => {
+    expect(detectSelectionMode([], "fixtures/sample.annot.jsonl").kind).toBe("unknown");
     expect(detectSelectionMode([], "x.greedy.annot.jsonl").kind).toBe("argmax");
-    expect(detectSelectionMode([], "x.sample.annot.jsonl").kind).toBe("sample");
+    expect(detectSelectionMode([], "x.sampled.annot.jsonl").kind).toBe("sample");
   });
   it("infers sampling when a non-best action was chosen", () => {
     const m = detectSelectionMode([ann("a", [["a", 0.2], ["b", 0.8]])]);
