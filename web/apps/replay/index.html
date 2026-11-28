@@ -2,63 +2,89 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>牌譜再生</title>
     <style>
-      :root { color-scheme: light; }
-      body { margin: 0; padding: 12px; font-family: "Noto Sans CJK JP", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif; background: #f4f5f2; color: #1d2330; }
-      .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; font-size: 13px; }
-      .toolbar button { font-size: 13px; padding: 3px 10px; }
-      .toolbar fieldset { border: 1px solid #c8d0dc; border-radius: 6px; padding: 4px 8px; display: flex; gap: 6px; align-items: center; }
-      .toolbar legend { font-size: 11px; color: #6b7280; }
-      #status { font-variant-numeric: tabular-nums; font-size: 13px; margin-bottom: 8px; }
-      #error { color: #b00020; white-space: pre-wrap; font-size: 13px; }
-      .main { display: flex; gap: 12px; align-items: flex-start; }
-      #side { width: 340px; }
+      :root { color-scheme: dark; }
+      html, body { height: 100%; }
+      body {
+        margin: 0; background: #0d141c; color: #e6ebf2; overflow: hidden;
+        font-family: "Noto Sans CJK JP", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif; font-size: 13px;
+        display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "top top" "table side" "controls controls";
+      }
+      button, select, input { font: inherit; color: inherit; }
+      select, button { background: #1d2938; border: 1px solid #3a4a5e; border-radius: 6px; }
+      #topbar { grid-area: top; display: flex; gap: 8px; align-items: center; padding: 4px 8px; height: 36px; box-sizing: border-box; background: #121b26; border-bottom: 1px solid #243244; }
+      #topbar select { height: 28px; padding: 0 4px; max-width: 46vw; }
+      #status { font-variant-numeric: tabular-nums; color: #8d9bad; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      #menu { position: relative; }
+      #menu > summary { list-style: none; cursor: pointer; width: 32px; height: 28px; display: grid; place-items: center; border: 1px solid #3a4a5e; border-radius: 6px; background: #1d2938; font-size: 16px; }
+      #menu > summary::-webkit-details-marker { display: none; }
+      .menu-body { position: absolute; z-index: 100; top: 34px; left: 0; width: min(360px, 92vw); max-height: 80vh; overflow: auto; background: #162130; border: 1px solid #3a4a5e; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+      .menu-body fieldset { border: 1px solid #33445a; border-radius: 6px; display: flex; flex-direction: column; gap: 6px; padding: 6px 8px; margin: 0; }
+      .menu-body legend { font-size: 11px; color: #8d9bad; }
+      .menu-body label { display: flex; gap: 6px; align-items: center; }
+      #table { grid-area: table; position: relative; min-width: 0; min-height: 0; overflow: hidden; touch-action: pan-y; }
+      #side { grid-area: side; width: 300px; overflow: auto; border-left: 1px solid #243244; background: #111a24; padding: 8px; box-sizing: border-box; }
+      body[data-layout="portrait"] #side, body[data-narrow] #side { display: none; }
+      #controls { grid-area: controls; display: flex; gap: 6px; align-items: center; justify-content: center; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: #121b26; border-top: 1px solid #243244; box-sizing: border-box; }
+      #controls button { min-width: 56px; height: 48px; font-size: 16px; padding: 0 10px; cursor: pointer; }
+      #controls button.big { min-width: 76px; font-weight: 700; }
+      #controls select { height: 40px; }
+      .wide-only { display: flex; gap: 6px; align-items: center; }
+      body[data-layout="portrait"] .wide-only { display: none; }
+      body[data-layout="portrait"] #controls button { min-width: 0; flex: 1; padding: 0 4px; font-size: 15px; }
+      body[data-layout="portrait"] #status { display: none; }
       #junme { width: 140px; }
+      #error { position: fixed; left: 8px; bottom: 70px; right: 8px; color: #ffb4a9; white-space: pre-wrap; font-size: 13px; pointer-events: none; z-index: 200; }
+      #error:empty { display: none; }
     </style>
   </head>
   <body>
-    <div class="toolbar">
-      <fieldset>
-        <legend>牌譜</legend>
-        <select id="fixture" aria-label="サンプルの牌譜"></select>
-        <label>牌譜ファイル <input id="logFile" type="file" accept=".jsonl,.json" /></label>
-        <label>注釈 <input id="annotFile" type="file" accept=".jsonl" /></label>
-      </fieldset>
-      <fieldset>
-        <legend>表示</legend>
-        <label><input id="dev" type="checkbox" checked /> 開発者モード（全員の手牌）</label>
-        <label>下の席 <select id="viewSeat"></select></label>
-      </fieldset>
-    </div>
-    <div class="toolbar">
-      <fieldset>
-        <legend>移動</legend>
-        <button id="prevKyoku" title="前の局">⏮ 前の局</button>
-        <button id="prev" title="1手戻る（←）">◀ 戻る</button>
-        <button id="next" title="1手進む（→）">進む ▶</button>
-        <button id="nextKyoku" title="次の局">次の局 ⏭</button>
-        <select id="kyoku" aria-label="局"></select>
+    <header id="topbar">
+      <details id="menu">
+        <summary title="設定・牌譜を開く">≡</summary>
+        <div class="menu-body">
+          <fieldset>
+            <legend>牌譜</legend>
+            <select id="fixture" aria-label="サンプルの牌譜"></select>
+            <label>牌譜ファイル <input id="logFile" type="file" accept=".jsonl,.json" /></label>
+            <label>注釈 <input id="annotFile" type="file" accept=".jsonl" /></label>
+          </fieldset>
+          <fieldset>
+            <legend>表示</legend>
+            <label><input id="dev" type="checkbox" checked /> 全員の手牌（開発者モード）</label>
+            <label><input id="ai" type="checkbox" checked /> AI の判断（注釈）</label>
+            <label><input id="anim" type="checkbox" checked /> アニメーション</label>
+            <label>配置 <select id="layout"><option value="auto">自動</option><option value="landscape">横画面</option><option value="portrait">縦画面</option></select></label>
+          </fieldset>
+          <fieldset>
+            <legend>移動</legend>
+            <label>巡目 <input id="junmeMenu" type="range" min="1" max="1" value="1" /> <span id="junmeMenuLabel">1</span></label>
+            <label>速さ <select id="speedMenu" aria-label="速さ（メニュー）"></select></label>
+          </fieldset>
+          <div id="info" style="font-size: 11px; color: #8d9bad; word-break: break-all"></div>
+        </div>
+      </details>
+      <select id="kyoku" aria-label="局"></select>
+      <select id="viewSeat" aria-label="視点の席"></select>
+      <span id="status"></span>
+    </header>
+    <main id="table"></main>
+    <aside id="side"></aside>
+    <footer id="controls">
+      <button id="prevKyoku" title="前の局">⏮</button>
+      <button id="prev" class="big" title="1手戻る（←）">◀</button>
+      <button id="play" class="big" title="自動再生（スペース）">▶ 再生</button>
+      <button id="next" class="big" title="1手進む（→）">▶</button>
+      <button id="nextKyoku" title="次の局">⏭</button>
+      <span class="wide-only">
+        <select id="speed" aria-label="速さ"></select>
         <label>巡目 <input id="junme" type="range" min="1" max="1" value="1" /> <span id="junmeLabel">1</span></label>
-      </fieldset>
-      <fieldset>
-        <legend>自動再生</legend>
-        <button id="play">▶ 再生</button>
-        <select id="speed" aria-label="速さ">
-          <option value="1000">1 手/秒</option>
-          <option value="400" selected>2.5 手/秒</option>
-          <option value="150">6.7 手/秒</option>
-          <option value="40">25 手/秒</option>
-        </select>
-      </fieldset>
-    </div>
-    <div id="status"></div>
+      </span>
+    </footer>
     <div id="error"></div>
-    <div class="main">
-      <div id="table"></div>
-      <div id="side"></div>
-    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
