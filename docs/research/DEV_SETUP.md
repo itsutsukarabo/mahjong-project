@@ -136,6 +136,23 @@ cd crates/mj-py && VIRTUAL_ENV=../../.venv-mjpy ../../.venv-mjpy/Scripts/maturin
 - `cargo test --workspace` は Python なしで回る（PyO3 の部分は feature `python`。CI は `cargo check -p mj-py --features python` で通ることだけ確かめる）
 - WSL では Windows の作業ツリーを `git archive` で写し、WSL の中の venv でビルドした（2026-11-29 は WSL から PyPI・crates.io に接続できた）
 
+### RL の学習（python/mjrl、uv・PyTorch。D-057）
+リポジトリの直下の `pyproject.toml` が uv workspace（`python/mjrl`）。`mj-py` は uv が maturin でビルドする。
+```bash
+python -m pip install --user uv                 # uv 0.13.10（2026-11-29 に入れた版）
+python -m uv sync                               # .venv（リポジトリの直下）。PyTorch 2.14.1+cu130（Windows）／+cpu（Linux）
+python -m uv run python -m mjrl.gpu_check       # GPU で正しく動くか（版・計算能力・CPU との一致・BF16 の速さ）
+python -m uv run pytest python/mjrl/tests -q    # CPU で約 10 秒（tools/check.sh と CI の mjrl ジョブでも回る）
+python -m uv run mjrl-train --config python/mjrl/configs/s1a.toml --max-minutes 60   # 学習（runs/s1a/）
+python -m uv run mjrl-eval --run runs/s1a       # 評価（学習と別のプロセス。runs/s1a/eval_queue/ を待つ）
+python -m uv run mjrl-plot --run runs/s1a       # グラフ（runs/s1a/plots/index.html）
+```
+- Rust（mj-py・mj-core など）を変えたら `python -m uv sync --reinstall-package mj-py`（mj-py の `src/**/*.rs` の変更は uv が自動で拾うが、ほかの crate の変更は拾わない）
+- PyTorch は RTX 5080（Blackwell、計算能力 12.0、sm_120）に対応した CUDA 13.0 の版（`download.pytorch.org/whl/cu130`）。ドライバ 610.88（CUDA 13.3）で動作を確認した（RL_TRAINING §8.1）
+- **VRAM を超えないこと**：Windows（WDDM）は VRAM が足りないと共有メモリ（RAM）に溢れさせ、エラーにならずに数十倍遅くなる。ゲーム・OBS・動画編集などのアプリも VRAM を使う（2026-11-29 は 4〜5GB）。学習は `gpu.memory_fraction`（既定 0.6）、評価は 0.15 に PyTorch の分を抑える。NVIDIA コントロールパネルの「CUDA - システムメモリ フォールバック ポリシー」を「フォールバックしない」にすると、溢れる代わりにエラーで止まる（未設定。オーナーの確認事項）
+- 止め方：Ctrl+C か `runs/<name>/STOP` を置く（チェックポイントを書いてから終わる）。同じ `--run-dir` で起動し直すと再開する。評価は `runs/<name>/STOP_EVAL`
+- Windows で長い処理をバックグラウンドで止めるときは、子の python.exe も止まったかを確かめる（親だけ止まって GPU を握ったまま残ったことがある）
+
 ### 牌譜再生画面（web/、TypeScript・Vite・pnpm）
 ```bash
 rustup target add wasm32-unknown-unknown

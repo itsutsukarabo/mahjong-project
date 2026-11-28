@@ -83,7 +83,7 @@ class PoolCfg:
     latest_frac: float = 0.5
     # 「最新から n バージョン以内」の n と、プールに入れる間隔（更新の回数）
     n: int = 10
-    save_every: int = 100
+    save_every: int = 50
     # 新しいものほど重く：重み ∝ decay^(新しい方からの順番)
     decay: float = 0.8
     # 記念のチェックポイント（D-053）を残す間隔

@@ -19,9 +19,11 @@
 | `rules/` | プリセット（`tenhou-sanma.toml`, `mjsoul-sanma.toml`）。出典は `docs/spec/RULES_PRESETS.md` |
 | `fixtures/` | `rules/`（テスト専用の四麻ルール `test-yonma.toml`、差分テスト用の上書き `majiang-yonma-game.toml`・`riichienv-sanma.toml`、テスト対応表 `coverage.toml`）、`difftest-riichienv/`（変換表に当たった手の例・回帰用の局）、`features/action_ids.txt`（行動の番号表の初版。背番号として固定、D-038）、`golden/walls.json`（固定シードの牌山のハッシュ）、`golden/games.json` と `golden/games/*.actions.json`（固定の行動列から作った牌譜のハッシュ） |
 | `web/` | pnpm workspace（`pnpm-workspace.yaml`・`package.json` はリポジトリの直下）：`packages/log-types`（mj-log から生成した TS の型）、`packages/engine`（mj-wasm を Worker で動かす）、`packages/table-model`（再生の位置・注釈の突き合わせ）、`packages/render-2d`（DOM の 2D レンダラー。牌は文字と図形、`TileRenderer` で差し替え）、`apps/replay`（牌譜再生画面、Vite、Playwright のテスト・スナップショット、`public/fixtures` に試験用の牌譜） |
-| `.github/workflows/` | `ci.yml`（main への push、Ubuntu/Windows の check と、ubuntu の web）、`nightly.yml`（差分テスト大規模版）、`web-snapshots.yml`（牌譜再生画面のスナップショットを撮り直す、手で起動） |
+| `pyproject.toml`, `uv.lock` | uv workspace（`python/*`）。PyTorch の入手先（Windows は CUDA 13.0、Linux は CPU）と `mj-py`（maturin）の場所 |
+| `python/mjrl/` | RL の学習（D-057）：`model.py`（D-048〜D-050）・`rollout.py`（自己対戦のデータ集め・GAE）・`ppo.py`・`pool.py`（D-052・D-053）・`checkpoint.py`（D-058）・`train.py`・`evaluate.py`（デュプリケート・レーティング・カリキュラムの目安）・`rating.py`（D-054）・`samples.py`（牌譜と注釈）・`plot.py`・`timing.py`・`bench.py`・`gpu_check.py`。`configs/`（1実験1ファイル）、`tests/` |
+| `.github/workflows/` | `ci.yml`（main への push、Ubuntu/Windows の check と、ubuntu の web・mjrl）、`nightly.yml`（差分テスト大規模版）、`web-snapshots.yml`（牌譜再生画面のスナップショットを撮り直す、手で起動） |
 
-それ以外（mj-sim, python/, render-3d, apps/stream・game など）はまだ作っていない。
+それ以外（mj-sim, render-3d, apps/stream・game など）はまだ作っていない。mj-sim の役割（推論待ちの受け渡し口）は今は mj-py の `VecEnv` が持つ（RL_TRAINING §4.1）。
 
 ## 1. 全体像
 

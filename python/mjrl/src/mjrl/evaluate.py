@@ -310,6 +310,9 @@ def main() -> None:
     ap.add_argument("--walls", type=int)
     ap.add_argument("--poll", type=float, default=20.0)
     a = ap.parse_args()
+    # 学習のプロセスが設定（config.json）を書くまで待つ
+    while not (Path(a.run) / "config.json").exists():
+        time.sleep(2)
     ev = Evaluator(Path(a.run), a.walls)
     while True:
         p = ev.pending()

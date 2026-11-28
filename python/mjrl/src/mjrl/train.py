@@ -273,6 +273,12 @@ class Trainer:
                     )
         finally:
             signal.signal(signal.SIGINT, prev)
+            c = self.cfg
+            if done and c.samples.every and self.update_idx % c.samples.every != 0:
+                # 終わりの時点の自己対戦の牌譜も残す（途中の分は periodic が書く）
+                u = self.update_idx
+                with self.timer("samples"):
+                    play_and_write(c, self.model, self.dev, self.run / "samples" / f"u{u:07d}", 10_000 + u, f"{c.name}@u{u}")
             p = self.save()
             self.events_log.append({"event": "stop", "update": self.update_idx, "checkpoint": str(p), "time": time.time()})
 
