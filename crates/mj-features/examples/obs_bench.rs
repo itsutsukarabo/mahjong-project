@@ -44,6 +44,8 @@ fn main() {
     let mut per_game: Vec<usize> = Vec::new();
     let mut obs_time = Duration::ZERO;
     let mut n_obs = 0u64;
+    let mut digest = 0xcbf2_9ce4_8422_2325u64;
+    let fnv = |h: u64, x: u64| (h ^ x).wrapping_mul(0x0100_0000_01b3);
     for g_i in 0..games {
         let mut g = Game::new(rules.clone(), WallSource::Seed((seed << 32) + g_i));
         while !g.is_over() {
@@ -54,7 +56,18 @@ fn main() {
                 let o = obs.observe(k.events(), d.seat, &d.choices, &reward);
                 obs_time += t0.elapsed();
                 n_obs += 1;
-                std::hint::black_box(&o);
+                // 観測すべての指紋（実装を変えても結果が同じかを、前後の実行で比べる）
+                for x in o.policy.iter().chain(&o.critic) {
+                    digest = fnv(digest, u64::from(x.to_bits()));
+                }
+                for t in &o.events {
+                    for v in t {
+                        digest = fnv(digest, *v as u64);
+                    }
+                }
+                for m in &o.mask {
+                    digest = fnv(digest, u64::from(*m));
+                }
                 acts.push((d.seat, bot.choose(k, d)));
             }
             g.step(&acts).expect("legal");
@@ -88,7 +101,7 @@ fn main() {
     println!("tokens per kyoku: avg={ak:.1} p99={pk} p99.9={pk999} max={mk}");
     println!("tokens per game:  avg={ag:.1} p99={pg} p99.9={pg999} max={mg}");
     println!(
-        "observe(): {n_obs} observations, {:.2} us each (1 thread)",
+        "observe(): {n_obs} observations, {:.2} us each (1 thread), digest {digest:016x}",
         obs_time.as_secs_f64() * 1e6 / n_obs as f64
     );
     let l = obs.layout();

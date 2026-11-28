@@ -525,12 +525,17 @@ impl Observer {
         f.push(f32::from(u8::from(furiten)));
         // ---- discard_candidates：打牌の候補ごとに「切った後のシャンテン数と受け入れ」
         let mut cand = [0f32; 37 * 3];
+        // 同じ種類の候補（手出し・ツモ切り、赤と赤でない5）は1回だけ数える
+        let mut by_kind: [Option<(i8, u32)>; NUM_KINDS] = [None; NUM_KINDS];
         for a in choices {
             if let Action::Dahai { tile, .. } = a {
                 let i = tile_index(*tile);
-                let mut c = own;
-                c[tile.kind().index()] -= 1;
-                let (sh, uk) = self.shanten_ukeire(&c, melds, &remaining);
+                let kind = tile.kind().index();
+                let (sh, uk) = *by_kind[kind].get_or_insert_with(|| {
+                    let mut c = own;
+                    c[kind] -= 1;
+                    self.shanten_ukeire(&c, melds, &remaining)
+                });
                 cand[i] = 1.0;
                 cand[37 + i] = (f32::from(sh) + 1.0) / 8.0;
                 cand[74 + i] = uk as f32 / 60.0;

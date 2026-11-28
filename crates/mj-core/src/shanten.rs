@@ -21,6 +21,7 @@ use crate::tile::{KindCounts, NUM_KINDS, Suit, TileKind};
 use crate::wall::kind_in_use;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// シャンテン数の計算に要るルールの情報。
 #[derive(Debug, Clone)]
@@ -29,7 +30,7 @@ pub struct ShantenCalc {
     honor_like: [bool; NUM_KINDS],
     in_use: [bool; NUM_KINDS],
     /// 1色の枚数（5進数の符号）→ 分解の候補（パレート最小）
-    cache: RefCell<HashMap<u32, Vec<Mdg>>>,
+    cache: RefCell<HashMap<u32, Arc<[Mdg]>>>,
 }
 
 /// 面子・搭子・孤立牌の数。
@@ -191,8 +192,8 @@ impl ShantenCalc {
             }
         }
         // 数牌は色ごとに全探索し、組み合わせの最小を取る
-        let mut groups: Vec<Vec<Mdg>> = Vec::with_capacity(3);
-        for s in 0..3 {
+        let mut groups: [Arc<[Mdg]>; 3] = [Arc::from([]), Arc::from([]), Arc::from([])];
+        for (s, group) in groups.iter_mut().enumerate() {
             let mut suit = [0u8; 9];
             for (n, slot) in suit.iter_mut().enumerate() {
                 let k = s * 9 + n;
@@ -202,25 +203,25 @@ impl ShantenCalc {
             }
             // 覚える鍵は5進数の符号なので、5枚以上の種類がある（ありえない手）ときは覚えない（鍵が重なるため）
             if suit.iter().any(|&x| x > 4) {
-                groups.push(suit_partitions(&mut suit));
+                *group = Arc::from(suit_partitions(&mut suit));
                 continue;
             }
             let code = suit.iter().fold(0u32, |a, &x| a * 5 + u32::from(x));
+            // 覚えた分解は Arc で共有する（引くたびに Vec を複製しない）
             let cached = self.cache.borrow().get(&code).cloned();
-            let parts = match cached {
+            *group = match cached {
                 Some(p) => p,
                 None => {
-                    let p = suit_partitions(&mut suit);
+                    let p: Arc<[Mdg]> = Arc::from(suit_partitions(&mut suit));
                     self.cache.borrow_mut().insert(code, p.clone());
                     p
                 }
             };
-            groups.push(parts);
         }
         let mut best = i8::MAX;
-        for a in &groups[0] {
-            for b in &groups[1] {
-                for d in &groups[2] {
+        for a in groups[0].iter() {
+            for b in groups[1].iter() {
+                for d in groups[2].iter() {
                     let x = fixed.add(*a).add(*b).add(*d);
                     best = best.min(formula(x, with_pair));
                 }
@@ -230,7 +231,48 @@ impl ShantenCalc {
     }
 
     /// 13枚形（3n+1）で、1枚足すとシャンテン数が下がる牌の種類（昇順）。
+    ///
+    /// 手の中に同じ種類がなく、同じ色の ±2 以内にも牌がない種類（孤立する牌）は、一般形のシャンテン数を変えない：
+    /// 13枚形はどの分け方でも 面子＋搭子＋孤立牌 ≥ 上限（雀頭なし 5、あり 4）なので、足した孤立牌は式の上限で切られ、
+    /// 雀頭にもならない。その種類は一般形の計算を省き、七対子・国士無双だけを数え直す
+    /// （全種類を数え直す [`Self::improving_kinds_naive`] と同じ結果になることをテストで確かめる）。
     pub fn improving_kinds(&self, hand: &KindCounts, melds: u8) -> Vec<TileKind> {
+        let base_std = self.shanten_standard(hand, melds);
+        let other = |c: &KindCounts| shanten_chiitoi(c).min(shanten_kokushi(c));
+        let base = if melds == 0 {
+            base_std.min(other(hand))
+        } else {
+            base_std
+        };
+        let mut c = *hand;
+        let mut out = Vec::new();
+        for k in TileKind::all() {
+            let i = k.index();
+            if !self.in_use[i] || c[i] >= 4 {
+                continue;
+            }
+            let near = c[i] > 0
+                || (!self.honor_like[i] && {
+                    let (lo, hi) = (i / 9 * 9, i / 9 * 9 + 8);
+                    (i.saturating_sub(2).max(lo)..=(i + 2).min(hi)).any(|j| c[j] > 0)
+                });
+            c[i] += 1;
+            let std = if near {
+                self.shanten_standard(&c, melds)
+            } else {
+                base_std
+            };
+            let s = if melds == 0 { std.min(other(&c)) } else { std };
+            if s < base {
+                out.push(k);
+            }
+            c[i] -= 1;
+        }
+        out
+    }
+
+    /// [`Self::improving_kinds`] の素直な形（全種類でシャンテン数を数え直す）。テストの基準
+    pub fn improving_kinds_naive(&self, hand: &KindCounts, melds: u8) -> Vec<TileKind> {
         let base = self.shanten(hand, melds);
         let mut c = *hand;
         let mut out = Vec::new();
@@ -352,5 +394,48 @@ mod tests {
                 .iter()
                 .all(|k| !(1..=7).contains(&k.index()))
         );
+    }
+
+    #[test]
+    fn improving_kinds_pruned_equals_naive() {
+        // 乱数の 3n+1 枚の手（副露 0〜4）で、枝刈りした受け入れの種類が全種類の数え直しと一致する
+        let mut x: u64 = 0x2545_F491_4F6C_DD1D;
+        let mut next = |m: u64| {
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            x % m
+        };
+        for manzu in [Manzu::All, Manzu::TerminalsOnly] {
+            let c = ShantenCalc::new(manzu);
+            let kinds: Vec<usize> = TileKind::all()
+                .filter(|k| kind_in_use(manzu, *k))
+                .map(|k| k.index())
+                .collect();
+            for n in 0..4_000 {
+                let melds = (n % 5) as u8;
+                let len = 13 - 3 * usize::from(melds);
+                let mut h = [0u8; NUM_KINDS];
+                let mut placed = 0;
+                // 半分は1色に寄せた手（搭子・面子が多い形）
+                let narrow = n % 2 == 0;
+                while placed < len {
+                    let k = if narrow {
+                        kinds[(next(9) as usize + 9 * (n % 3)).min(kinds.len() - 1)]
+                    } else {
+                        kinds[next(kinds.len() as u64) as usize]
+                    };
+                    if h[k] < 4 {
+                        h[k] += 1;
+                        placed += 1;
+                    }
+                }
+                assert_eq!(
+                    c.improving_kinds(&h, melds),
+                    c.improving_kinds_naive(&h, melds),
+                    "{h:?} melds {melds}"
+                );
+            }
+        }
     }
 }
