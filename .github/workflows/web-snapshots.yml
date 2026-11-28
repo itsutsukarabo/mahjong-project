@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          # package.json の packageManager（pnpm）を見て自動でキャッシュしようとするが、pnpm はこの後で入れる
+          package-manager-cache: false
       - run: corepack enable pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:wasm

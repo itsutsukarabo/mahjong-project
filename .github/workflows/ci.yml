@@ -37,6 +37,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          # package.json の packageManager（pnpm）を見て自動でキャッシュしようとするが、pnpm はこの後で入れる
+          package-manager-cache: false
           cache: npm
           cache-dependency-path: tools/difftest-majiang/node/package-lock.json
 
@@ -144,6 +146,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          # package.json の packageManager（pnpm）を見て自動でキャッシュしようとするが、pnpm はこの後で入れる
+          package-manager-cache: false
 
       - name: pnpm (packageManager in package.json)
         run: corepack enable pnpm
