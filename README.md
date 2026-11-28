@@ -41,5 +41,5 @@
 4. **サーバー権威型**。牌山や他家の手牌はクライアントへ送らない
 
 ## 牌譜再生画面（2D、開発者向け）
-`pnpm install && pnpm build:wasm && pnpm --filter @mj/replay dev`（準備は `docs/research/DEV_SETUP.md`「牌譜再生画面」）。
+`pnpm install && pnpm build:wasm && pnpm --filter @mj/replay dev`（準備は `docs/research/DEV_SETUP.md`「牌譜再生画面」）。画面の仕様は `docs/spec/REPLAY_UI.md`。
 卓の状態は Rust（`mj_log::view`）が作り、WASM（`crates/mj-wasm`）経由で画面に渡す。画面側にルールの処理は書かない。
