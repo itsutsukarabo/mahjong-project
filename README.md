@@ -22,6 +22,7 @@
 | `docs/spec/ACTION_SPACE.md` | RL の行動の番号表（全ルールの和集合、325 通り。実装は mj-features） |
 | `docs/spec/OBSERVATION.md` | RL の観測（実装は mj-features、イベント列の上限 192） |
 | `docs/spec/SCENARIOS.md` | 狙った局面（手で組んだ牌山）の一覧。オーナーが局面を足せる |
+| `docs/spec/RL_TRAINING.md` | 学習の設計の提案（モデル・PPO・対戦相手プール・再開・統計・評価）。決定はオーナー |
 | `docs/spec/RULES_CATALOG.md` | ルールの全項目（Rust の定義から生成。キー・値・意味・既定値） |
 | `docs/spec/RULES_PRESETS.md` | ルールプリセット（天鳳三麻・雀魂三麻相当）の値と出典 |
 | `docs/spec/RULES_QUESTIONS_MJSOUL.md` | 雀魂三麻の仮の値を確かめる質問票（残り1問） |
