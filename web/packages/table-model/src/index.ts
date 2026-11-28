@@ -2,6 +2,9 @@
 // ここでは和了判定・点数計算・合法手の判定をしない（原則1）。注釈は (kyoku_idx, event_idx, seat) で突き合わせる（CLAUDE.md）。
 import type { Annotation, KyokuSummary, ReplayMeta, TableView } from "@mj/log-types";
 
+export * from "./band";
+export * from "./cues";
+
 /** 1局の卓の状態を返す（実際は Engine.kyokuStates） */
 export type StatesLoader = (kyokuIdx: number) => Promise<TableView[]>;
 
@@ -55,6 +58,21 @@ export class ReplayModel {
     const v = this.states[this.eventIdx];
     if (!v) throw new Error("no state");
     return v;
+  }
+
+  /** 1つ前のイベントの直後の卓（局の始めなら null）。アニメーションの差を取るのに使う */
+  get previous(): TableView | null {
+    return this.eventIdx > 0 ? (this.states[this.eventIdx - 1] ?? null) : null;
+  }
+
+  /** 読み込んだ注釈の全部（選び方の推定に使う） */
+  get allAnnotations(): Annotation[] {
+    return [...this.annots.values()];
+  }
+
+  /** 注釈のある位置（局の meta.kyokus の番号・event_idx・席）。他の席の判断へ移る目印に使う */
+  annotationAt(kyokuIdx: number, eventIdx: number, seat: number): Annotation | undefined {
+    return this.annots.get(annotationKey(kyokuIdx, eventIdx, seat));
   }
 
   get length(): number {
