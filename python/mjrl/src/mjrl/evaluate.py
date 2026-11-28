@@ -63,8 +63,11 @@ class Player:
         self.model = model  # None は RuleBot（Rust の中で打つ）
 
 
-def play_duplicate(cfg: Config, a: Player, opps: list[Player], walls: int, dev: torch.device, seed: int) -> dict:
-    """A と各相手のデュプリケート。返り値：相手の名前 → 牌山ごとの指標・2席の組の勝ち負け"""
+def play_duplicate(
+    cfg: Config, a: Player, opps: list[Player], walls: int, dev: torch.device, seed: int, greedy: bool = False
+) -> dict:
+    """A と各相手のデュプリケート。greedy なら両方とも一番確率の高い行動、でなければ確率どおりに抽選（RuleBot は Rust の中で決まった手）。
+    返り値：相手の名前 → 牌山ごとの指標・2席の組の勝ち負け"""
     e = cfg.env
     nseat = 3
     arr = ARRANGEMENTS_3
@@ -107,8 +110,11 @@ def play_duplicate(cfg: Config, a: Player, opps: list[Player], walls: int, dev: 
                     continue
                 assert m is not None, "RuleBot seats are played in Rust"
                 o = forward(m, take(t, torch.from_numpy(idx).to(dev)), cfg.ppo.bf16, critic=False)
-                pr = torch.softmax(o.logits.float(), -1)
-                actions[idx] = torch.multinomial(pr, 1, generator=gen).squeeze(1).cpu().numpy()
+                if greedy:
+                    actions[idx] = o.logits.float().argmax(-1).cpu().numpy()
+                else:
+                    pr = torch.softmax(o.logits.float(), -1)
+                    actions[idx] = torch.multinomial(pr, 1, generator=gen).squeeze(1).cpu().numpy()
         b_ = env.step(b_["decision_id"], actions)
         fins += b_["finished"]
     return summarize(fins, opps, walls, arr, nseat)
@@ -210,10 +216,45 @@ class Evaluator:
         self.cur_log = JsonlLog(run / "curriculum.jsonl")
         # 段ごとの主な指標（①-a は和了率。①-b 以降は局収支、②以降は報酬）
         self.key = {"1a": "hora_rate", "1b": "score_delta"}.get(cfg.reward.stage, "reward")
+        self.modes = list(cfg.eval.modes)
+        self.primary = cfg.eval.rating_mode
+        if self.primary not in self.modes:
+            raise ValueError(f"eval.rating_mode {self.primary!r} not in eval.modes {self.modes}")
+        self._reconcile()
+
+    def _reconcile(self) -> None:
+        """評価の途中で落ちた後の後始末（見張り役が起動し直したとき）：eval.jsonl に行のない候補の組（pairs.jsonl）を消す。
+        最良になった記録があるのに best.json が古ければ、待ちのファイルから best.pt を作り直す"""
+        done = [r["candidate"] for r in read_jsonl(self.run / "eval.jsonl")]
+        pairs = read_jsonl(self.run / "pairs.jsonl")
+        keep = [r for r in pairs if r["a"] in done]
+        if len(keep) != len(pairs):
+            self.pairs_log.path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in keep), encoding="utf-8")
+            print(f"reconcile: dropped {len(pairs) - len(keep)} pair rows of unfinished evaluations", flush=True)
+        rows = read_jsonl(self.run / "eval.jsonl")
+        bests = [r for r in rows if r["became_best"]]
+        meta = self.run / "best.json"
+        if bests:
+            last = bests[-1]
+            cur = json.loads(meta.read_text(encoding="utf-8"))["name"] if meta.exists() else None
+            src = self.run / "eval_queue" / f"{last['candidate']}.pt"
+            if cur != last["candidate"] and src.exists():
+                shutil.copyfile(src, self.run / "best.pt")
+                meta.write_text(json.dumps({"name": last["candidate"], "update": last["update"]}), encoding="utf-8")
+                print(f"reconcile: best -> {last['candidate']}", flush=True)
 
     def pending(self) -> list[Path]:
         q = self.run / "eval_queue"
-        return sorted(q.glob("u*.pt")) if q.exists() else []
+        if not q.exists():
+            return []
+        done = {r["candidate"] for r in read_jsonl(self.run / "eval.jsonl")}
+        out = []
+        for p in sorted(q.glob("u*.pt")):
+            if p.stem in done:
+                p.unlink()  # 評価は済んでいて、消す前に落ちたもの
+            else:
+                out.append(p)
+        return out
 
     def evaluate(self, path: Path) -> dict:
         cfg = self.cfg
@@ -234,15 +275,20 @@ class Evaluator:
                 opps.append(Player(mn, load_model(mp, self.dev)))
                 seen.add(mn)
         opps.append(Player("rulebot", None))
-        res = play_duplicate(cfg, cand, opps, cfg.eval.walls, self.dev, cfg.eval.seed + upd)
-        for o, r in res.items():
-            self.pairs_log.append({"a": name, "b": o, "update": upd, **r["pairs"]})
-        ratings = fit(read_jsonl(self.run / "pairs.jsonl"))
+        by_mode = {
+            m: play_duplicate(cfg, cand, opps, cfg.eval.walls, self.dev, cfg.eval.seed + upd, greedy=(m == "greedy"))
+            for m in self.modes
+        }
+        res = by_mode[self.primary]
+        for m, rm in by_mode.items():
+            for o, r in rm.items():
+                self.pairs_log.append({"a": name, "b": o, "update": upd, "mode": m, **r["pairs"]})
+        all_pairs = read_jsonl(self.run / "pairs.jsonl")
+        # mode のない行は selection を分ける前の評価（抽選）
+        ratings_by_mode = {m: fit([r for r in all_pairs if r.get("mode", "sample") == m]) for m in self.modes}
+        ratings = ratings_by_mode[self.primary]
         key = self.key
         became_best = best is None or (best["name"] in res and significant(res[best["name"]]["metrics"][key]))
-        if became_best:
-            shutil.copyfile(path, self.run / "best.pt")
-            best_meta.write_text(json.dumps({"name": name, "update": upd}), encoding="utf-8")
         row = {
             "update": upd,
             "candidate": name,
@@ -251,8 +297,11 @@ class Evaluator:
             "walls": cfg.eval.walls,
             "best_before": best["name"] if best else None,
             "became_best": became_best,
+            "mode": self.primary,
             "results": res,
+            "results_by_mode": {m: r for m, r in by_mode.items() if m != self.primary},
             "rating": ratings.get(name),
+            "rating_by_mode": {m: r.get(name) for m, r in ratings_by_mode.items()},
             "required_walls": {
                 o: {
                     "hora_rate_0.01": required_walls(r["metrics"]["hora_rate"]["sd_per_wall"], 0.01),
@@ -263,7 +312,12 @@ class Evaluator:
             },
         }
         self.eval_log.append(row)
-        self.rating_log.append({"update": upd, "time": time.time(), "ratings": ratings})
+        if became_best:
+            shutil.copyfile(path, self.run / "best.pt")
+            best_meta.write_text(json.dumps({"name": name, "update": upd}), encoding="utf-8")
+        self.rating_log.append(
+            {"update": upd, "time": time.time(), "mode": self.primary, "ratings": ratings, "by_mode": ratings_by_mode}
+        )
         self.curriculum(row)
         path.unlink()
         return row
@@ -332,6 +386,13 @@ def main() -> None:
             f"avg_rank a={rb['avg_rank']['a']:.3f} ({r['seconds']:.0f}s)",
             flush=True,
         )
+        for m, rm in r["results_by_mode"].items():
+            g = rm["rulebot"]["metrics"]
+            print(
+                f"  [{m}] rating={r['rating_by_mode'][m]:.0f} hora a={g['hora_rate']['a']:.4f} "
+                f"rulebot={g['hora_rate']['b']:.4f} avg_rank a={g['avg_rank']['a']:.3f}",
+                flush=True,
+            )
 
 
 if __name__ == "__main__":

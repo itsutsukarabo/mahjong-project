@@ -2,6 +2,12 @@
 
 牌譜再生画面（web/apps/replay）でそのまま開ける形（LOG_FORMAT §6）。学習の環境とは別の小さな環境で打つ
 （学習のデータには入れない）。注釈を作るのは書き出す対局（数局）の判断ポイントだけで、学習のループの外にある。
+
+行動の選び方は2つ（`samples.modes`）：
+- `sample`：方策の確率どおりに抽選（学習の対局と同じ）。ファイル `<game_id>.sample.mjlog.jsonl`／`.sample.annot.jsonl`
+- `greedy`：一番確率の高い行動だけ（AI の「本気の打牌」）。同じ牌山を別の game_id（`GREEDY_OFFSET` を足した番号）で打つ。
+  ファイル `<game_id>.greedy.mjlog.jsonl`／`.greedy.annot.jsonl`
+注釈の `selection` にもどちらかを書く（LOG_FORMAT §6）
 """
 
 from __future__ import annotations
@@ -18,6 +24,8 @@ from .model import MjModel
 from .rollout import TENSOR_KEYS, forward, to_device
 
 _NAMES: list[str] | None = None
+# greedy の対局の game_id ＝ 同じ牌山の sample の対局の番号 ＋ これ
+GREEDY_OFFSET = 1_000_000_000
 
 
 def action_names() -> list[str]:
@@ -28,9 +36,24 @@ def action_names() -> list[str]:
 
 
 def play_and_write(cfg: Config, model: MjModel, dev: torch.device, out_dir: Path, round_idx: int, label: str) -> list[Path]:
-    """`cfg.samples.games` 局を打って `out_dir` に書く。書いた牌譜のパスを返す"""
+    """`cfg.samples.games` 局を `cfg.samples.modes` のそれぞれで打って `out_dir` に書く。書いた牌譜のパスを返す"""
+    paths = []
+    for mode in cfg.samples.modes:
+        paths += play_mode(cfg, model, dev, out_dir, round_idx, label, mode)
+    return paths
+
+
+def play_mode(
+    cfg: Config, model: MjModel, dev: torch.device, out_dir: Path, round_idx: int, label: str, mode: str
+) -> list[Path]:
+    if mode not in ("sample", "greedy"):
+        raise ValueError(f"samples.modes: {mode!r}")
     s = cfg.samples
     e = cfg.env
+    nplayers = 3 if "sanma" in e.rules else 4
+    first = round_idx * s.games
+    off = GREEDY_OFFSET if mode == "greedy" else 0
+    sched = [(off + i, mj_py.game_seed(s.seed, i), [False] * nplayers) for i in range(first, first + s.games)]
     env = mj_py.VecEnv(
         rules=e.rules,
         num_tables=s.games,
@@ -40,7 +63,7 @@ def play_and_write(cfg: Config, model: MjModel, dev: torch.device, out_dir: Path
         record_logs=True,
         max_events=e.max_events,
         overrides=e.overrides(),
-        first_game_index=round_idx * s.games,
+        schedule=sched,
     )
     names = np.array(action_names(), dtype=object)
     annots: dict[int, list[dict]] = {}
@@ -48,17 +71,20 @@ def play_and_write(cfg: Config, model: MjModel, dev: torch.device, out_dir: Path
     gen = torch.Generator(device=dev).manual_seed(s.seed + round_idx)
     b = env.observe()
     model.eval()
-    while len(logs) < s.games:
+    while not env.is_done:
         n = len(b["decision_id"])
         if n == 0:
             break
         t = to_device(b, TENSOR_KEYS, dev)
         with torch.no_grad():
             out = forward(model, t, cfg.ppo.bf16)
-            probs = torch.softmax(out.logits, -1)
-            a = torch.multinomial(probs, 1, generator=gen).squeeze(1)
+            probs = torch.softmax(out.logits.float(), -1)
+            if mode == "greedy":
+                a = probs.argmax(-1)
+            else:
+                a = torch.multinomial(probs, 1, generator=gen).squeeze(1)
         a_np = a.cpu().numpy()
-        p_np = probs.float().cpu().numpy()
+        p_np = probs.cpu().numpy()
         v_np = out.value.float().cpu().numpy()
         for i in range(n):
             legal = np.nonzero(b["mask"][i])[0]
@@ -74,16 +100,17 @@ def play_and_write(cfg: Config, model: MjModel, dev: torch.device, out_dir: Path
                     "model": label,
                     "policy": [[names[j], round(float(p_np[i, j]), 6)] for j in legal],
                     "value": round(float(v_np[i]), 6),
+                    "selection": mode,
                 }
             )
         b = env.step(b["decision_id"], a_np.astype(np.int64))
         for f in b["finished"]:
-            if len(logs) < s.games and f["game_id"] not in logs:
-                logs[f["game_id"]] = f["log_jsonl"]
+            logs[f["game_id"]] = f["log_jsonl"]
+    assert len(logs) == s.games, (len(logs), s.games)
     out_dir.mkdir(parents=True, exist_ok=True)
     paths = []
     for gid, log in sorted(logs.items()):
-        stem = mj_py.log_game_id(s.seed, gid)
+        stem = f"{mj_py.log_game_id(s.seed, gid)}.{mode}"
         lp = out_dir / f"{stem}.mjlog.jsonl"
         lp.write_text(log, encoding="utf-8")
         (out_dir / f"{stem}.annot.jsonl").write_text(

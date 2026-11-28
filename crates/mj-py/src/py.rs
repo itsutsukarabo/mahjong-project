@@ -286,6 +286,12 @@ fn log_game_id(seed: u64, game_id: i64) -> String {
     crate::env::log_game_id(seed, game_id)
 }
 
+/// 通し番号 `game_index` の対局の牌山のシード（`first_game_index` で始めた対局と同じ牌山を `schedule` で打つときに使う）
+#[pyfunction]
+fn game_seed(seed: u64, game_index: u64) -> u64 {
+    crate::env::game_seed(seed, game_index)
+}
+
 /// 補助タスクのラベルの区画（名前, 次元）
 #[pyfunction]
 fn aux_sections() -> Vec<(String, usize)> {
@@ -314,6 +320,7 @@ fn mj_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(action_names, m)?)?;
     m.add_function(wrap_pyfunction!(log_game_id, m)?)?;
     m.add_function(wrap_pyfunction!(aux_sections, m)?)?;
+    m.add_function(wrap_pyfunction!(game_seed, m)?)?;
     m.add_function(wrap_pyfunction!(validate_annotations, m)?)?;
     Ok(())
 }

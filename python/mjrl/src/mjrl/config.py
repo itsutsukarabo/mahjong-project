@@ -109,6 +109,8 @@ class SamplesCfg:
     every: int = 50
     games: int = 2
     seed: int = 777
+    # 行動の選び方："sample"（確率どおりに抽選）・"greedy"（一番確率の高い行動）。それぞれ games 局（同じ牌山）
+    modes: tuple[str, ...] = ("sample", "greedy")
 
 
 @dataclass
@@ -129,6 +131,10 @@ class EvalCfg:
     # 何更新ごとのチェックポイントを評価するか
     every: int = 50
     memorials: int = 3
+    # 行動の選び方（両方の打ち手に同じものを使う）："sample"（確率どおりに抽選）・"greedy"（一番確率の高い行動）
+    modes: tuple[str, ...] = ("sample", "greedy")
+    # 最良のモデルの更新・カリキュラムの目安・rating.jsonl の ratings に使う選び方（ほかの選び方は by_mode に記録する）
+    rating_mode: str = "sample"
 
 
 @dataclass

@@ -144,11 +144,23 @@ def test_samples_open_in_replay(tmp_path):
     t = env_batch(8)
     m = MjModel(cfg.model, Dims(t["policy"].shape[1], t["critic"].shape[1], 192))
     paths = play_and_write(cfg, m, torch.device("cpu"), tmp_path, 0, "tiny@u0")
-    assert len(paths) == 2
+    assert len(paths) == 4
+    seeds: dict[str, list[int]] = {"sample": [], "greedy": []}
     for p in paths:
+        mode = p.name.split(".")[-3]
+        assert mode in seeds
         ann = p.with_name(p.name.replace(".mjlog.jsonl", ".annot.jsonl"))
         n = mj_py.validate_annotations(p.read_text(encoding="utf-8"), ann.read_text(encoding="utf-8"))
         assert n > 5
+        rows = [json.loads(x) for x in ann.read_text(encoding="utf-8").splitlines()]
+        assert all(r["selection"] == mode for r in rows)
+        if mode == "greedy":
+            # 一番確率の高い行動を選んでいる（同じ確率なら番号の小さい方 ＝ policy の並びの先）
+            assert all(r["decision"] == max(r["policy"], key=lambda x: x[1])[0] for r in rows)
+        first = json.loads(p.read_text(encoding="utf-8").splitlines()[0])
+        seeds[mode].append(first["seed"]["game_seed"])
+    # 抽選と一番確率の高い行動は同じ牌山（別の game_id）
+    assert sorted(seeds["sample"]) == sorted(seeds["greedy"])
 
 
 def run_updates(run: Path, cfg: Config, n: int) -> Trainer:
@@ -188,8 +200,22 @@ def test_resume_matches_uninterrupted(tmp_path, self_only):
     ev = Evaluator(tmp_path / "b", walls=2)
     rows = [ev.evaluate(p) for p in ev.pending()]
     assert rows and all("rulebot" in r["results"] for r in rows)
-    assert read_jsonl(tmp_path / "b" / "rating.jsonl")
+    # 抽選（レーティングの既定）と一番確率の高い行動の両方で評価する
+    assert all(r["mode"] == "sample" and "rulebot" in r["results_by_mode"]["greedy"] for r in rows)
+    rt = read_jsonl(tmp_path / "b" / "rating.jsonl")
+    assert rt and set(rt[-1]["by_mode"]) == {"sample", "greedy"}
     assert read_jsonl(tmp_path / "b" / "curriculum.jsonl")
+    # 評価の途中で落ちた後：eval.jsonl に行のない候補の組を消し、評価済みなのに残った待ちのファイルを消す
+    pairs = tmp_path / "b" / "pairs.jsonl"
+    n_pairs = len(read_jsonl(pairs))
+    with open(pairs, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"a": "u9999999", "b": "rulebot", "update": 9999999, "mode": "sample", "wins_a": 1, "wins_b": 0, "draws": 0}) + "\n")
+    q = tmp_path / "b" / "eval_queue"
+    q.mkdir(exist_ok=True)
+    (q / f"{rows[0]['candidate']}.pt").write_bytes(b"x")
+    ev2 = Evaluator(tmp_path / "b", walls=2)
+    assert len(read_jsonl(pairs)) == n_pairs
+    assert ev2.pending() == [] and not (q / f"{rows[0]['candidate']}.pt").exists()
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU がない（CI は CPU だけ）")

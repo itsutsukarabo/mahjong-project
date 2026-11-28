@@ -88,10 +88,29 @@ def main() -> None:
     lines(axs[1, 1], st, [("局収支（点、1局あたり）", ("play", "latest", "avg_score_delta"))], k, "局収支")
     save(fig, "play", "打ち方の7項目（学習の対局）。薄い線は更新ごと、濃い線は移動平均")
 
+    if any("discard" in r for r in st):
+        fig, ax = plt.subplots(figsize=(12, 4))
+        lines(
+            ax,
+            st,
+            [
+                (f"{'抽選' if m == 'sample' else '一番確率の高い行動'}・{'他家の立直なし' if c == 'no_riichi' else '他家の立直あり'}", ("discard", m, c, "rate"))
+                for m in ("sample", "greedy")
+                for c in ("no_riichi", "opp_riichi")
+            ],
+            k,
+            "シャンテン数を悪化させる打牌の割合（学習の対局、最新のモデルの席。普通の手・七対子・国士無双の最小）",
+        )
+        save(fig, "discard", "シャンテン数を悪化させる打牌の割合")
+
     fig, axs = plt.subplots(2, 2, figsize=(12, 8))
     lines(axs[0, 0], st, [("方策", ("train", "loss_policy")), ("価値", ("train", "loss_value"))], k, "損失：方策・価値")
     lines(axs[0, 1], st, [(n, ("train", f"loss_{n}")) for n in ("opp_hand", "opp_shanten", "opp_tenpai", "opp_waits")], k, "補助タスクの損失（重みを掛ける前）")
-    lines(axs[1, 0], st, [(n, ("train", f"share_{n}")) for n in ("policy", "value", "entropy", "opp_hand", "opp_shanten", "opp_tenpai", "opp_waits")], k, "全体の損失に占める割合（D-050）")
+    names7 = ("policy", "value", "entropy", "opp_hand", "opp_shanten", "opp_tenpai", "opp_waits")
+    if any("grad_share_policy" in r.get("train", {}) for r in st):
+        lines(axs[1, 0], st, [(n, ("train", f"grad_share_{n}")) for n in names7], k, "共有の幹にかかる勾配の大きさの割合（D-061）")
+    else:
+        lines(axs[1, 0], st, [(n, ("train", f"share_{n}")) for n in names7], k, "全体の損失に占める割合（D-050）")
     lines(axs[1, 1], st, [("エントロピー", ("train", "entropy")), ("近似 KL × 100", ("train", "approx_kl")), ("クリップの割合", ("train", "clip_frac")), ("説明分散", ("train", "explained_variance"))], k, "エントロピー・KL・クリップ・価値の説明分散")
     ax = axs[1, 1]
     for ln in ax.lines:
@@ -136,14 +155,25 @@ def main() -> None:
         axs[1].fill_between(x, lo, hi, alpha=0.3)
         axs[1].plot(x, [e["results"]["rulebot"]["metrics"]["hora_rate"]["diff"] for e in ev], "o-")
         axs[1].axhline(0, color="k", lw=1)
+        for m in sorted({m for e in ev for m in e.get("results_by_mode", {})}):
+            pts = [(e["update"], e["results_by_mode"][m]["rulebot"]["metrics"]["hora_rate"]) for e in ev if m in e.get("results_by_mode", {})]
+            axs[0].plot([u for u, _ in pts], [h["a"] for _, h in pts], "^-", label=f"候補（{m}）")
+            axs[0].plot([u for u, _ in pts], [h["b"] for _, h in pts], "v:", label=f"RuleBot（{m} の対局）")
+            axs[1].plot([u for u, _ in pts], [h["diff"] for _, h in pts], "^-", label=m)
+        axs[0].legend(fontsize=8)
         axs[1].set_title("候補 − RuleBot の和了率の差と 95% 区間")
         axs[1].set_xlabel("更新の回数")
-        save(fig, "eval", "評価（デュプリケート、席の並び6通り）")
+        save(fig, "eval", "評価（デュプリケート、席の並び6通り。既定は抽選、ほかの選び方は by_mode）")
     if rt:
         fig, ax = plt.subplots(figsize=(12, 4))
         last = rt[-1]["ratings"]
         names = sorted(n for n in last if n.startswith("u"))
-        ax.plot([int(n[1:]) for n in names], [last[n] for n in names], "o-", label="チェックポイント")
+        ax.plot([int(n[1:]) for n in names], [last[n] for n in names], "o-", label=f"チェックポイント（{rt[-1].get('mode', 'sample')}）")
+        for m, rm in rt[-1].get("by_mode", {}).items():
+            if m == rt[-1].get("mode", "sample"):
+                continue
+            nm = sorted(n for n in rm if n.startswith("u"))
+            ax.plot([int(n[1:]) for n in nm], [rm[n] for n in nm], "s--", label=f"チェックポイント（{m}）")
         ax.axhline(last.get("rulebot", 1000.0), color="r", ls="--", label="RuleBot（1000 に固定）")
         ax.set_title("強さの推移（レーティング、最新の評価までの結果で解き直した値。D-054）")
         ax.set_xlabel("更新の回数")
