@@ -18,6 +18,7 @@ const LOGS: [string, string | null][] = [
   ["fixtures/sample.public.mjlog.jsonl", null],
   ["fixtures/rulebot.mjlog.jsonl", "fixtures/rulebot.annot.jsonl"],
   ["fixtures/rulebot.public.mjlog.jsonl", null],
+  ["fixtures/rulebot-v04.mjlog.jsonl", null],
   ["fixtures/mjpy-selfplay.mjlog.jsonl", null],
   ["fixtures/rl-u157.mjlog.jsonl", "fixtures/rl-u157.annot.jsonl"],
   ["fixtures/yonma.mjlog.jsonl", null],
@@ -195,6 +196,38 @@ test("result window closes and autoplay holds then continues", async ({ page }) 
   expect(await page.evaluate(() => window.__replay.playing())).toBe(false);
 });
 
+test("result window names the hand from hora.limit, and from han only in old logs", async ({ page }) => {
+  // LOG_FORMAT v0.5（limit あり）：6翻 → 跳満（limit = haneman）、4翻20符 → 名前なし（limit = none）
+  await open(page, "log=fixtures/rulebot.mjlog.jsonl&kyoku=0&event=82&anim=0");
+  await expect(page.locator(".result-limit")).toHaveText("跳満");
+  await expect(page.locator(".result-points")).toHaveText("12,000点");
+  // 窓の中身が横にはみ出さない（スマホの縦画面を含む）
+  const fits = await page.evaluate(() => {
+    const r = document.querySelector<HTMLElement>("[data-part=result]")!;
+    const box = r.getBoundingClientRect();
+    return [...r.querySelectorAll(".tile")].every((t) => t.getBoundingClientRect().right <= box.right - 4);
+  });
+  expect(fits).toBe(true);
+  await open(page, "log=fixtures/rulebot.mjlog.jsonl&kyoku=4&event=102&anim=0");
+  await expect(page.locator("[data-part=result]")).toBeVisible();
+  await expect(page.locator(".result-limit")).toHaveCount(0);
+  // v0.4（limit なし）：翻数だけで決まるもの（5翻以上）だけ名前を出す
+  await open(page, "log=fixtures/rulebot-v04.mjlog.jsonl&kyoku=3&event=94&anim=0");
+  await expect(page.locator(".result-limit")).toHaveText("満貫");
+  await open(page, "log=fixtures/rulebot-v04.mjlog.jsonl&kyoku=4&event=102&anim=0");
+  await expect(page.locator("[data-part=result]")).toBeVisible();
+  await expect(page.locator(".result-limit")).toHaveCount(0);
+});
+
+test("kita is shown as one tile with its count", async ({ page }) => {
+  await open(page, "log=fixtures/rulebot.mjlog.jsonl&kyoku=0&event=60&anim=0&seat=1");
+  const kita = page.locator(".self [data-part=kita]");
+  await expect(kita.locator(".tile")).toHaveCount(1);
+  const n = Number(await kita.getAttribute("data-count"));
+  expect(n).toBeGreaterThan(1);
+  await expect(kita.locator(".kita-count")).toHaveText(`×${n}`);
+});
+
 const SNAPSHOTS: [string, string][] = [
   ["sample-start", "log=fixtures/sample.mjlog.jsonl&kyoku=0&event=0"],
   ["sample-pon-decision", "log=fixtures/sample.mjlog.jsonl&annot=fixtures/sample.annot.jsonl&kyoku=0&event=8"],
@@ -205,6 +238,7 @@ const SNAPSHOTS: [string, string][] = [
   ["rulebot-kita", "log=fixtures/rulebot.mjlog.jsonl&annot=fixtures/rulebot.annot.jsonl&kyoku=0&event=4&seat=1"],
   ["rulebot-annotated", "log=fixtures/rulebot.mjlog.jsonl&annot=fixtures/rulebot.annot.jsonl&kyoku=0&event=31&seat=1"],
   ["rulebot-game-end", "log=fixtures/rulebot.mjlog.jsonl&kyoku=9&event=-1"],
+  ["rulebot-haneman", "log=fixtures/rulebot.mjlog.jsonl&kyoku=0&event=82"],
   ["rl-annotated", "log=fixtures/rl-u157.mjlog.jsonl&annot=fixtures/rl-u157.annot.jsonl&kyoku=0&event=1"],
   ["rl-ryukyoku", "log=fixtures/rl-u157.mjlog.jsonl&annot=fixtures/rl-u157.annot.jsonl&kyoku=0&event=-2"],
   ["yonma-calls", "log=fixtures/yonma.mjlog.jsonl&kyoku=5&event=92"],
